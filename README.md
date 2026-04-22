@@ -70,6 +70,24 @@ npm run prisma:studio
 npm run db:seed
 ```
 
+## 内部内容辅助
+
+Phase 8 新增了一个内部工作台：
+
+- 页面入口：`/content-assist`
+- 草稿目录：`content-assist/drafts`
+- 已审核目录：`content-assist/approved`
+
+工作流如下：
+
+1. 在 `/content-assist` 打开某条公式的内容工作台。
+2. 生成或刷新解释草稿、Review 题目、关系候选和记忆联想候选。
+3. 人工编辑并保存草稿。
+4. 点击“审核通过并写入 seed 包”。
+5. 下一次执行 `npm run db:seed` 时，`content-assist/approved` 下的已审核 JSON 会自动合并进种子数据。
+
+这条能力只用于内部内容生产，不会出现在用户侧主流程导航里。
+
 ## 项目文档
 
 - `AGENTS.md`：给 Codex 和其他 coding agent 的项目工作说明。
