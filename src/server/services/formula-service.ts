@@ -1,7 +1,10 @@
 import {
+  createUserFormulaMemoryHook,
   getFormulaByIdOrSlug,
   listFormulaRelations,
+  listFormulaMemoryHooks,
   listFormulas,
+  selectFormulaMemoryHook,
 } from "@/server/repositories/formula-repository";
 import type {
   FormulaDetail,
@@ -48,6 +51,90 @@ export async function getFormulaRelationDetails(
   return relations.map(toFormulaRelationDetail);
 }
 
+export async function getFormulaMemoryHooks({
+  formulaIdOrSlug,
+  userId,
+}: {
+  formulaIdOrSlug: string;
+  userId?: string;
+}) {
+  const hooks = await listFormulaMemoryHooks({
+    formulaIdOrSlug,
+    userId,
+  });
+
+  if (!hooks) {
+    return null;
+  }
+
+  return hooks.map((hook) => ({
+    id: hook.id,
+    source: hook.source,
+    type: hook.type,
+    content: hook.content,
+    prompt: hook.prompt,
+  }));
+}
+
+export async function addUserFormulaMemoryHook({
+  formulaIdOrSlug,
+  userId,
+  content,
+  prompt,
+}: {
+  formulaIdOrSlug: string;
+  userId: string;
+  content: string;
+  prompt?: string;
+}) {
+  const hook = await createUserFormulaMemoryHook({
+    formulaIdOrSlug,
+    userId,
+    content,
+    prompt,
+  });
+
+  if (!hook) {
+    return null;
+  }
+
+  return {
+    id: hook.id,
+    source: hook.source,
+    type: hook.type,
+    content: hook.content,
+    prompt: hook.prompt,
+  };
+}
+
+export async function chooseFormulaMemoryHook({
+  formulaIdOrSlug,
+  hookId,
+  userId,
+}: {
+  formulaIdOrSlug: string;
+  hookId: string;
+  userId?: string;
+}) {
+  const hook = await selectFormulaMemoryHook({
+    formulaIdOrSlug,
+    hookId,
+    userId,
+  });
+
+  if (!hook) {
+    return null;
+  }
+
+  return {
+    id: hook.id,
+    source: hook.source,
+    type: hook.type,
+    content: hook.content,
+    prompt: hook.prompt,
+  };
+}
+
 function toFormulaSummary(formula: FormulaWithCounts): FormulaSummary {
   return {
     id: formula.id,
@@ -71,6 +158,7 @@ function toFormulaDetail(formula: FormulaWithDetail): FormulaDetail {
     intuition: formula.intuition,
     derivation: formula.derivation,
     useConditions: formula.useConditions,
+    nonUseConditions: formula.nonUseConditions,
     antiPatterns: formula.antiPatterns,
     typicalProblems: formula.typicalProblems,
     examples: formula.examples,

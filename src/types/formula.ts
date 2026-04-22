@@ -17,6 +17,7 @@ export type FormulaDetail = FormulaSummary & {
   intuition: string | null;
   derivation: string | null;
   useConditions: string[];
+  nonUseConditions: string[];
   antiPatterns: string[];
   typicalProblems: string[];
   examples: string[];

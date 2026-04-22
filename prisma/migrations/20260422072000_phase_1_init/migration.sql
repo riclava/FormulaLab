@@ -44,6 +44,7 @@ CREATE TABLE "formulas" (
     "intuition" TEXT,
     "derivation" TEXT,
     "useConditions" TEXT[],
+    "nonUseConditions" TEXT[],
     "antiPatterns" TEXT[],
     "typicalProblems" TEXT[],
     "examples" TEXT[],

@@ -12,12 +12,14 @@ import {
 } from "lucide-react";
 
 import { LatexRenderer } from "@/components/formula/latex-renderer";
+import { ReviewRemediationSheet } from "@/components/review/review-remediation-sheet";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import type {
   ReviewHint,
+  ReviewGrade,
   ReviewQueueItem,
   ReviewSessionPayload,
   ReviewSubmitResult,
@@ -56,6 +58,11 @@ export function ReviewSession() {
     good: 0,
     easy: 0,
   });
+  const [pendingRemediation, setPendingRemediation] = useState<{
+    item: ReviewQueueItem;
+    grade: Extract<ReviewGrade, "again" | "hard">;
+  } | null>(null);
+  const [isRemediationOpen, setIsRemediationOpen] = useState(false);
   const [completedSessionId, setCompletedSessionId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -101,6 +108,10 @@ export function ReviewSession() {
     ? Math.round((completedCount / items.length) * 100)
     : 0;
   const currentHint = currentItem ? hintByFormulaId[currentItem.formulaId] : undefined;
+  const activeRemediation =
+    pendingRemediation?.item.reviewItemId === currentItem?.reviewItemId
+      ? pendingRemediation
+      : null;
 
   if (error) {
     return (
@@ -131,122 +142,166 @@ export function ReviewSession() {
   }
 
   return (
-    <section className="flex flex-col gap-6 rounded-lg border bg-background p-6 shadow-sm">
-      <div className="flex flex-col gap-3">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <Badge>{labelForReviewType(currentItem.type)}</Badge>
+    <>
+      <section className="flex flex-col gap-6 rounded-lg border bg-background p-6 shadow-sm">
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <Badge>{labelForReviewType(currentItem.type)}</Badge>
+              <span className="text-sm text-muted-foreground">
+                {currentIndex + 1} / {items.length}
+              </span>
+            </div>
             <span className="text-sm text-muted-foreground">
-              {currentIndex + 1} / {items.length}
+              {currentItem.formula.domain}
             </span>
           </div>
-          <span className="text-sm text-muted-foreground">
-            {currentItem.formula.domain}
-          </span>
+          <Progress value={progress} aria-label="今日复习进度" />
         </div>
-        <Progress value={progress} aria-label="今日复习进度" />
-      </div>
 
-      <div className="flex flex-col gap-4">
-        <h2 className="max-w-3xl text-2xl font-semibold leading-tight">
-          {currentItem.prompt}
-        </h2>
-        <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-          {currentItem.formula.oneLineUse}
-        </p>
-      </div>
-
-      {cardState === "hint" && currentHint ? (
-        <div className="rounded-lg border bg-muted/40 p-4">
-          <div className="mb-2 flex items-center gap-2">
-            <Lightbulb data-icon="inline-start" />
-            <h3 className="font-medium">一点提示</h3>
-          </div>
-          <p className="text-sm leading-6">{currentHint.content}</p>
+        <div className="flex flex-col gap-4">
+          <h2 className="max-w-3xl text-2xl font-semibold leading-tight">
+            {currentItem.prompt}
+          </h2>
+          <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
+            {currentItem.formula.oneLineUse}
+          </p>
         </div>
-      ) : null}
 
-      {cardState === "answer" ? (
-        <div className="flex flex-col gap-4 rounded-lg border bg-muted/40 p-4">
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2">
-              <BookOpen data-icon="inline-start" />
-              <h3 className="font-medium">参考答案</h3>
+        {cardState === "hint" && currentHint ? (
+          <div className="rounded-lg border bg-muted/40 p-4">
+            <div className="mb-2 flex items-center gap-2">
+              <Lightbulb data-icon="inline-start" />
+              <h3 className="font-medium">一点提示</h3>
             </div>
-            <Link
-              href={`/formulas/${currentItem.formula.slug}`}
-              className={buttonVariants({ variant: "outline", size: "sm" })}
-            >
-              查看详情
-            </Link>
+            <p className="text-sm leading-6">{currentHint.content}</p>
           </div>
-          {currentItem.type === "recall" ? (
-            <LatexRenderer block expression={currentItem.formula.expressionLatex} />
-          ) : (
-            <p className="text-sm leading-6 whitespace-pre-line">{currentItem.answer}</p>
-          )}
-          {currentItem.explanation ? (
-            <p className="text-sm leading-6 text-muted-foreground">
-              {currentItem.explanation}
-            </p>
-          ) : null}
-        </div>
-      ) : null}
+        ) : null}
 
-      {cardState !== "answer" ? (
-        <div className="flex flex-wrap gap-3">
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={() => handleHintRequest(currentItem)}
-            disabled={isPending}
-          >
-            <Lightbulb data-icon="inline-start" />
-            给我一点提示
-          </Button>
-          <Button
-            type="button"
-            onClick={() => setCardState("answer")}
-            disabled={isPending}
-          >
-            <Clock3 data-icon="inline-start" />
-            显示答案
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => deferCurrentItem(currentItem)}
-            disabled={isPending}
-          >
-            <RotateCcw data-icon="inline-start" />
-            稍后再练
-          </Button>
-        </div>
-      ) : (
-        <div className="grid gap-3 md:grid-cols-4">
-          {gradeButtons.map((grade) => (
-            <button
-              key={grade.value}
+        {cardState === "answer" ? (
+          <div className="flex flex-col gap-4 rounded-lg border bg-muted/40 p-4">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <BookOpen data-icon="inline-start" />
+                <h3 className="font-medium">参考答案</h3>
+              </div>
+              <Link
+                href={`/formulas/${currentItem.formula.slug}`}
+                className={buttonVariants({ variant: "outline", size: "sm" })}
+              >
+                查看详情
+              </Link>
+            </div>
+            {currentItem.type === "recall" ? (
+              <LatexRenderer block expression={currentItem.formula.expressionLatex} />
+            ) : (
+              <p className="text-sm leading-6 whitespace-pre-line">{currentItem.answer}</p>
+            )}
+            {currentItem.explanation ? (
+              <p className="text-sm leading-6 text-muted-foreground">
+                {currentItem.explanation}
+              </p>
+            ) : null}
+          </div>
+        ) : null}
+
+        {cardState !== "answer" ? (
+          <div className="flex flex-wrap gap-3">
+            <Button
               type="button"
+              variant="secondary"
+              onClick={() => handleHintRequest(currentItem)}
               disabled={isPending}
-              onClick={() => submitGrade(currentItem, grade.value)}
-              className={cn(
-                "rounded-lg border p-4 text-left transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60",
-                grade.value === "again" && "border-red-200",
-                grade.value === "hard" && "border-amber-200",
-                grade.value === "good" && "border-blue-200",
-                grade.value === "easy" && "border-emerald-200",
-              )}
             >
-              <span className="block font-medium">{grade.label}</span>
-              <span className="mt-1 block text-sm text-muted-foreground">
-                {grade.description}
-              </span>
-            </button>
-          ))}
-        </div>
-      )}
-    </section>
+              <Lightbulb data-icon="inline-start" />
+              给我一点提示
+            </Button>
+            <Button
+              type="button"
+              onClick={() => setCardState("answer")}
+              disabled={isPending}
+            >
+              <Clock3 data-icon="inline-start" />
+              显示答案
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => deferCurrentItem(currentItem)}
+              disabled={isPending}
+            >
+              <RotateCcw data-icon="inline-start" />
+              稍后再练
+            </Button>
+          </div>
+        ) : activeRemediation ? (
+          <div className="flex flex-col gap-4 rounded-lg border border-amber-200 bg-amber-50/70 p-4">
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-amber-950">
+                已记录为 {activeRemediation.grade === "again" ? "Again" : "Hard"}。
+              </p>
+              <p className="text-sm leading-6 text-amber-900/90">
+                先看一下适用条件、常见误用或记忆钩子，再继续下一题会更稳。
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <Button type="button" onClick={() => setIsRemediationOpen(true)}>
+                <BookOpen data-icon="inline-start" />
+                进入补弱
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => deferAfterRemediation(currentItem)}
+                disabled={isPending}
+              >
+                <RotateCcw data-icon="inline-start" />
+                加入今日稍后再练
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={continueAfterRemediation}
+              >
+                继续下一题
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="grid gap-3 md:grid-cols-4">
+            {gradeButtons.map((grade) => (
+              <button
+                key={grade.value}
+                type="button"
+                disabled={isPending}
+                onClick={() => submitGrade(currentItem, grade.value)}
+                className={cn(
+                  "rounded-lg border p-4 text-left transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60",
+                  grade.value === "again" && "border-red-200",
+                  grade.value === "hard" && "border-amber-200",
+                  grade.value === "good" && "border-blue-200",
+                  grade.value === "easy" && "border-emerald-200",
+                )}
+              >
+                <span className="block font-medium">{grade.label}</span>
+                <span className="mt-1 block text-sm text-muted-foreground">
+                  {grade.description}
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <ReviewRemediationSheet
+        item={activeRemediation?.item ?? null}
+        grade={activeRemediation?.grade ?? null}
+        open={isRemediationOpen}
+        onOpenChange={setIsRemediationOpen}
+        onDefer={() => deferAfterRemediation(currentItem)}
+        onContinue={continueAfterRemediation}
+      />
+    </>
   );
 
   function handleHintRequest(item: ReviewQueueItem) {
@@ -357,6 +412,15 @@ export function ReviewSession() {
           [grade]: previous[grade] + 1,
         }));
 
+        if (grade === "again" || grade === "hard") {
+          setPendingRemediation({
+            item,
+            grade,
+          });
+          setIsRemediationOpen(true);
+          return;
+        }
+
         if (currentIndex === items.length - 1) {
           setCompletedSessionId(payload.data.sessionId);
           return;
@@ -384,7 +448,19 @@ export function ReviewSession() {
 
       return nextIndex;
     });
+    setPendingRemediation(null);
+    setIsRemediationOpen(false);
     setCardState("prompt");
+  }
+
+  function continueAfterRemediation() {
+    moveToNextItem();
+  }
+
+  function deferAfterRemediation(item: ReviewQueueItem) {
+    setPendingRemediation(null);
+    setIsRemediationOpen(false);
+    deferCurrentItem(item);
   }
 }
 

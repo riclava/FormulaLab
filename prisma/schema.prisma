@@ -76,6 +76,7 @@ model Formula {
   intuition       String?
   derivation      String?
   useConditions   String[]
+  nonUseConditions String[]
   antiPatterns    String[]
   typicalProblems String[]
   examples        String[]

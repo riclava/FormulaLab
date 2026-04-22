@@ -95,3 +95,118 @@ export async function listFormulaRelations(idOrSlug: string) {
     orderBy: [{ relationType: "asc" }, { createdAt: "asc" }],
   });
 }
+
+export async function listFormulaMemoryHooks({
+  formulaIdOrSlug,
+  userId,
+}: {
+  formulaIdOrSlug: string;
+  userId?: string;
+}) {
+  const formula = await prisma.formula.findFirst({
+    where: {
+      OR: [{ id: formulaIdOrSlug }, { slug: formulaIdOrSlug }],
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  if (!formula) {
+    return null;
+  }
+
+  return prisma.formulaMemoryHook.findMany({
+    where: {
+      formulaId: formula.id,
+      OR: [{ userId: null }, ...(userId ? [{ userId }] : [])],
+    },
+    orderBy: [{ userId: "desc" }, { helpfulCount: "desc" }, { createdAt: "asc" }],
+  });
+}
+
+export async function createUserFormulaMemoryHook({
+  formulaIdOrSlug,
+  userId,
+  content,
+  prompt,
+}: {
+  formulaIdOrSlug: string;
+  userId: string;
+  content: string;
+  prompt?: string;
+}) {
+  const formula = await prisma.formula.findFirst({
+    where: {
+      OR: [{ id: formulaIdOrSlug }, { slug: formulaIdOrSlug }],
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  if (!formula) {
+    return null;
+  }
+
+  return prisma.formulaMemoryHook.create({
+    data: {
+      formulaId: formula.id,
+      userId,
+      source: "user_created",
+      type: "personal",
+      content,
+      prompt,
+    },
+  });
+}
+
+export async function selectFormulaMemoryHook({
+  formulaIdOrSlug,
+  hookId,
+  userId,
+}: {
+  formulaIdOrSlug: string;
+  hookId: string;
+  userId?: string;
+}) {
+  const formula = await prisma.formula.findFirst({
+    where: {
+      OR: [{ id: formulaIdOrSlug }, { slug: formulaIdOrSlug }],
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  if (!formula) {
+    return null;
+  }
+
+  const hook = await prisma.formulaMemoryHook.findFirst({
+    where: {
+      id: hookId,
+      formulaId: formula.id,
+      OR: [{ userId: null }, ...(userId ? [{ userId }] : [])],
+    },
+  });
+
+  if (!hook) {
+    return null;
+  }
+
+  return prisma.formulaMemoryHook.update({
+    where: {
+      id: hook.id,
+    },
+    data: {
+      helpfulCount: {
+        increment: 1,
+      },
+      usedCount: {
+        increment: 1,
+      },
+      lastUsedAt: new Date(),
+    },
+  });
+}

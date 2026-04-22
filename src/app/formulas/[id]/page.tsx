@@ -1,64 +1,79 @@
-import { AlertTriangle, CheckCircle2, Network } from "lucide-react";
+import { cookies } from "next/headers";
+import { notFound } from "next/navigation";
 
 import { PhaseShell } from "@/components/app/phase-shell";
-import { LatexRenderer } from "@/components/formula/latex-renderer";
-import { Badge } from "@/components/ui/badge";
+import {
+  FormulaDetailView,
+  type FocusSection,
+} from "@/components/formula/formula-detail-view";
+import {
+  ANONYMOUS_SESSION_COOKIE,
+  getOrCreateAnonymousUser,
+} from "@/server/services/anonymous-user-service";
+import {
+  getFormulaDetail,
+  getFormulaMemoryHooks,
+  getFormulaRelationDetails,
+} from "@/server/services/formula-service";
 
-export default function FormulaDetailPage() {
+function parseFocusSection(value?: string): FocusSection | undefined {
+  if (
+    value === "use" ||
+    value === "non-use" ||
+    value === "anti-patterns" ||
+    value === "hooks" ||
+    value === "relations" ||
+    value === "examples" ||
+    value === "derivation"
+  ) {
+    return value;
+  }
+
+  return undefined;
+}
+
+export default async function FormulaDetailPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ focus?: string }>;
+}) {
+  const { id } = await params;
+  const { focus } = await searchParams;
+  const cookieStore = await cookies();
+  const existingSessionId = cookieStore.get(ANONYMOUS_SESSION_COOKIE)?.value;
+  const anonymousUser = existingSessionId
+    ? await getOrCreateAnonymousUser(existingSessionId)
+    : null;
+  const [formula, relations, hooks] = await Promise.all([
+    getFormulaDetail(id),
+    getFormulaRelationDetails(id),
+    getFormulaMemoryHooks({
+      formulaIdOrSlug: id,
+      userId: anonymousUser?.user.id,
+    }),
+  ]);
+
+  if (!formula) {
+    notFound();
+  }
+
   return (
     <PhaseShell
       activePath="/formulas"
-      eyebrow="Phase 4 placeholder"
-      title="公式详情会围绕会用、会判断、会补弱来组织。"
-      description="后续这里会接入公式内容模型、变量说明、适用条件、误用点、例题、关联公式和记忆钩子。"
+      eyebrow="Phase 4 / 错误补弱"
+      title="公式详情不是百科页，而是帮助你更快判断和使用。"
+      description="这里会优先展示什么时候该用、什么时候别用、常见误用、记忆联想和关联公式，让你在补弱时直接抓住会错的原因。"
     >
-      <article className="flex flex-col gap-6 rounded-lg border bg-background p-6 shadow-sm">
-        <div className="flex flex-wrap items-center gap-2">
-          <Badge>概率统计</Badge>
-          <Badge variant="secondary">易混淆重点</Badge>
-        </div>
-
-        <div className="flex flex-col gap-3">
-          <h2 className="text-2xl font-semibold">贝叶斯定理</h2>
-          <p className="text-muted-foreground">
-            已知结果发生，反推导致该结果的某个原因的概率。
-          </p>
-          <LatexRenderer
-            block
-            expression="P(A \mid B)=\frac{P(B \mid A)P(A)}{P(B)}"
-          />
-        </div>
-
-        <div className="grid gap-4 md:grid-cols-3">
-          <section className="rounded-lg border p-4">
-            <h3 className="mb-2 flex items-center gap-2 font-medium">
-              <CheckCircle2 data-icon="inline-start" />
-              什么时候用
-            </h3>
-            <p className="text-sm text-muted-foreground">
-              题目给出正向条件概率，但要求反向条件概率。
-            </p>
-          </section>
-          <section className="rounded-lg border p-4">
-            <h3 className="mb-2 flex items-center gap-2 font-medium">
-              <AlertTriangle data-icon="inline-start" />
-              常见误用
-            </h3>
-            <p className="text-sm text-muted-foreground">
-              把 P(A|B) 和 P(B|A) 当成同一个概率。
-            </p>
-          </section>
-          <section className="rounded-lg border p-4">
-            <h3 className="mb-2 flex items-center gap-2 font-medium">
-              <Network data-icon="inline-start" />
-              关联公式
-            </h3>
-            <p className="text-sm text-muted-foreground">
-              全概率公式通常用于展开分母 P(B)。
-            </p>
-          </section>
-        </div>
-      </article>
+      <FormulaDetailView
+        formulaIdOrSlug={id}
+        initialFormula={formula}
+        initialRelations={relations ?? []}
+        initialHooks={hooks ?? formula.memoryHooks}
+        focusSection={parseFocusSection(focus)}
+        selectableHooks
+      />
     </PhaseShell>
   );
 }
