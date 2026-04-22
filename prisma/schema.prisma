@@ -160,6 +160,7 @@ model UserFormulaState {
   id                 String    @id @default(cuid())
   userId             String
   formulaId          String
+  preferredMemoryHookId String?
   memoryStrength     Float     @default(0)
   stability          Float     @default(0)
   difficultyEstimate Float     @default(0)
@@ -174,9 +175,11 @@ model UserFormulaState {
 
   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   formula Formula @relation(fields: [formulaId], references: [id], onDelete: Cascade)
+  preferredMemoryHook FormulaMemoryHook? @relation("PreferredMemoryHook", fields: [preferredMemoryHookId], references: [id], onDelete: SetNull)
 
   @@unique([userId, formulaId])
   @@index([formulaId])
+  @@index([preferredMemoryHookId])
   @@map("user_formula_states")
 }
 
@@ -236,6 +239,7 @@ model FormulaMemoryHook {
   user       User?       @relation(fields: [userId], references: [id], onDelete: Cascade)
   formula    Formula     @relation(fields: [formulaId], references: [id], onDelete: Cascade)
   reviewLogs ReviewLog[]
+  preferredByStates UserFormulaState[] @relation("PreferredMemoryHook")
 
   @@index([formulaId, userId])
   @@map("formula_memory_hooks")

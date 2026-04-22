@@ -60,8 +60,8 @@ export default async function FormulasPage({
     <PhaseShell
       activePath="/formulas"
       eyebrow="公式列表"
-      title="查公式、看边界、回到训练。"
-      description="这里是辅助入口。适合快速定位某条公式，确认适用条件、误用点和记忆钩子；要真正巩固，回到今日复习。"
+      title="先快速定位，再回到训练。"
+      description="这里不是让你慢慢逛目录的地方。更适合快速确认某条公式什么时候用、哪里容易错，然后回到刚才的训练链路。"
     >
       <section className="grid gap-5 rounded-lg border bg-background p-6 shadow-sm">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
@@ -104,6 +104,14 @@ export default async function FormulasPage({
                 回到今日复习
                 <ArrowRight data-icon="inline-end" />
               </Link>
+              {resultSummary.weakCount > 0 ? (
+                <Link
+                  href="/review?mode=weak"
+                  className={buttonVariants({ size: "sm", variant: "secondary" })}
+                >
+                  先补弱项
+                </Link>
+              ) : null}
               <Link
                 href={buildHref({
                   q: null,
@@ -185,10 +193,9 @@ export default async function FormulasPage({
       <section className="grid gap-4">
         {catalog.formulas.length > 0 ? (
           catalog.formulas.map((formula) => (
-            <Link
+            <article
               key={formula.id}
-              href={`/formulas/${formula.slug}`}
-              className="grid gap-4 rounded-lg border bg-background p-5 shadow-sm transition-colors hover:bg-muted/40"
+              className="grid gap-4 rounded-lg border bg-background p-5 shadow-sm"
             >
               <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                 <div className="grid gap-3">
@@ -198,7 +205,6 @@ export default async function FormulasPage({
                       {formula.trainingStatusLabel}
                     </Badge>
                     <Badge variant="outline">{formula.domain}</Badge>
-                    <Badge variant="outline">难度 {formula.difficulty}</Badge>
                     {formula.hasPersonalMemoryHook ? (
                       <Badge variant="secondary">
                         <Sparkles data-icon="inline-start" />
@@ -217,7 +223,7 @@ export default async function FormulasPage({
                   </p>
                 </div>
 
-                <div className="grid gap-2 rounded-lg border px-4 py-3 text-sm text-muted-foreground lg:min-w-56">
+                <div className="grid gap-2 rounded-lg border px-4 py-3 text-sm text-muted-foreground lg:min-w-60">
                   <div className="flex items-center gap-2 font-medium text-foreground">
                     <Clock3 data-icon="inline-start" />
                     <span>下次复习</span>
@@ -232,11 +238,15 @@ export default async function FormulasPage({
               </div>
 
               <div className="flex flex-wrap gap-2">
-                {formula.tags.map((item) => (
+                <Badge variant="outline">难度 {formula.difficulty}</Badge>
+                {formula.tags.slice(0, 4).map((item) => (
                   <Badge key={item} variant="outline">
                     {item}
                   </Badge>
                 ))}
+                {formula.tags.length > 4 ? (
+                  <Badge variant="outline">+{formula.tags.length - 4}</Badge>
+                ) : null}
               </div>
 
               <div className="flex flex-wrap items-center justify-between gap-3 border-t pt-4 text-sm text-muted-foreground">
@@ -245,9 +255,24 @@ export default async function FormulasPage({
                   <span>训练题：{formula.reviewItemCount}</span>
                   <span>可用联想：{formula.memoryHookCount}</span>
                 </div>
-                <span className="font-medium text-foreground">查看详情</span>
+                <div className="flex flex-wrap gap-2">
+                  <Link
+                    href={`/formulas/${formula.slug}?from=formulas`}
+                    className={buttonVariants({ size: "sm", variant: "outline" })}
+                  >
+                    查看详情
+                  </Link>
+                  {formula.isWeak ? (
+                    <Link
+                      href={`/formulas/${formula.slug}?from=formulas&focus=anti-patterns`}
+                      className={buttonVariants({ size: "sm" })}
+                    >
+                      继续补弱
+                    </Link>
+                  ) : null}
+                </div>
               </div>
-            </Link>
+            </article>
           ))
         ) : (
           <div className="rounded-lg border border-dashed bg-background p-8 text-sm text-muted-foreground">

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect } from "react";
 import { ArrowRight } from "lucide-react";
 
+import type { FocusSection } from "@/components/formula/formula-detail-view";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import type { WeakFormulaStat } from "@/types/stats";
@@ -63,7 +64,7 @@ export function WeakFormulaList({
           </div>
           <div className="mt-4">
             <Link
-              href={`/formulas/${formula.slug}?focus=anti-patterns`}
+              href={`/formulas/${formula.slug}?from=summary&focus=${focusSectionForWeakPoint(formula.weakPoint)}`}
               className={buttonVariants({ variant: "outline", size: "sm" })}
               onClick={() => {
                 void fetch("/api/stats/events", {
@@ -82,7 +83,7 @@ export function WeakFormulaList({
                 });
               }}
             >
-              继续补弱
+              {actionLabelForWeakPoint(formula.weakPoint)}
               <ArrowRight data-icon="inline-end" />
             </Link>
           </div>
@@ -103,5 +104,34 @@ function weakPointLabel(weakPoint: WeakFormulaStat["weakPoint"]) {
     case "application":
     default:
       return "应用迁移";
+  }
+}
+
+function focusSectionForWeakPoint(
+  weakPoint: WeakFormulaStat["weakPoint"],
+): FocusSection {
+  switch (weakPoint) {
+    case "boundary":
+      return "use";
+    case "concept":
+    case "retention":
+      return "hooks";
+    case "application":
+    default:
+      return "anti-patterns";
+  }
+}
+
+function actionLabelForWeakPoint(weakPoint: WeakFormulaStat["weakPoint"]) {
+  switch (weakPoint) {
+    case "boundary":
+      return "先看适用边界";
+    case "concept":
+      return "先补一个提示";
+    case "retention":
+      return "先恢复记忆线索";
+    case "application":
+    default:
+      return "先看常见误用";
   }
 }

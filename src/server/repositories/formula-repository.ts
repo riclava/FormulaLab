@@ -224,24 +224,27 @@ export async function createCustomFormula({
         reviewItems: {
           create: input.reviewItems,
         },
-        memoryHooks: input.memoryHooks.length
-          ? {
-              create: input.memoryHooks.map((hook) => ({
-                userId,
-                source: "user_created",
-                type: "personal",
-                content: hook.content,
-                prompt: hook.prompt,
-              })),
-            }
-          : undefined,
       },
     });
+
+    const createdHook = input.memoryHooks.length
+      ? await tx.formulaMemoryHook.create({
+          data: {
+            formulaId: formula.id,
+            userId,
+            source: "user_created",
+            type: "personal",
+            content: input.memoryHooks[0].content,
+            prompt: input.memoryHooks[0].prompt,
+          },
+        })
+      : null;
 
     await tx.userFormulaState.create({
       data: {
         userId,
         formulaId: formula.id,
+        preferredMemoryHookId: createdHook?.id ?? null,
         memoryStrength: 0.1,
         stability: 0,
         difficultyEstimate: input.difficulty,
@@ -322,6 +325,45 @@ export async function listFormulaMemoryHooks({
       { createdAt: "asc" },
     ],
   });
+}
+
+export async function getPreferredFormulaMemoryHookId({
+  formulaIdOrSlug,
+  userId,
+}: {
+  formulaIdOrSlug: string;
+  userId?: string;
+}) {
+  if (!userId) {
+    return null;
+  }
+
+  const formula = await prisma.formula.findFirst({
+    where: {
+      OR: [{ id: formulaIdOrSlug }, { slug: formulaIdOrSlug }],
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  if (!formula) {
+    return null;
+  }
+
+  const state = await prisma.userFormulaState.findUnique({
+    where: {
+      userId_formulaId: {
+        userId,
+        formulaId: formula.id,
+      },
+    },
+    select: {
+      preferredMemoryHookId: true,
+    },
+  });
+
+  return state?.preferredMemoryHookId ?? null;
 }
 
 export async function createUserFormulaMemoryHook({
@@ -437,16 +479,23 @@ export async function selectFormulaMemoryHook({
     return null;
   }
 
-  return prisma.formulaMemoryHook.update({
+  if (!userId) {
+    return null;
+  }
+
+  await prisma.userFormulaState.update({
     where: {
-      id: hook.id,
-    },
-    data: {
-      helpfulCount: {
-        increment: 1,
+      userId_formulaId: {
+        userId,
+        formulaId: formula.id,
       },
     },
+    data: {
+      preferredMemoryHookId: hook.id,
+    },
   });
+
+  return hook;
 }
 
 export async function getFormulaMemoryHookById({

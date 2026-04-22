@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import {
   AlertTriangle,
@@ -34,6 +35,8 @@ export function FormulaDetailView({
   initialRelations,
   initialHooks,
   focusSection,
+  entryPoint = "formulas",
+  returnLink,
   footer,
   compact = false,
   selectableHooks = false,
@@ -43,6 +46,18 @@ export function FormulaDetailView({
   initialRelations?: FormulaRelationDetail[];
   initialHooks?: FormulaDetail["memoryHooks"];
   focusSection?: FocusSection;
+  entryPoint?:
+    | "review"
+    | "summary"
+    | "paths"
+    | "formulas"
+    | "derivation"
+    | "memory-hooks"
+    | "custom";
+  returnLink?: {
+    href: string;
+    label: string;
+  };
   footer?: React.ReactNode;
   compact?: boolean;
   selectableHooks?: boolean;
@@ -134,6 +149,23 @@ export function FormulaDetailView({
 
   return (
     <article className="flex flex-col gap-6">
+      {returnLink ? (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-muted/20 px-4 py-3 text-sm">
+          <div className="min-w-0">
+            <p className="font-medium">{entryPointLabel(entryPoint)}</p>
+            <p className="text-muted-foreground">
+              {entryPointDescription(entryPoint)}
+            </p>
+          </div>
+          <Link
+            href={returnLink.href}
+            className={buttonVariants({ variant: "outline", size: "sm" })}
+          >
+            {returnLink.label}
+          </Link>
+        </div>
+      ) : null}
+
       <section className="rounded-lg border bg-background p-6 shadow-sm">
         <div className="flex flex-wrap items-center gap-2">
           <Badge>{formula.domain}</Badge>
@@ -153,6 +185,7 @@ export function FormulaDetailView({
       </section>
 
       <QuickActions
+        entryPoint={entryPoint}
         onJump={(section) => {
           sectionRefs.current[section]?.scrollIntoView({ behavior: "smooth", block: "start" });
         }}
@@ -222,6 +255,7 @@ export function FormulaDetailView({
             title="记忆联想"
           >
             <FormulaMemoryHookPanel
+              key={formula.id}
               formulaIdOrSlug={formula.slug}
               initialHooks={initialHooks ?? formula.memoryHooks}
               selectableHooks={selectableHooks}
@@ -303,42 +337,130 @@ export function FormulaDetailView({
 }
 
 function QuickActions({
+  entryPoint,
   onJump,
 }: {
+  entryPoint:
+    | "review"
+    | "summary"
+    | "paths"
+    | "formulas"
+    | "derivation"
+    | "memory-hooks"
+    | "custom";
   onJump: (section: FocusSection) => void;
 }) {
+  const actions = quickActionsByEntryPoint[entryPoint] ?? quickActionsByEntryPoint.formulas;
+
   return (
     <section className="flex flex-wrap gap-2">
-      <button
-        type="button"
-        className={buttonVariants({ variant: "outline", size: "sm" })}
-        onClick={() => onJump("use")}
-      >
-        看适用条件
-      </button>
-      <button
-        type="button"
-        className={buttonVariants({ variant: "outline", size: "sm" })}
-        onClick={() => onJump("anti-patterns")}
-      >
-        看常见误用
-      </button>
-      <button
-        type="button"
-        className={buttonVariants({ variant: "outline", size: "sm" })}
-        onClick={() => onJump("hooks")}
-      >
-        建立记忆钩子
-      </button>
-      <button
-        type="button"
-        className={buttonVariants({ variant: "outline", size: "sm" })}
-        onClick={() => onJump("relations")}
-      >
-        看关联公式
-      </button>
+      {actions.map((action) => (
+        <button
+          key={action.section}
+          type="button"
+          className={buttonVariants({ variant: "outline", size: "sm" })}
+          onClick={() => onJump(action.section)}
+        >
+          {action.label}
+        </button>
+      ))}
     </section>
   );
+}
+
+const quickActionsByEntryPoint: Record<
+  NonNullable<Parameters<typeof QuickActions>[0]["entryPoint"]>,
+  Array<{
+    section: FocusSection;
+    label: string;
+  }>
+> = {
+  review: [
+    { section: "anti-patterns", label: "先看常见误用" },
+    { section: "use", label: "确认适用条件" },
+    { section: "hooks", label: "存一条记忆钩子" },
+    { section: "relations", label: "看关联公式" },
+  ],
+  summary: [
+    { section: "anti-patterns", label: "先补最弱点" },
+    { section: "use", label: "确认适用条件" },
+    { section: "hooks", label: "补一个提示" },
+    { section: "examples", label: "回看例题" },
+  ],
+  paths: [
+    { section: "use", label: "先看什么时候用" },
+    { section: "derivation", label: "再看推导过程" },
+    { section: "relations", label: "接着看关联公式" },
+    { section: "examples", label: "回到例题" },
+  ],
+  derivation: [
+    { section: "derivation", label: "继续推导过程" },
+    { section: "use", label: "确认适用条件" },
+    { section: "relations", label: "看前后关联" },
+    { section: "hooks", label: "补一个提示" },
+  ],
+  "memory-hooks": [
+    { section: "hooks", label: "管理记忆钩子" },
+    { section: "anti-patterns", label: "把误用变提醒" },
+    { section: "examples", label: "绑定题面画面" },
+    { section: "use", label: "再看适用条件" },
+  ],
+  custom: [
+    { section: "use", label: "确认适用条件" },
+    { section: "examples", label: "看例题" },
+    { section: "hooks", label: "设置默认提示" },
+    { section: "derivation", label: "补推导" },
+  ],
+  formulas: [
+    { section: "use", label: "看适用条件" },
+    { section: "anti-patterns", label: "看常见误用" },
+    { section: "hooks", label: "建立记忆钩子" },
+    { section: "relations", label: "看关联公式" },
+  ],
+};
+
+function entryPointLabel(
+  entryPoint: NonNullable<Parameters<typeof QuickActions>[0]["entryPoint"]>,
+) {
+  switch (entryPoint) {
+    case "review":
+      return "你是从复习题里跳进来的";
+    case "summary":
+      return "你是从总结页的弱项入口进来的";
+    case "paths":
+      return "你正在按内容集推进";
+    case "derivation":
+      return "你正在做推导强化";
+    case "memory-hooks":
+      return "你正在整理提示与联想";
+    case "custom":
+      return "这是你自己加入训练的公式";
+    case "formulas":
+    default:
+      return "你正在查看公式详情";
+  }
+}
+
+function entryPointDescription(
+  entryPoint: NonNullable<Parameters<typeof QuickActions>[0]["entryPoint"]>,
+) {
+  switch (entryPoint) {
+    case "review":
+      return "优先看误用、边界和最顺手的一条提示，然后尽快回到训练。";
+    case "summary":
+      return "这里适合做一个最小补弱动作，再决定要不要继续练。";
+    case "paths":
+      return "先理解这条公式的位置，再决定是先学、先练还是先补弱。";
+    case "derivation":
+      return "把公式来源和使用边界重新连起来，会比单纯背答案更稳。";
+    case "memory-hooks":
+      return "挑一条最像你自己的提示，下次复习时它会先出来。";
+    case "custom":
+      return "确认你写的解释、题面和提示真的适合进入训练闭环。";
+    case "formulas":
+    default:
+      return "先看什么时候用、什么时候别用，再决定要不要回到训练。";
+  }
 }
 
 const DetailSection = ({

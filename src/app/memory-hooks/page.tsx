@@ -10,9 +10,9 @@ export default async function MemoryHooksPage() {
   return (
     <PhaseShell
       activePath="/memory-hooks"
-      eyebrow="Phase 5 / 记忆钩子"
-      title="把公式挂到你已经熟悉的经验上，回忆会轻很多。"
-      description="这里可以管理 AI 推荐候选、个人联想、提示优先级，以及联想在复习里是否真的帮到了你。"
+      eyebrow="记忆钩子"
+      title="把提示写成你自己的话，下次回忆会轻很多。"
+      description="这里先选公式，再挑一条最顺手的联想设为默认提示。之后在复习里点“给我一点提示”时，它会优先出现。"
     >
       <MemoryHookWorkspace formulas={formulas} />
     </PhaseShell>

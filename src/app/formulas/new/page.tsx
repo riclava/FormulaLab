@@ -5,9 +5,9 @@ export default function NewFormulaPage() {
   return (
     <PhaseShell
       activePath="/formulas"
-      eyebrow="V1.5 / 用户自定义公式"
+      eyebrow="自定义公式"
       title="把自己的公式放进同一套训练闭环。"
-      description="自定义公式不会只停留在列表里，创建后会自动生成三类基础训练题，并立即进入今日复习队列。"
+      description="先把最小可练的信息填进去，系统会自动生成三类基础训练题。创建完先看详情确认边界，再决定是不是马上进入训练。"
     >
       <CustomFormulaForm />
     </PhaseShell>

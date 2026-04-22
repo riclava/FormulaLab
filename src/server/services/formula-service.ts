@@ -3,6 +3,7 @@ import {
   createCustomFormula,
   createUserFormulaMemoryHook,
   deleteUserFormulaMemoryHook,
+  getPreferredFormulaMemoryHookId,
   getFormulaByIdOrSlug,
   getFormulaMemoryHookById,
   listFormulaRelations,
@@ -247,9 +248,12 @@ export async function getFormulaMemoryHooks({
     return null;
   }
 
-  return hooks.map((hook) => ({
-    ...toMemoryHookRecord(hook),
-  }));
+  const preferredHookId = await getPreferredFormulaMemoryHookId({
+    formulaIdOrSlug,
+    userId,
+  });
+
+  return hooks.map((hook) => toMemoryHookRecord(hook, preferredHookId));
 }
 
 export async function addUserFormulaMemoryHook({
@@ -299,7 +303,7 @@ export async function chooseFormulaMemoryHook({
     return null;
   }
 
-  return toMemoryHookRecord(hook);
+  return toMemoryHookRecord(hook, hook.id);
 }
 
 export async function adoptAiMemoryHook({
@@ -491,7 +495,7 @@ export async function suggestFormulaMemoryHooks({
     return null;
   }
 
-  return [...existingAiHooks, ...createdHooks.map(toMemoryHookRecord)];
+  return [...existingAiHooks, ...createdHooks.map((hook) => toMemoryHookRecord(hook))];
 }
 
 function toFormulaSummary(
@@ -606,7 +610,7 @@ function toFormulaDetail(formula: FormulaWithDetail, now: Date): FormulaDetail {
       explanation: item.explanation,
       difficulty: item.difficulty,
     })),
-    memoryHooks: formula.memoryHooks.map(toMemoryHookRecord),
+    memoryHooks: formula.memoryHooks.map((hook) => toMemoryHookRecord(hook)),
   };
 }
 
@@ -631,7 +635,7 @@ function toMemoryHookRecord(hook: {
   usedCount: number;
   helpfulCount: number;
   lastUsedAt: Date | string | null;
-}): MemoryHookRecord {
+}, preferredHookId?: string | null): MemoryHookRecord {
   return {
     id: hook.id,
     source: hook.source,
@@ -644,6 +648,7 @@ function toMemoryHookRecord(hook: {
       hook.lastUsedAt instanceof Date
         ? hook.lastUsedAt.toISOString()
         : hook.lastUsedAt,
+    isPreferred: preferredHookId === hook.id,
   };
 }
 

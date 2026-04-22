@@ -66,6 +66,7 @@ export function ReviewSession({ mode = "today" }: { mode?: ReviewMode }) {
   } | null>(null);
   const [isRemediationOpen, setIsRemediationOpen] = useState(false);
   const [completedSessionId, setCompletedSessionId] = useState<string | null>(null);
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -86,6 +87,7 @@ export function ReviewSession({ mode = "today" }: { mode?: ReviewMode }) {
 
         if (!ignore) {
           setSession(payload.data);
+          setError(null);
         }
       } catch (loadError) {
         if (!ignore) {
@@ -115,7 +117,7 @@ export function ReviewSession({ mode = "today" }: { mode?: ReviewMode }) {
       ? pendingRemediation
       : null;
 
-  if (error) {
+  if (error && !session) {
     return (
       <section className="flex flex-col gap-4 rounded-lg border bg-background p-6 shadow-sm">
         <Badge variant="destructive" className="w-fit">
@@ -148,25 +150,48 @@ export function ReviewSession({ mode = "today" }: { mode?: ReviewMode }) {
       <section className="overflow-hidden rounded-lg border bg-background shadow-sm">
         <div className="flex flex-col gap-3 border-b bg-muted/30 p-5">
           <div className="flex flex-wrap items-start justify-between gap-3">
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge>{labelForReviewType(currentItem.type)}</Badge>
-              <Badge variant="outline">{currentItem.formula.domain}</Badge>
-              <span className="text-sm text-muted-foreground">
-                第 {currentIndex + 1} 题，共 {items.length} 题
-              </span>
+            <div className="grid gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge variant={mode === "weak" ? "secondary" : "outline"}>
+                  {mode === "weak" ? "弱项重练" : "今日复习"}
+                </Badge>
+                <Badge>{labelForReviewType(currentItem.type)}</Badge>
+                <Badge variant="outline">{currentItem.formula.domain}</Badge>
+                <Badge variant="outline">{currentItem.reviewReason.label}</Badge>
+              </div>
+              <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+                <span>
+                  第 {currentIndex + 1} 题，共 {items.length} 题
+                </span>
+                <span>预计还需 {estimateRemainingMinutes(session.estimatedMinutes, currentIndex, items.length)} 分钟</span>
+              </div>
             </div>
-            <Link
-              href={`/formulas/${currentItem.formula.slug}`}
-              className={buttonVariants({ variant: "ghost", size: "sm" })}
-            >
-              查看公式
-              <ArrowRight data-icon="inline-end" />
-            </Link>
+            <div className="flex flex-wrap items-center gap-2">
+              <Link
+                href={`/formulas/${currentItem.formula.slug}?from=review&mode=${mode}`}
+                className={buttonVariants({ variant: "ghost", size: "sm" })}
+              >
+                查看公式
+                <ArrowRight data-icon="inline-end" />
+              </Link>
+            </div>
           </div>
           <Progress value={progress} aria-label="今日复习进度" />
         </div>
 
         <div className="flex flex-col gap-6 p-5 md:p-6">
+          {error ? (
+            <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+              {error}
+            </div>
+          ) : null}
+
+          {statusMessage ? (
+            <div className="rounded-lg border border-emerald-200 bg-emerald-50/80 px-4 py-3 text-sm text-emerald-950">
+              {statusMessage}
+            </div>
+          ) : null}
+
           <div className="flex flex-col gap-3">
             <p className="text-sm font-medium text-muted-foreground">
               {currentItem.formula.title}
@@ -177,6 +202,10 @@ export function ReviewSession({ mode = "today" }: { mode?: ReviewMode }) {
             <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
               {currentItem.formula.oneLineUse}
             </p>
+            <div className="rounded-lg border bg-muted/20 px-4 py-3 text-sm text-muted-foreground">
+              <p className="font-medium text-foreground">为什么现在练这题</p>
+              <p className="mt-1">{currentItem.reviewReason.detail}</p>
+            </div>
           </div>
 
           {cardState === "hint" && currentHint ? (
@@ -219,7 +248,7 @@ export function ReviewSession({ mode = "today" }: { mode?: ReviewMode }) {
                   <h3 className="font-medium">参考答案</h3>
                 </div>
                 <Link
-                  href={`/formulas/${currentItem.formula.slug}`}
+                  href={`/formulas/${currentItem.formula.slug}?from=review&mode=${mode}`}
                   className={buttonVariants({ variant: "outline", size: "sm" })}
                 >
                   查看详情
@@ -273,17 +302,18 @@ export function ReviewSession({ mode = "today" }: { mode?: ReviewMode }) {
             <div className="flex flex-col gap-4 rounded-lg border border-amber-200 bg-amber-50/70 p-4">
               <div className="space-y-1">
                 <p className="text-sm font-medium text-amber-950">
-                  已记录为{" "}
-                  {activeRemediation.grade === "again" ? "Again" : "Hard"}。
+                  已记录为
+                  {" "}
+                  {activeRemediation.grade === "again" ? "想不起来" : "有点吃力"}。
                 </p>
                 <p className="text-sm leading-6 text-amber-900/90">
-                  先看一下适用条件、常见误用或记忆钩子，再继续下一题会更稳。
+                  先做一个最小恢复动作就够了。看一眼误用、适用条件，或者存一条提示，然后回到训练节奏。
                 </p>
               </div>
               <div className="flex flex-wrap gap-3">
                 <Button type="button" onClick={() => setIsRemediationOpen(true)}>
                   <BookOpen data-icon="inline-start" />
-                  进入补弱
+                  先看这一条
                 </Button>
                 <Button
                   type="button"
@@ -330,6 +360,9 @@ export function ReviewSession({ mode = "today" }: { mode?: ReviewMode }) {
       <ReviewRemediationSheet
         item={activeRemediation?.item ?? null}
         grade={activeRemediation?.grade ?? null}
+        mode={mode}
+        currentIndex={currentIndex + 1}
+        totalItems={items.length}
         open={isRemediationOpen}
         onOpenChange={setIsRemediationOpen}
         onDefer={() => deferAfterRemediation(currentItem)}
@@ -396,6 +429,7 @@ export function ReviewSession({ mode = "today" }: { mode?: ReviewMode }) {
           throw new Error(payload.error ?? "稍后再练失败");
         }
 
+        setStatusMessage("已放到今天队尾，约 10 分钟后再见。");
         moveToNextItem();
       } catch (deferError) {
         setError(
@@ -418,6 +452,7 @@ export function ReviewSession({ mode = "today" }: { mode?: ReviewMode }) {
         }
 
         setHelpfulHookIds((previous) => [...previous, hookId]);
+        setStatusMessage("已记录这条提示对你有帮助，后面会更优先出现。");
       } catch (helpfulError) {
         setError(
           helpfulError instanceof Error
@@ -474,7 +509,7 @@ export function ReviewSession({ mode = "today" }: { mode?: ReviewMode }) {
             item,
             grade,
           });
-          setIsRemediationOpen(true);
+          setIsRemediationOpen(false);
           return;
         }
 
@@ -552,22 +587,35 @@ function EmptyReviewState({
           : "今天没有强制任务。可以稍后回来，也可以主动重练薄弱公式。"}
       </p>
       <div className="flex flex-wrap gap-3">
-        <Link href="/diagnostic" className={buttonVariants()}>
-          前往首次诊断
-          <ArrowRight data-icon="inline-end" />
-        </Link>
-        <Link
-          href={mode === "weak" ? "/review" : "/review?mode=weak"}
-          className={buttonVariants({ variant: "secondary" })}
-        >
-          {mode === "weak" ? "回到今日复习" : "错题重练"}
-        </Link>
-        <Link
-          href="/formulas"
-          className={buttonVariants({ variant: "outline" })}
-        >
-          浏览公式
-        </Link>
+        {emptyReason === "needs_diagnostic" ? (
+          <>
+            <Link href="/diagnostic" className={buttonVariants()}>
+              开始 1 分钟诊断
+              <ArrowRight data-icon="inline-end" />
+            </Link>
+            <Link
+              href="/formulas"
+              className={buttonVariants({ variant: "outline" })}
+            >
+              先浏览公式
+            </Link>
+          </>
+        ) : (
+          <>
+            <Link
+              href={mode === "weak" ? "/review" : "/review?mode=weak"}
+              className={buttonVariants()}
+            >
+              {mode === "weak" ? "回到今日复习" : "去弱项重练"}
+            </Link>
+            <Link
+              href="/formulas"
+              className={buttonVariants({ variant: "outline" })}
+            >
+              浏览公式
+            </Link>
+          </>
+        )}
       </div>
     </section>
   );
@@ -621,6 +669,19 @@ function gradeToneClassName(grade: ReviewGrade) {
   }
 
   return "border-emerald-200 bg-emerald-50/50";
+}
+
+function estimateRemainingMinutes(
+  estimatedMinutes: number,
+  currentIndex: number,
+  totalItems: number,
+) {
+  if (estimatedMinutes <= 0 || totalItems <= 0) {
+    return 0;
+  }
+
+  const remainingRatio = Math.max(0, totalItems - currentIndex) / totalItems;
+  return Math.max(1, Math.ceil(estimatedMinutes * remainingRatio));
 }
 
 function labelForReviewType(type: ReviewQueueItem["type"]) {

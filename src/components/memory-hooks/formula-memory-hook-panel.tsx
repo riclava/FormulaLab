@@ -32,10 +32,11 @@ const MEMORY_HOOK_TYPES: MemoryHookType[] = [
   "contrast",
   "personal",
 ];
+const EMPTY_HOOKS: MemoryHookRecord[] = [];
 
 export function FormulaMemoryHookPanel({
   formulaIdOrSlug,
-  initialHooks = [],
+  initialHooks,
   selectableHooks = false,
   compact = false,
 }: {
@@ -44,7 +45,8 @@ export function FormulaMemoryHookPanel({
   selectableHooks?: boolean;
   compact?: boolean;
 }) {
-  const [hooks, setHooks] = useState<MemoryHookRecord[]>(initialHooks);
+  const resolvedInitialHooks = initialHooks ?? EMPTY_HOOKS;
+  const [hooks, setHooks] = useState<MemoryHookRecord[]>(resolvedInitialHooks);
   const [draftContent, setDraftContent] = useState("");
   const [draftPrompt, setDraftPrompt] = useState<string>("");
   const [draftType, setDraftType] = useState<MemoryHookType>("personal");
@@ -53,7 +55,9 @@ export function FormulaMemoryHookPanel({
   const [editContent, setEditContent] = useState("");
   const [editPrompt, setEditPrompt] = useState("");
   const [editType, setEditType] = useState<MemoryHookType>("personal");
-  const [selectedHookId, setSelectedHookId] = useState<string | null>(null);
+  const [selectedHookId, setSelectedHookId] = useState<string | null>(
+    resolvedInitialHooks.find((hook) => hook.isPreferred)?.id ?? null,
+  );
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -75,6 +79,9 @@ export function FormulaMemoryHookPanel({
 
         if (!ignore) {
           setHooks(payload.data);
+          setSelectedHookId(
+            payload.data.find((hook) => hook.isPreferred)?.id ?? null,
+          );
           setError(null);
         }
       } catch (loadError) {
@@ -106,12 +113,27 @@ export function FormulaMemoryHookPanel({
       ),
     [dismissedSuggestionIds, hooks],
   );
+  const preferredHook = useMemo(
+    () =>
+      personalHooks.find((hook) => hook.isPreferred) ??
+      personalHooks.find((hook) => hook.id === selectedHookId) ??
+      null,
+    [personalHooks, selectedHookId],
+  );
 
   function syncHook(updatedHook: MemoryHookRecord) {
     setHooks((previous) => {
       const nextHooks = previous.filter((hook) => hook.id !== updatedHook.id);
-      return [updatedHook, ...nextHooks];
+      const preferredHookId = updatedHook.isPreferred
+        ? updatedHook.id
+        : previous.find((hook) => hook.isPreferred)?.id ?? null;
+
+      return normalizePreferredHooks([updatedHook, ...nextHooks], preferredHookId);
     });
+
+    if (updatedHook.isPreferred) {
+      setSelectedHookId(updatedHook.id);
+    }
   }
 
   function createPersonalHook() {
@@ -333,6 +355,42 @@ export function FormulaMemoryHookPanel({
         </div>
       ) : null}
 
+      {selectableHooks ? (
+        <section className="rounded-lg border bg-muted/20 p-4">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="grid gap-1">
+              <h4 className="font-medium">复习里的提示预览</h4>
+              <p className="text-sm leading-6 text-muted-foreground">
+                下次在复习里点击“给我一点提示”时，会优先出现这里设为默认的那条个人联想。
+              </p>
+            </div>
+            <Badge variant={preferredHook ? "secondary" : "outline"}>
+              {preferredHook ? "已设置默认提示" : "还没设置默认提示"}
+            </Badge>
+          </div>
+          <div className="mt-4 rounded-lg border bg-background p-4">
+            {preferredHook ? (
+              <div className="grid gap-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge>{MEMORY_HOOK_TYPE_LABELS[preferredHook.type]}</Badge>
+                  <Badge variant="secondary">当前默认</Badge>
+                </div>
+                <p className="text-sm leading-6">{preferredHook.content}</p>
+                {preferredHook.prompt ? (
+                  <p className="text-xs leading-5 text-muted-foreground">
+                    来自提示：{preferredHook.prompt}
+                  </p>
+                ) : null}
+              </div>
+            ) : (
+              <p className="text-sm leading-6 text-muted-foreground">
+                先从下面选一条最像你自己的个人联想，或者新写一条，再把它设为默认提示。
+              </p>
+            )}
+          </div>
+        </section>
+      ) : null}
+
       <div className={cn("grid gap-4", compact ? "lg:grid-cols-1" : "lg:grid-cols-[1.1fr_0.9fr]")}>
         <section className="rounded-lg border bg-background p-4">
           <div className="mb-3 flex items-center justify-between gap-3">
@@ -399,6 +457,9 @@ export function FormulaMemoryHookPanel({
                     <div className="grid gap-3">
                       <div className="flex flex-wrap items-center gap-2">
                         <Badge>{MEMORY_HOOK_TYPE_LABELS[hook.type]}</Badge>
+                        {hook.isPreferred ? (
+                          <Badge variant="secondary">当前默认</Badge>
+                        ) : null}
                         <span className="text-xs text-muted-foreground">
                           已使用 {hook.usedCount} 次
                         </span>
@@ -420,7 +481,7 @@ export function FormulaMemoryHookPanel({
                           <Button
                             type="button"
                             size="sm"
-                            variant={selectedHookId === hook.id ? "secondary" : "outline"}
+                            variant={hook.isPreferred ? "secondary" : "outline"}
                             disabled={isPending}
                             onClick={() => {
                               startTransition(async () => {
@@ -436,7 +497,7 @@ export function FormulaMemoryHookPanel({
                               });
                             }}
                           >
-                            {selectedHookId === hook.id ? "默认提示" : "设为默认提示"}
+                            {hook.isPreferred ? "当前默认提示" : "设为默认提示"}
                           </Button>
                         ) : null}
                         <Button
@@ -723,3 +784,12 @@ function mergeHooks(
   });
 }
 
+function normalizePreferredHooks(
+  hooks: MemoryHookRecord[],
+  preferredHookId: string | null,
+) {
+  return hooks.map((hook) => ({
+    ...hook,
+    isPreferred: preferredHookId === hook.id,
+  }));
+}

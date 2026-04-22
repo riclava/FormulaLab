@@ -254,23 +254,30 @@ export async function getReviewHintSource({
   userId: string;
   formulaId: string;
 }) {
-  return prisma.formula.findUnique({
+  return prisma.userFormulaState.findUnique({
     where: {
-      id: formulaId,
+      userId_formulaId: {
+        userId,
+        formulaId,
+      },
     },
     include: {
-      memoryHooks: {
-        where: {
-          OR: [{ userId }, { userId: null }],
+      preferredMemoryHook: true,
+      formula: {
+        include: {
+          memoryHooks: {
+            where: {
+              OR: [{ userId }, { userId: null }],
+            },
+            orderBy: [
+              { userId: "desc" },
+              { helpfulCount: "desc" },
+              { usedCount: "desc" },
+              { lastUsedAt: "desc" },
+              { createdAt: "asc" },
+            ],
+          },
         },
-        orderBy: [
-          { userId: "desc" },
-          { helpfulCount: "desc" },
-          { usedCount: "desc" },
-          { lastUsedAt: "desc" },
-          { createdAt: "asc" },
-        ],
-        take: 1,
       },
     },
   });

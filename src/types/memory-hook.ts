@@ -17,5 +17,5 @@ export type MemoryHookRecord = {
   usedCount: number;
   helpfulCount: number;
   lastUsedAt: string | null;
+  isPreferred: boolean;
 };
-

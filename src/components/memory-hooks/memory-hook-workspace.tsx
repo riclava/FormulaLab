@@ -72,14 +72,19 @@ export function MemoryHookWorkspace({
       <div className="flex min-w-0 flex-col gap-6">
         <section className="rounded-lg border bg-background p-5 shadow-sm">
           <div className="flex flex-wrap items-center gap-2">
-            <Badge>{selectedFormula.domain}</Badge>
+            <Badge>第 1 步 选公式</Badge>
+            <Badge variant="outline">第 2 步 选或写联想</Badge>
+            <Badge variant="outline">第 3 步 设为默认提示</Badge>
+          </div>
+          <div className="mt-4 flex flex-wrap items-center gap-2">
+            <Badge variant="secondary">{selectedFormula.domain}</Badge>
             {selectedFormula.subdomain ? (
-              <Badge variant="secondary">{selectedFormula.subdomain}</Badge>
+              <Badge variant="outline">{selectedFormula.subdomain}</Badge>
             ) : null}
           </div>
           <h2 className="mt-3 text-2xl font-semibold">{selectedFormula.title}</h2>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
-            记忆钩子不是替代理解，而是帮你在卡住时更快把公式挂回熟悉经验。
+            记忆钩子不是替代理解，而是帮你在卡住时更快把公式挂回熟悉经验。先挑一条最像你自己的提示，再让它在复习里优先出现。
           </p>
           <div className="mt-4 flex flex-wrap gap-3 text-sm text-muted-foreground">
             <span className={buttonVariants({ variant: "outline", size: "sm" })}>
@@ -90,6 +95,7 @@ export function MemoryHookWorkspace({
         </section>
 
         <FormulaMemoryHookPanel
+          key={selectedFormula.slug}
           formulaIdOrSlug={selectedFormula.slug}
           selectableHooks
         />

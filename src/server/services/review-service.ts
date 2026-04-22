@@ -57,6 +57,7 @@ export async function getTodayReviewSession({
       domain: null,
       mode,
       items: [],
+      estimatedMinutes: 0,
       emptyReason:
         formulaStateCount === 0 ? "needs_diagnostic" : "no_due_reviews",
     };
@@ -70,12 +71,14 @@ export async function getTodayReviewSession({
       domain: null,
       mode,
       items: [],
+      estimatedMinutes: 0,
       emptyReason: "no_review_content",
     };
   }
 
   const items = eligibleStates.map((state, index) =>
     selectReviewQueueItem({
+      mode,
       state,
       preferredType: REVIEW_TYPE_CYCLE[index % REVIEW_TYPE_CYCLE.length],
     }),
@@ -90,6 +93,7 @@ export async function getTodayReviewSession({
     domain: session.domain,
     mode,
     items,
+    estimatedMinutes: estimateReviewMinutes(items, mode),
     emptyReason: null,
   };
 }
@@ -178,16 +182,21 @@ export async function getReviewHint({
   userId: string;
   formulaId: string;
 }): Promise<ReviewHint> {
-  const formula = await getReviewHintSource({
+  const state = await getReviewHintSource({
     userId,
     formulaId,
   });
 
-  if (!formula) {
+  if (!state) {
     throw new Error("Formula not found");
   }
 
-  const hook = formula.memoryHooks[0];
+  const hook =
+    state.preferredMemoryHook &&
+    (state.preferredMemoryHook.userId === userId ||
+      state.preferredMemoryHook.userId === null)
+      ? state.preferredMemoryHook
+      : state.formula.memoryHooks[0];
 
   if (hook) {
     await recordMemoryHookUsed({
@@ -205,7 +214,7 @@ export async function getReviewHint({
 
   return {
     formulaId,
-    content: formula.oneLineUse,
+    content: state.formula.oneLineUse,
     source: "one_line_use",
     memoryHookUsedId: null,
   };
@@ -250,9 +259,11 @@ export async function getReviewSessionSnapshot({
 }
 
 function selectReviewQueueItem({
+  mode,
   state,
   preferredType,
 }: {
+  mode: ReviewMode;
   state: Awaited<ReturnType<typeof listDueFormulaStates>>[number];
   preferredType: "recall" | "recognition" | "application";
 }): ReviewQueueItem {
@@ -279,6 +290,10 @@ function selectReviewQueueItem({
     answer: reviewItem.answer,
     explanation: reviewItem.explanation,
     difficulty: reviewItem.difficulty,
+    reviewReason: buildReviewReason({
+      mode,
+      state,
+    }),
     formula: {
       id: state.formula.id,
       slug: state.formula.slug,
@@ -310,4 +325,82 @@ function selectReviewQueueItem({
       meaning: state.formula.meaning,
     },
   };
+}
+
+function buildReviewReason({
+  mode,
+  state,
+}: {
+  mode: ReviewMode;
+  state: Awaited<ReturnType<typeof listDueFormulaStates>>[number];
+}) {
+  if (mode === "weak") {
+    if (state.lapseCount > 0) {
+      return {
+        label: "Again 回收",
+        detail: "最近出现过遗忘，先把这条公式捞回来。",
+      };
+    }
+
+    if (state.memoryStrength < 0.55) {
+      return {
+        label: "记忆偏弱",
+        detail: "当前记忆强度偏低，适合单独补一轮。",
+      };
+    }
+
+    return {
+      label: "高难先练",
+      detail: "这条公式难度更高，先处理能减少后续卡顿。",
+    };
+  }
+
+  if (state.totalReviews === 0) {
+    return {
+      label: "诊断薄弱",
+      detail: "首次诊断把它标成了今天最该开始的一批内容。",
+    };
+  }
+
+  if (state.lapseCount > 0) {
+    return {
+      label: "需要回收",
+      detail: "它近期出现过 Again，今天优先把记忆拉回来。",
+    };
+  }
+
+  if (state.nextReviewAt) {
+    return {
+      label: "今天到期",
+      detail: `该在 ${new Intl.DateTimeFormat("zh-CN", {
+        month: "numeric",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      }).format(state.nextReviewAt)} 再练一次。`,
+    };
+  }
+
+  return {
+    label: "继续建立",
+    detail: "这条公式还在形成期，今天顺手再巩固一次。",
+  };
+}
+
+function estimateReviewMinutes(
+  items: ReviewQueueItem[],
+  mode: ReviewMode,
+) {
+  if (items.length === 0) {
+    return 0;
+  }
+
+  const estimatedSeconds = items.reduce((total, item) => {
+    const base =
+      item.type === "application" ? 70 : item.type === "recognition" ? 40 : 50;
+
+    return total + (mode === "weak" ? base + 15 : base);
+  }, 0);
+
+  return Math.max(1, Math.ceil(estimatedSeconds / 60));
 }

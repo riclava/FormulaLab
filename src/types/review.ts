@@ -13,6 +13,10 @@ export type ReviewQueueItem = {
   answer: string;
   explanation: string | null;
   difficulty: number;
+  reviewReason: {
+    label: string;
+    detail: string;
+  };
   formula: FormulaSummary & {
     meaning: string;
   };
@@ -23,6 +27,7 @@ export type ReviewSessionPayload = {
   domain: string | null;
   mode: ReviewMode;
   items: ReviewQueueItem[];
+  estimatedMinutes: number;
   emptyReason:
     | "no_due_reviews"
     | "needs_diagnostic"

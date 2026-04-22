@@ -18,7 +18,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
-import type { ReviewGrade, ReviewQueueItem } from "@/types/review";
+import type { ReviewGrade, ReviewMode, ReviewQueueItem } from "@/types/review";
 
 const remediationMeta: Record<
   Extract<ReviewGrade, "again" | "hard">,
@@ -46,6 +46,9 @@ const remediationMeta: Record<
 export function ReviewRemediationSheet({
   item,
   grade,
+  mode,
+  currentIndex,
+  totalItems,
   open,
   onOpenChange,
   onDefer,
@@ -53,6 +56,9 @@ export function ReviewRemediationSheet({
 }: {
   item: ReviewQueueItem | null;
   grade: Extract<ReviewGrade, "again" | "hard"> | null;
+  mode: ReviewMode;
+  currentIndex: number;
+  totalItems: number;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onDefer: () => void;
@@ -63,7 +69,7 @@ export function ReviewRemediationSheet({
   }
 
   const meta = remediationMeta[grade];
-  const detailHref = `/formulas/${item.formula.slug}?focus=${meta.focusSection}`;
+  const detailHref = `/formulas/${item.formula.slug}?focus=${meta.focusSection}&from=review&mode=${mode}`;
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -82,6 +88,9 @@ export function ReviewRemediationSheet({
               {meta.label}
             </Badge>
             <Badge variant="outline">{item.formula.title}</Badge>
+            <Badge variant="outline">
+              第 {currentIndex} / {totalItems} 题
+            </Badge>
           </div>
           <SheetTitle className="text-xl">{meta.title}</SheetTitle>
           <SheetDescription>{meta.description}</SheetDescription>
@@ -101,6 +110,7 @@ export function ReviewRemediationSheet({
           <FormulaDetailView
             formulaIdOrSlug={item.formula.slug}
             focusSection={meta.focusSection}
+            entryPoint="review"
             compact
             selectableHooks
           />

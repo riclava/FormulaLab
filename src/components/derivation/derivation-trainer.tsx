@@ -37,7 +37,7 @@ export function DerivationTrainer({
           <Badge variant="secondary">{formula.domain}</Badge>
         </div>
         <Link
-          href={`/formulas/${formula.slug}?focus=derivation`}
+          href={`/formulas/${formula.slug}?from=derivation&focus=derivation`}
           className={buttonVariants({ size: "sm", variant: "outline" })}
         >
           完整详情
@@ -81,7 +81,7 @@ export function DerivationTrainer({
           }}
         >
           <RotateCcw data-icon="inline-start" />
-          下一条
+          下一条待补推导
         </Button>
         <Link href="/review?mode=weak" className={buttonVariants({ variant: "secondary" })}>
           去错题重练

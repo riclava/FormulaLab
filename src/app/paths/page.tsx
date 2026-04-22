@@ -19,9 +19,9 @@ export default async function PathsPage() {
   return (
     <PhaseShell
       activePath="/paths"
-      eyebrow="V1.5 / 内容集与学习路径"
-      title="按内容集推进，不把公式孤立地背。"
-      description="学习路径按知识域和子领域整理公式顺序，同时把每条公式当前状态放在路径里，方便决定先学、先练还是先补弱。"
+      eyebrow="学习路径"
+      title="按一组内容推进，不把公式孤立地背。"
+      description="这里按知识域收拢当前训练状态，方便你判断这组内容该先学、先练还是先补弱。真正记忆巩固，仍然回到复习链路里完成。"
     >
       <div className="grid gap-5">
         {groups.map((group) => (
@@ -48,7 +48,7 @@ export default async function PathsPage() {
               {group.formulas.map((formula, index) => (
                 <Link
                   key={formula.id}
-                  href={`/formulas/${formula.slug}`}
+                  href={`/formulas/${formula.slug}?from=paths`}
                   className="grid gap-2 rounded-lg border p-4 transition-colors hover:bg-muted/40"
                 >
                   <div className="flex flex-wrap items-center gap-2">
@@ -67,15 +67,22 @@ export default async function PathsPage() {
             </div>
 
             <div className="mt-5 flex flex-wrap gap-3">
-              <Link href="/review" className={buttonVariants({ size: "sm" })}>
-                进入今日复习
+              <Link
+                href={
+                  group.formulas.find((formula) => formula.isWeak)?.slug
+                    ? `/formulas/${group.formulas.find((formula) => formula.isWeak)!.slug}?from=paths&focus=use`
+                    : `/formulas/${group.formulas[0]?.slug}?from=paths`
+                }
+                className={buttonVariants({ size: "sm" })}
+              >
+                继续这组内容
                 <ArrowRight data-icon="inline-end" />
               </Link>
               <Link
                 href="/review?mode=weak"
                 className={buttonVariants({ size: "sm", variant: "secondary" })}
               >
-                只练薄弱公式
+                只练这组里的薄弱项
               </Link>
             </div>
           </section>
