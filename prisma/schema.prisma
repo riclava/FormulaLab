@@ -1,8 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
   provider = "prisma-client"
   output   = "../src/generated/prisma"
@@ -10,4 +5,247 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+}
+
+enum FormulaRelationType {
+  prerequisite
+  related
+  confusable
+  application_of
+}
+
+enum ReviewItemType {
+  recall
+  recognition
+  application
+}
+
+enum ReviewResult {
+  easy
+  good
+  hard
+  again
+}
+
+enum MemoryHookSource {
+  ai_suggested
+  user_created
+}
+
+enum MemoryHookType {
+  analogy
+  scenario
+  visual
+  mnemonic
+  contrast
+  personal
+}
+
+enum StudySessionStatus {
+  active
+  completed
+  abandoned
+}
+
+model User {
+  id                 String   @id @default(cuid())
+  email              String?  @unique
+  displayName        String?
+  anonymousSessionId String?  @unique
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  formulaStates      UserFormulaState[]
+  reviewLogs         ReviewLog[]
+  memoryHooks        FormulaMemoryHook[]
+  diagnosticAttempts DiagnosticAttempt[]
+  studySessions      StudySession[]
+
+  @@map("users")
+}
+
+model Formula {
+  id              String   @id @default(cuid())
+  slug            String   @unique
+  title           String
+  expressionLatex String
+  domain          String
+  subdomain       String?
+  oneLineUse      String
+  meaning         String
+  intuition       String?
+  derivation      String?
+  useConditions   String[]
+  antiPatterns    String[]
+  typicalProblems String[]
+  examples        String[]
+  difficulty      Int
+  tags            String[]
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  variables         FormulaVariable[]
+  reviewItems       ReviewItem[]
+  outgoingRelations FormulaRelation[]   @relation("FormulaRelationFrom")
+  incomingRelations FormulaRelation[]   @relation("FormulaRelationTo")
+  userStates        UserFormulaState[]
+  reviewLogs        ReviewLog[]
+  memoryHooks       FormulaMemoryHook[]
+
+  @@index([domain, subdomain])
+  @@map("formulas")
+}
+
+model FormulaVariable {
+  id          String   @id @default(cuid())
+  formulaId   String
+  symbol      String
+  name        String
+  description String
+  unit        String?
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  formula Formula @relation(fields: [formulaId], references: [id], onDelete: Cascade)
+
+  @@index([formulaId])
+  @@map("formula_variables")
+}
+
+model FormulaRelation {
+  id            String              @id @default(cuid())
+  fromFormulaId String
+  toFormulaId   String
+  relationType  FormulaRelationType
+  note          String?
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+
+  fromFormula Formula @relation("FormulaRelationFrom", fields: [fromFormulaId], references: [id], onDelete: Cascade)
+  toFormula   Formula @relation("FormulaRelationTo", fields: [toFormulaId], references: [id], onDelete: Cascade)
+
+  @@unique([fromFormulaId, toFormulaId, relationType])
+  @@index([toFormulaId])
+  @@map("formula_relations")
+}
+
+model ReviewItem {
+  id          String         @id @default(cuid())
+  formulaId   String
+  type        ReviewItemType
+  prompt      String
+  answer      String
+  explanation String?
+  difficulty  Int
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  formula    Formula     @relation(fields: [formulaId], references: [id], onDelete: Cascade)
+  reviewLogs ReviewLog[]
+
+  @@index([formulaId, type])
+  @@map("review_items")
+}
+
+model UserFormulaState {
+  id                 String    @id @default(cuid())
+  userId             String
+  formulaId          String
+  memoryStrength     Float     @default(0)
+  stability          Float     @default(0)
+  difficultyEstimate Float     @default(0)
+  lastReviewedAt     DateTime?
+  nextReviewAt       DateTime?
+  totalReviews       Int       @default(0)
+  correctReviews     Int       @default(0)
+  lapseCount         Int       @default(0)
+  consecutiveCorrect Int       @default(0)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  formula Formula @relation(fields: [formulaId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, formulaId])
+  @@index([formulaId])
+  @@map("user_formula_states")
+}
+
+model ReviewLog {
+  id               String       @id @default(cuid())
+  userId           String
+  formulaId        String
+  reviewItemId     String
+  studySessionId   String?
+  result           ReviewResult
+  responseTimeMs   Int?
+  confidence       Int?
+  memoryHookUsedId String?
+  reviewedAt       DateTime     @default(now())
+
+  user           User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  formula        Formula            @relation(fields: [formulaId], references: [id], onDelete: Cascade)
+  reviewItem     ReviewItem         @relation(fields: [reviewItemId], references: [id], onDelete: Cascade)
+  studySession   StudySession?      @relation(fields: [studySessionId], references: [id], onDelete: SetNull)
+  memoryHookUsed FormulaMemoryHook? @relation(fields: [memoryHookUsedId], references: [id], onDelete: SetNull)
+
+  @@index([userId, reviewedAt])
+  @@index([formulaId])
+  @@map("review_logs")
+}
+
+model DiagnosticAttempt {
+  id             String   @id @default(cuid())
+  userId         String
+  domain         String
+  reviewItemIds  String[]
+  weakFormulaIds String[]
+  completedAt    DateTime @default(now())
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, completedAt])
+  @@map("diagnostic_attempts")
+}
+
+model FormulaMemoryHook {
+  id           String           @id @default(cuid())
+  userId       String?
+  formulaId    String
+  source       MemoryHookSource
+  type         MemoryHookType
+  content      String
+  prompt       String?
+  usedCount    Int              @default(0)
+  helpfulCount Int              @default(0)
+  lastUsedAt   DateTime?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  user       User?       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  formula    Formula     @relation(fields: [formulaId], references: [id], onDelete: Cascade)
+  reviewLogs ReviewLog[]
+
+  @@index([formulaId, userId])
+  @@map("formula_memory_hooks")
+}
+
+model StudySession {
+  id          String             @id @default(cuid())
+  userId      String
+  domain      String
+  status      StudySessionStatus @default(active)
+  startedAt   DateTime           @default(now())
+  completedAt DateTime?
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reviewLogs ReviewLog[]
+
+  @@index([userId, startedAt])
+  @@map("study_sessions")
 }

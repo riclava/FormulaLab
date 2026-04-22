@@ -79,40 +79,40 @@
 
 ### 任务
 
-- [ ] 创建 Prisma 数据模型：
-  - [ ] `users`
-  - [ ] `formulas`
-  - [ ] `formula_variables`
-  - [ ] `formula_relations`
-  - [ ] `review_items`
-  - [ ] `user_formula_states`
-  - [ ] `review_logs`
-  - [ ] `formula_memory_hooks`
-  - [ ] `diagnostic_attempts`
-  - [ ] `study_sessions`
-- [ ] 实现最小用户身份能力：
-  - [ ] 支持登录用户，或先支持匿名学习会话。
-  - [ ] 所有复习状态都能绑定到 `userId` 或临时用户。
-- [ ] 建立公式内容结构：
-  - [ ] 公式标题。
-  - [ ] LaTeX 表达式。
-  - [ ] 一句话用途。
-  - [ ] 变量说明。
-  - [ ] 什么时候用。
-  - [ ] 什么时候不能用。
-  - [ ] 常见误用。
-  - [ ] 典型题型。
-  - [ ] 例题。
-  - [ ] 关联公式。
-  - [ ] 默认 AI 推荐联想。
-- [ ] 准备首批内容种子数据：
-  - [ ] 每个公式至少 1 个 Recall 题。
-  - [ ] 每个公式至少 1 个 Recognition 题。
-  - [ ] 核心公式至少 1 个 Application 题。
-- [ ] 实现内容查询 API：
-  - [ ] `GET /api/formulas`
-  - [ ] `GET /api/formulas/:id`
-  - [ ] `GET /api/formulas/:id/relations`
+- [x] 创建 Prisma 数据模型：
+  - [x] `users`
+  - [x] `formulas`
+  - [x] `formula_variables`
+  - [x] `formula_relations`
+  - [x] `review_items`
+  - [x] `user_formula_states`
+  - [x] `review_logs`
+  - [x] `formula_memory_hooks`
+  - [x] `diagnostic_attempts`
+  - [x] `study_sessions`
+- [x] 实现最小用户身份能力：
+  - [x] 支持登录用户，或先支持匿名学习会话。
+  - [x] 所有复习状态都能绑定到 `userId` 或临时用户。
+- [x] 建立公式内容结构：
+  - [x] 公式标题。
+  - [x] LaTeX 表达式。
+  - [x] 一句话用途。
+  - [x] 变量说明。
+  - [x] 什么时候用。
+  - [x] 什么时候不能用。
+  - [x] 常见误用。
+  - [x] 典型题型。
+  - [x] 例题。
+  - [x] 关联公式。
+  - [x] 默认 AI 推荐联想。
+- [x] 准备首批内容种子数据：
+  - [x] 每个公式至少 1 个 Recall 题。
+  - [x] 每个公式至少 1 个 Recognition 题。
+  - [x] 核心公式至少 1 个 Application 题。
+- [x] 实现内容查询 API：
+  - [x] `GET /api/formulas`
+  - [x] `GET /api/formulas/:id`
+  - [x] `GET /api/formulas/:id/relations`
 
 ### 交付物
 
