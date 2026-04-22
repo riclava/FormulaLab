@@ -23,17 +23,17 @@ const assessmentOptions: Array<{
 }> = [
   {
     value: "none",
-    label: "完全没头绪",
+    label: "不会",
     description: "加入今日优先复习",
   },
   {
     value: "partial",
-    label: "有点印象",
+    label: "有印象",
     description: "标记为薄弱公式",
   },
   {
     value: "clear",
-    label: "很清楚",
+    label: "很熟",
     description: "稍后再复习",
   },
 ];
@@ -201,8 +201,8 @@ export function DiagnosticQuiz() {
   }
 
   return (
-    <section className="flex flex-col gap-6 rounded-lg border bg-background p-6 shadow-sm">
-      <div className="flex flex-col gap-3">
+    <section className="overflow-hidden rounded-lg border bg-background shadow-sm">
+      <div className="flex flex-col gap-3 border-b bg-muted/30 p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <span className="flex size-10 items-center justify-center rounded-md bg-muted">
@@ -222,46 +222,48 @@ export function DiagnosticQuiz() {
         <Progress value={progressValue} aria-label="诊断完成进度" />
       </div>
 
-      <div className="flex flex-col gap-4">
-        <h2 className="max-w-3xl text-xl font-semibold">
-          {currentQuestion.prompt}
-        </h2>
-        <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-          {currentQuestion.formula.oneLineUse}
-        </p>
-      </div>
+      <div className="flex flex-col gap-6 p-5 md:p-6">
+        <div className="flex flex-col gap-3">
+          <h2 className="max-w-3xl text-2xl font-semibold leading-tight">
+            {currentQuestion.prompt}
+          </h2>
+          <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
+            {currentQuestion.formula.oneLineUse}
+          </p>
+        </div>
 
-      {showAnswer ? <DiagnosticAnswer question={currentQuestion} /> : null}
+        {showAnswer ? <DiagnosticAnswer question={currentQuestion} /> : null}
 
-      <div className="flex flex-col gap-3">
-        <Button
-          type="button"
-          variant="secondary"
-          className="w-fit"
-          onClick={() => setShowAnswer((visible) => !visible)}
-        >
-          {showAnswer ? "隐藏参考答案" : "查看参考答案"}
-        </Button>
+        <div className="flex flex-col gap-3">
+          <Button
+            type="button"
+            variant="secondary"
+            className="w-fit"
+            onClick={() => setShowAnswer((visible) => !visible)}
+          >
+            {showAnswer ? "隐藏参考答案" : "查看参考答案"}
+          </Button>
 
-        <div className="grid gap-3 md:grid-cols-3">
-          {assessmentOptions.map((option) => (
-            <button
-              key={option.value}
-              className={cn(
-                "rounded-lg border p-4 text-left transition-colors hover:bg-muted",
-                answers[currentQuestion.id] === option.value &&
-                  "border-primary bg-muted",
-              )}
-              disabled={isPending}
-              onClick={() => handleAssessment(option.value)}
-              type="button"
-            >
-              <span className="block font-medium">{option.label}</span>
-              <span className="mt-1 block text-sm text-muted-foreground">
-                {option.description}
-              </span>
-            </button>
-          ))}
+          <div className="grid gap-3 md:grid-cols-3">
+            {assessmentOptions.map((option) => (
+              <button
+                key={option.value}
+                className={cn(
+                  "rounded-lg border p-4 text-left transition-colors hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-60",
+                  answers[currentQuestion.id] === option.value &&
+                    "border-primary bg-muted",
+                )}
+                disabled={isPending}
+                onClick={() => handleAssessment(option.value)}
+                type="button"
+              >
+                <span className="block font-medium">{option.label}</span>
+                <span className="mt-1 block text-sm text-muted-foreground">
+                  {option.description}
+                </span>
+              </button>
+            ))}
+          </div>
         </div>
       </div>
     </section>
@@ -302,7 +304,7 @@ function DiagnosticResultView({ result }: { result: DiagnosticResult }) {
             : "这组诊断表现不错"}
         </h2>
         <p className="text-sm text-muted-foreground">
-          系统已经生成初始公式状态。薄弱公式会优先进入今日复习队列。
+          已经为你生成初始复习队列。薄弱公式会优先出现在今日复习里。
         </p>
       </div>
 

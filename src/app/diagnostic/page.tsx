@@ -5,9 +5,9 @@ export default function DiagnosticPage() {
   return (
     <PhaseShell
       activePath="/diagnostic"
-      eyebrow="Phase 2 / 首次诊断"
-      title="用 3-5 道题快速生成今日复习任务。"
-      description="诊断会根据用户自评标记初始薄弱公式，并把 Again/Hard 风险最高的内容放进后续复习队列。"
+      eyebrow="首次诊断"
+      title="用几道题找到今天最该练的公式。"
+      description="不用考试感很重。看题、想一想、再按熟悉程度自评，系统会把薄弱公式放进今日复习队列。"
     >
       <DiagnosticQuiz />
     </PhaseShell>

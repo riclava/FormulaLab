@@ -59,9 +59,9 @@ export default async function FormulasPage({
   return (
     <PhaseShell
       activePath="/formulas"
-      eyebrow="Phase 7 / 公式列表"
-      title="公式列表是查找和回看入口，不代替今日复习。"
-      description="这里适合按知识域、标签和训练状态快速定位某条公式，再进入详情确认适用条件、误用点和记忆钩子。真正要完成训练，还是回到今日复习。"
+      eyebrow="公式列表"
+      title="查公式、看边界、回到训练。"
+      description="这里是辅助入口。适合快速定位某条公式，确认适用条件、误用点和记忆钩子；要真正巩固，回到今日复习。"
     >
       <section className="grid gap-5 rounded-lg border bg-background p-6 shadow-sm">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
@@ -103,12 +103,6 @@ export default async function FormulasPage({
               <Link href="/review" className={buttonVariants({ size: "sm" })}>
                 回到今日复习
                 <ArrowRight data-icon="inline-end" />
-              </Link>
-              <Link
-                href="/formulas/new"
-                className={buttonVariants({ size: "sm", variant: "secondary" })}
-              >
-                新建公式
               </Link>
               <Link
                 href={buildHref({

@@ -27,9 +27,9 @@ export default async function SummaryPage() {
   return (
     <PhaseShell
       activePath="/summary"
-      eyebrow="Phase 6 / 复习总结"
-      title="练完之后，你需要看到的不是仪表盘，而是下一步。"
-      description="这里会把今天这轮训练压缩成最关键的结果：哪里还弱、什么时候该回来、哪些联想真的帮到了你。"
+      eyebrow="复习总结"
+      title="看清这一轮结果，然后决定下一步。"
+      description="优先展示需要补弱的公式、下一次复习时间和本轮自评分布。统计留在后面，行动放在前面。"
     >
       <div className="grid gap-6">
         {summary.latestSession ? (
