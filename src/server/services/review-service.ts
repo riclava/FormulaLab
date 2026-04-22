@@ -10,6 +10,7 @@ import {
   listDueFormulaStates,
   updateUserFormulaState,
 } from "@/server/repositories/review-repository";
+import { recordMemoryHookUsed } from "@/server/services/formula-service";
 import type {
   ReviewGrade,
   ReviewHint,
@@ -181,6 +182,11 @@ export async function getReviewHint({
   const hook = formula.memoryHooks[0];
 
   if (hook) {
+    await recordMemoryHookUsed({
+      hookId: hook.id,
+      userId,
+    });
+
     return {
       formulaId,
       content: hook.content,

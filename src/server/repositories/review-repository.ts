@@ -35,8 +35,15 @@ export async function listDueFormulaStates({
           },
           memoryHooks: {
             where: {
-              userId: null,
+              OR: [{ userId }, { userId: null }],
             },
+            orderBy: [
+              { userId: "desc" },
+              { helpfulCount: "desc" },
+              { usedCount: "desc" },
+              { lastUsedAt: "desc" },
+              { createdAt: "asc" },
+            ],
           },
         },
       },
@@ -197,7 +204,13 @@ export async function getReviewHintSource({
         where: {
           OR: [{ userId }, { userId: null }],
         },
-        orderBy: [{ userId: "desc" }, { helpfulCount: "desc" }, { createdAt: "asc" }],
+        orderBy: [
+          { userId: "desc" },
+          { helpfulCount: "desc" },
+          { usedCount: "desc" },
+          { lastUsedAt: "desc" },
+          { createdAt: "asc" },
+        ],
         take: 1,
       },
     },

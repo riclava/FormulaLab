@@ -276,39 +276,39 @@
 
 ### 任务
 
-- [ ] 实现记忆钩子数据模型和 CRUD。
-- [ ] 支持两类来源：
-  - [ ] `ai_suggested`
-  - [ ] `user_created`
-- [ ] 支持联想类型：
-  - [ ] 类比联想。
-  - [ ] 场景联想。
-  - [ ] 图像联想。
-  - [ ] 口诀联想。
-  - [ ] 对比联想。
-  - [ ] 个人联想。
-- [ ] 在公式详情中展示 AI 推荐联想。
-- [ ] 用户可以选择、编辑、保存或丢弃 AI 联想。
-- [ ] Again/Hard 后引导用户创建个人联想：
-  - [ ] “你可以把这个公式联想到什么？”
-  - [ ] “它像哪个你已经熟悉的公式？”
-  - [ ] “它通常出现在什么题型里？”
-  - [ ] “有没有一个画面、口诀或生活场景能帮你想起它？”
-- [ ] Review 卡片中实现提示规则：
-  - [ ] 默认不展示联想。
-  - [ ] 用户点击“给我一点提示”后展示。
-  - [ ] 优先展示用户保存或自建联想。
-  - [ ] 没有个人联想时展示 AI 推荐候选。
-- [ ] 记录联想提示效果：
-  - [ ] `usedCount`
-  - [ ] `helpfulCount`
-  - [ ] `lastUsedAt`
-  - [ ] 当前 Review 是否使用了 `memoryHookUsedId`
-- [ ] 实现联想 API：
-  - [ ] `GET /api/formulas/:id/memory-hooks`
-  - [ ] `POST /api/formulas/:id/memory-hooks`
-  - [ ] `POST /api/formulas/:id/memory-hooks/suggest`
-  - [ ] `POST /api/memory-hooks/:id/helpful`
+- [x] 实现记忆钩子数据模型和 CRUD。
+- [x] 支持两类来源：
+  - [x] `ai_suggested`
+  - [x] `user_created`
+- [x] 支持联想类型：
+  - [x] 类比联想。
+  - [x] 场景联想。
+  - [x] 图像联想。
+  - [x] 口诀联想。
+  - [x] 对比联想。
+  - [x] 个人联想。
+- [x] 在公式详情中展示 AI 推荐联想。
+- [x] 用户可以选择、编辑、保存或丢弃 AI 联想。
+- [x] Again/Hard 后引导用户创建个人联想：
+  - [x] “你可以把这个公式联想到什么？”
+  - [x] “它像哪个你已经熟悉的公式？”
+  - [x] “它通常出现在什么题型里？”
+  - [x] “有没有一个画面、口诀或生活场景能帮你想起它？”
+- [x] Review 卡片中实现提示规则：
+  - [x] 默认不展示联想。
+  - [x] 用户点击“给我一点提示”后展示。
+  - [x] 优先展示用户保存或自建联想。
+  - [x] 没有个人联想时展示 AI 推荐候选。
+- [x] 记录联想提示效果：
+  - [x] `usedCount`
+  - [x] `helpfulCount`
+  - [x] `lastUsedAt`
+  - [x] 当前 Review 是否使用了 `memoryHookUsedId`
+- [x] 实现联想 API：
+  - [x] `GET /api/formulas/:id/memory-hooks`
+  - [x] `POST /api/formulas/:id/memory-hooks`
+  - [x] `POST /api/formulas/:id/memory-hooks/suggest`
+  - [x] `POST /api/memory-hooks/:id/helpful`
 
 ### 交付物
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   AlertTriangle,
   BookOpen,
@@ -8,20 +8,14 @@ import {
   Lightbulb,
   Loader2,
   Network,
-  PenSquare,
-  Sparkles,
 } from "lucide-react";
 
 import { LatexRenderer } from "@/components/formula/latex-renderer";
+import { FormulaMemoryHookPanel } from "@/components/memory-hooks/formula-memory-hook-panel";
 import { Badge } from "@/components/ui/badge";
-import { Button, buttonVariants } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
-import { Textarea } from "@/components/ui/textarea";
+import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { FormulaDetail, FormulaRelationDetail } from "@/types/formula";
-
-type MemoryHook = FormulaDetail["memoryHooks"][number];
 
 type FocusSection =
   | "use"
@@ -47,7 +41,7 @@ export function FormulaDetailView({
   formulaIdOrSlug: string;
   initialFormula?: FormulaDetail;
   initialRelations?: FormulaRelationDetail[];
-  initialHooks?: MemoryHook[];
+  initialHooks?: FormulaDetail["memoryHooks"];
   focusSection?: FocusSection;
   footer?: React.ReactNode;
   compact?: boolean;
@@ -57,12 +51,7 @@ export function FormulaDetailView({
   const [relations, setRelations] = useState<FormulaRelationDetail[]>(
     initialRelations ?? [],
   );
-  const [hooks, setHooks] = useState<MemoryHook[]>(initialHooks ?? initialFormula?.memoryHooks ?? []);
-  const [customHook, setCustomHook] = useState("");
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [selectedHookId, setSelectedHookId] = useState<string | null>(null);
-  const [selectionMessage, setSelectionMessage] = useState<string | null>(null);
-  const [isPending, startTransition] = useTransition();
   const sectionRefs = useRef<Record<string, HTMLElement | null>>({});
 
   useEffect(() => {
@@ -70,15 +59,13 @@ export function FormulaDetailView({
 
     async function loadBundle() {
       try {
-        const [formulaResponse, relationsResponse, hooksResponse] = await Promise.all([
+        const [formulaResponse, relationsResponse] = await Promise.all([
           fetch(`/api/formulas/${formulaIdOrSlug}`),
           fetch(`/api/formulas/${formulaIdOrSlug}/relations`),
-          fetch(`/api/formulas/${formulaIdOrSlug}/memory-hooks`),
         ]);
-        const [formulaPayload, relationsPayload, hooksPayload] = await Promise.all([
+        const [formulaPayload, relationsPayload] = await Promise.all([
           formulaResponse.json() as Promise<{ data?: FormulaDetail; error?: string }>,
           relationsResponse.json() as Promise<{ data?: FormulaRelationDetail[]; error?: string }>,
-          hooksResponse.json() as Promise<{ data?: MemoryHook[]; error?: string }>,
         ]);
 
         if (!formulaResponse.ok || !formulaPayload.data) {
@@ -88,7 +75,6 @@ export function FormulaDetailView({
         if (!ignore) {
           setFormula(formulaPayload.data);
           setRelations(relationsResponse.ok && relationsPayload.data ? relationsPayload.data : []);
-          setHooks(hooksResponse.ok && hooksPayload.data ? hooksPayload.data : formulaPayload.data.memoryHooks);
           setLoadError(null);
         }
       } catch (error) {
@@ -125,45 +111,6 @@ export function FormulaDetailView({
 
     return () => window.clearTimeout(timer);
   }, [focusSection, formula?.id]);
-
-  const userHooks = useMemo(
-    () => hooks.filter((hook) => hook.source === "user_created"),
-    [hooks],
-  );
-  const suggestedHooks = useMemo(
-    () => hooks.filter((hook) => hook.source === "ai_suggested"),
-    [hooks],
-  );
-
-  function handleHookSelected(hook: MemoryHook) {
-    startTransition(async () => {
-      try {
-        const response = await fetch(
-          `/api/formulas/${formulaIdOrSlug}/memory-hooks/${hook.id}/select`,
-          {
-            method: "POST",
-          },
-        );
-        const payload = (await response.json()) as {
-          data?: MemoryHook;
-          error?: string;
-        };
-
-        if (!response.ok || !payload.data) {
-          throw new Error(payload.error ?? "记忆钩子选用失败");
-        }
-
-        setSelectedHookId(payload.data.id);
-        setSelectionMessage("这条记忆钩子已被设为优先提示。");
-        setHooks((previous) => {
-          const nextHooks = previous.filter((candidate) => candidate.id !== payload.data!.id);
-          return [payload.data!, ...nextHooks];
-        });
-      } catch (error) {
-        setLoadError(error instanceof Error ? error.message : "记忆钩子选用失败");
-      }
-    });
-  }
 
   if (loadError) {
     return (
@@ -274,159 +221,12 @@ export function FormulaDetailView({
             icon={Lightbulb}
             title="记忆联想"
           >
-            <div className="flex flex-col gap-4">
-              {userHooks.length > 0 ? (
-                <div className="grid gap-3">
-                  <p className="text-sm font-medium text-foreground">你的个人记忆钩子</p>
-                  {userHooks.map((hook) => (
-                    <div key={hook.id} className="rounded-lg border bg-muted/30 p-3">
-                      <div className="mb-2 flex items-center gap-2">
-                        <Badge variant="secondary">个人</Badge>
-                        <span className="text-xs text-muted-foreground">{hook.type}</span>
-                      </div>
-                      <p className="text-sm leading-6">{hook.content}</p>
-                      {selectableHooks ? (
-                        <div className="mt-3 flex flex-wrap gap-2">
-                          <Button
-                            type="button"
-                            variant={selectedHookId === hook.id ? "secondary" : "outline"}
-                            size="sm"
-                            disabled={isPending}
-                            onClick={() => handleHookSelected(hook)}
-                          >
-                            {selectedHookId === hook.id ? "已设为默认提示" : "选为默认提示"}
-                          </Button>
-                        </div>
-                      ) : null}
-                    </div>
-                  ))}
-                </div>
-              ) : null}
-
-              <div className="grid gap-3">
-                <p className="text-sm font-medium text-foreground">AI 推荐联想</p>
-                {suggestedHooks.length > 0 ? (
-                  suggestedHooks.map((hook) => (
-                    <div key={hook.id} className="rounded-lg border p-3">
-                      <div className="mb-2 flex items-center gap-2">
-                        <Badge variant="outline">
-                          <Sparkles data-icon="inline-start" />
-                          AI
-                        </Badge>
-                        <span className="text-xs text-muted-foreground">{hook.type}</span>
-                      </div>
-                      <p className="text-sm leading-6">{hook.content}</p>
-                      {hook.prompt ? (
-                        <p className="mt-2 text-xs leading-5 text-muted-foreground">
-                          {hook.prompt}
-                        </p>
-                      ) : null}
-                      {selectableHooks ? (
-                        <div className="mt-3 flex flex-wrap gap-2">
-                          <Button
-                            type="button"
-                            variant={selectedHookId === hook.id ? "secondary" : "outline"}
-                            size="sm"
-                            disabled={isPending}
-                            onClick={() => handleHookSelected(hook)}
-                          >
-                            {selectedHookId === hook.id ? "已设为默认提示" : "选为默认提示"}
-                          </Button>
-                        </div>
-                      ) : null}
-                    </div>
-                  ))
-                ) : (
-                  <div className="rounded-lg border border-dashed p-3 text-sm text-muted-foreground">
-                    当前还没有推荐联想，你可以先创建一条自己的记忆钩子。
-                  </div>
-                )}
-              </div>
-
-              {selectionMessage ? (
-                <div className="rounded-lg border border-emerald-200 bg-emerald-50/70 px-3 py-2 text-sm text-emerald-900">
-                  {selectionMessage}
-                </div>
-              ) : null}
-
-              <Separator />
-
-              <div className="grid gap-3">
-                <Label htmlFor="custom-memory-hook">创建个人记忆钩子</Label>
-                <Textarea
-                  id="custom-memory-hook"
-                  placeholder="写下一个能帮你在下次更快想起这个公式的画面、口诀、场景或对比。"
-                  value={customHook}
-                  onChange={(event) => setCustomHook(event.target.value)}
-                />
-                <div className="flex flex-wrap gap-3">
-                  <Button
-                    type="button"
-                    disabled={isPending || !customHook.trim()}
-                    onClick={() => {
-                      startTransition(async () => {
-                        try {
-                          const response = await fetch(
-                            `/api/formulas/${formula.slug}/memory-hooks`,
-                            {
-                              method: "POST",
-                              headers: {
-                                "Content-Type": "application/json",
-                              },
-                              body: JSON.stringify({
-                                content: customHook.trim(),
-                              }),
-                            },
-                          );
-                          const payload = (await response.json()) as {
-                            data?: MemoryHook;
-                            error?: string;
-                          };
-
-                          if (!response.ok || !payload.data) {
-                            throw new Error(payload.error ?? "记忆钩子保存失败");
-                          }
-
-                          const selectResponse = await fetch(
-                            `/api/formulas/${formula.slug}/memory-hooks/${payload.data.id}/select`,
-                            {
-                              method: "POST",
-                            },
-                          );
-                          const selectPayload = (await selectResponse.json()) as {
-                            data?: MemoryHook;
-                            error?: string;
-                          };
-
-                          if (!selectResponse.ok || !selectPayload.data) {
-                            throw new Error(
-                              selectPayload.error ?? "记忆钩子已保存，但默认提示设置失败",
-                            );
-                          }
-
-                          setHooks((previous) => {
-                            const nextHooks = previous.filter(
-                              (hook) => hook.id !== selectPayload.data!.id,
-                            );
-                            return [selectPayload.data!, ...nextHooks];
-                          });
-                          setCustomHook("");
-                          setSelectedHookId(selectPayload.data.id);
-                          setSelectionMessage("新的记忆钩子已保存，并设为默认提示。");
-                        } catch (error) {
-                          setLoadError(
-                            error instanceof Error ? error.message : "记忆钩子保存失败",
-                          );
-                        }
-                      });
-                    }}
-                  >
-                    <PenSquare data-icon="inline-start" />
-                    保存个人联想
-                  </Button>
-                </div>
-              </div>
-            </div>
+            <FormulaMemoryHookPanel
+              formulaIdOrSlug={formula.slug}
+              initialHooks={initialHooks ?? formula.memoryHooks}
+              selectableHooks={selectableHooks}
+              compact
+            />
           </DetailSection>
 
           <DetailSection

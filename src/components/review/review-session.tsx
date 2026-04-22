@@ -58,6 +58,7 @@ export function ReviewSession() {
     good: 0,
     easy: 0,
   });
+  const [helpfulHookIds, setHelpfulHookIds] = useState<string[]>([]);
   const [pendingRemediation, setPendingRemediation] = useState<{
     item: ReviewQueueItem;
     grade: Extract<ReviewGrade, "again" | "hard">;
@@ -175,6 +176,27 @@ export function ReviewSession() {
               <h3 className="font-medium">一点提示</h3>
             </div>
             <p className="text-sm leading-6">{currentHint.content}</p>
+            {currentHint.memoryHookUsedId ? (
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={
+                    helpfulHookIds.includes(currentHint.memoryHookUsedId)
+                      ? "secondary"
+                      : "outline"
+                  }
+                  disabled={
+                    isPending || helpfulHookIds.includes(currentHint.memoryHookUsedId)
+                  }
+                  onClick={() => markHintHelpful(currentHint.memoryHookUsedId!)}
+                >
+                  {helpfulHookIds.includes(currentHint.memoryHookUsedId)
+                    ? "已记录有帮助"
+                    : "这个提示有帮助"}
+                </Button>
+              </div>
+            ) : null}
           </div>
         ) : null}
 
@@ -366,6 +388,29 @@ export function ReviewSession() {
       } catch (deferError) {
         setError(
           deferError instanceof Error ? deferError.message : "稍后再练失败",
+        );
+      }
+    });
+  }
+
+  function markHintHelpful(hookId: string) {
+    startTransition(async () => {
+      try {
+        const response = await fetch(`/api/memory-hooks/${hookId}/helpful`, {
+          method: "POST",
+        });
+        const payload = (await response.json()) as { error?: string };
+
+        if (!response.ok) {
+          throw new Error(payload.error ?? "提示反馈提交失败");
+        }
+
+        setHelpfulHookIds((previous) => [...previous, hookId]);
+      } catch (helpfulError) {
+        setError(
+          helpfulError instanceof Error
+            ? helpfulError.message
+            : "提示反馈提交失败",
         );
       }
     });

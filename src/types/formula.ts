@@ -1,3 +1,5 @@
+import type { MemoryHookRecord } from "@/types/memory-hook";
+
 export type FormulaSummary = {
   id: string;
   slug: string;
@@ -37,19 +39,7 @@ export type FormulaDetail = FormulaSummary & {
     explanation: string | null;
     difficulty: number;
   }>;
-  memoryHooks: Array<{
-    id: string;
-    source: "ai_suggested" | "user_created";
-    type:
-      | "analogy"
-      | "scenario"
-      | "visual"
-      | "mnemonic"
-      | "contrast"
-      | "personal";
-    content: string;
-    prompt: string | null;
-  }>;
+  memoryHooks: MemoryHookRecord[];
 };
 
 export type FormulaRelationDetail = {

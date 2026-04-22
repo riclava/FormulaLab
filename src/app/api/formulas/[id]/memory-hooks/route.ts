@@ -6,8 +6,10 @@ import {
 } from "@/server/http/anonymous-user-cookie";
 import {
   addUserFormulaMemoryHook,
+  adoptAiMemoryHook,
   getFormulaMemoryHooks,
 } from "@/server/services/formula-service";
+import type { MemoryHookType } from "@/types/memory-hook";
 
 export async function GET(
   _request: Request,
@@ -50,24 +52,36 @@ export async function POST(
   const payload = (await request.json()) as {
     content?: string;
     prompt?: string;
+    type?: MemoryHookType;
+    sourceHookId?: string;
   };
 
-  if (!payload.content?.trim()) {
+  if (!payload.content?.trim() && !payload.sourceHookId) {
     return NextResponse.json(
       {
-        error: "content is required",
+        error: "content or sourceHookId is required",
       },
       { status: 400 },
     );
   }
 
   const { user, sessionId } = await getAnonymousUserFromCookies();
-  const hook = await addUserFormulaMemoryHook({
-    formulaIdOrSlug: id,
-    userId: user.id,
-    content: payload.content.trim(),
-    prompt: payload.prompt?.trim() || undefined,
-  });
+  const hook = payload.sourceHookId
+    ? await adoptAiMemoryHook({
+        formulaIdOrSlug: id,
+        sourceHookId: payload.sourceHookId,
+        userId: user.id,
+        content: payload.content?.trim(),
+        prompt: payload.prompt?.trim() || undefined,
+        type: payload.type,
+      })
+    : await addUserFormulaMemoryHook({
+        formulaIdOrSlug: id,
+        userId: user.id,
+        content: payload.content!.trim(),
+        prompt: payload.prompt?.trim() || undefined,
+        type: payload.type,
+      });
 
   if (!hook) {
     const response = NextResponse.json(

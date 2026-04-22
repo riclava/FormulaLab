@@ -1,16 +1,23 @@
 import {
+  createAiFormulaMemoryHooks,
   createUserFormulaMemoryHook,
+  deleteUserFormulaMemoryHook,
   getFormulaByIdOrSlug,
+  getFormulaMemoryHookById,
   listFormulaRelations,
   listFormulaMemoryHooks,
   listFormulas,
+  markMemoryHookHelpful,
+  markMemoryHookUsed,
   selectFormulaMemoryHook,
+  updateUserFormulaMemoryHook,
 } from "@/server/repositories/formula-repository";
 import type {
   FormulaDetail,
   FormulaRelationDetail,
   FormulaSummary,
 } from "@/types/formula";
+import type { MemoryHookRecord, MemoryHookType } from "@/types/memory-hook";
 
 type FormulaWithCounts = Awaited<ReturnType<typeof listFormulas>>[number];
 type FormulaWithDetail = NonNullable<Awaited<ReturnType<typeof getFormulaByIdOrSlug>>>;
@@ -68,11 +75,7 @@ export async function getFormulaMemoryHooks({
   }
 
   return hooks.map((hook) => ({
-    id: hook.id,
-    source: hook.source,
-    type: hook.type,
-    content: hook.content,
-    prompt: hook.prompt,
+    ...toMemoryHookRecord(hook),
   }));
 }
 
@@ -81,30 +84,27 @@ export async function addUserFormulaMemoryHook({
   userId,
   content,
   prompt,
+  type,
 }: {
   formulaIdOrSlug: string;
   userId: string;
   content: string;
   prompt?: string;
+  type?: MemoryHookType;
 }) {
   const hook = await createUserFormulaMemoryHook({
     formulaIdOrSlug,
     userId,
     content,
     prompt,
+    type,
   });
 
   if (!hook) {
     return null;
   }
 
-  return {
-    id: hook.id,
-    source: hook.source,
-    type: hook.type,
-    content: hook.content,
-    prompt: hook.prompt,
-  };
+  return toMemoryHookRecord(hook);
 }
 
 export async function chooseFormulaMemoryHook({
@@ -126,13 +126,199 @@ export async function chooseFormulaMemoryHook({
     return null;
   }
 
-  return {
-    id: hook.id,
-    source: hook.source,
-    type: hook.type,
-    content: hook.content,
-    prompt: hook.prompt,
-  };
+  return toMemoryHookRecord(hook);
+}
+
+export async function adoptAiMemoryHook({
+  formulaIdOrSlug,
+  sourceHookId,
+  userId,
+  content,
+  prompt,
+  type,
+}: {
+  formulaIdOrSlug: string;
+  sourceHookId: string;
+  userId: string;
+  content?: string;
+  prompt?: string;
+  type?: MemoryHookType;
+}) {
+  const sourceHook = await getFormulaMemoryHookById({
+    hookId: sourceHookId,
+    userId,
+  });
+
+  if (!sourceHook || sourceHook.formula.slug !== formulaIdOrSlug && sourceHook.formula.id !== formulaIdOrSlug) {
+    return null;
+  }
+
+  const hook = await createUserFormulaMemoryHook({
+    formulaIdOrSlug,
+    userId,
+    content: content?.trim() || sourceHook.content,
+    prompt: prompt?.trim() || sourceHook.prompt || undefined,
+    type: type ?? sourceHook.type,
+  });
+
+  if (!hook) {
+    return null;
+  }
+
+  return toMemoryHookRecord(hook);
+}
+
+export async function updateMemoryHook({
+  hookId,
+  userId,
+  content,
+  prompt,
+  type,
+}: {
+  hookId: string;
+  userId: string;
+  content?: string;
+  prompt?: string | null;
+  type?: MemoryHookType;
+}) {
+  const hook = await updateUserFormulaMemoryHook({
+    hookId,
+    userId,
+    content,
+    prompt,
+    type,
+  });
+
+  if (!hook) {
+    return null;
+  }
+
+  return toMemoryHookRecord(hook);
+}
+
+export async function removeMemoryHook({
+  hookId,
+  userId,
+}: {
+  hookId: string;
+  userId: string;
+}) {
+  return deleteUserFormulaMemoryHook({
+    hookId,
+    userId,
+  });
+}
+
+export async function recordMemoryHookHelpful({
+  hookId,
+  userId,
+}: {
+  hookId: string;
+  userId?: string;
+}) {
+  const hook = await markMemoryHookHelpful({
+    hookId,
+    userId,
+  });
+
+  if (!hook) {
+    return null;
+  }
+
+  return toMemoryHookRecord(hook);
+}
+
+export async function recordMemoryHookUsed({
+  hookId,
+  userId,
+}: {
+  hookId: string;
+  userId?: string;
+}) {
+  const hook = await markMemoryHookUsed({
+    hookId,
+    userId,
+  });
+
+  if (!hook) {
+    return null;
+  }
+
+  return toMemoryHookRecord(hook);
+}
+
+export async function suggestFormulaMemoryHooks({
+  formulaIdOrSlug,
+}: {
+  formulaIdOrSlug: string;
+}) {
+  const formula = await getFormulaDetail(formulaIdOrSlug);
+
+  if (!formula) {
+    return null;
+  }
+
+  const existingAiHooks = formula.memoryHooks.filter(
+    (hook) => hook.source === "ai_suggested",
+  );
+
+  if (existingAiHooks.length >= 3) {
+    return existingAiHooks;
+  }
+
+  const blueprints: Array<{
+    type: MemoryHookType;
+    content: string;
+    prompt?: string;
+  }> = [
+    {
+      type: "scenario",
+      content: `当题目出现“${formula.typicalProblems[0] ?? formula.domain}”这类场景时，先想到 ${formula.title}。`,
+      prompt: "绑定常见应用题型。",
+    },
+    {
+      type: "visual",
+      content: `先在脑中放一个画面：${formula.examples[0] ?? formula.oneLineUse}`,
+      prompt: "用图像或题面画面帮助回忆。",
+    },
+    {
+      type: "contrast",
+      content: `先提醒自己：${formula.antiPatterns[0] ?? formula.nonUseConditions[0] ?? formula.useConditions[0]}`,
+      prompt: "把易错点变成反向提醒。",
+    },
+    {
+      type: "analogy",
+      content: `把 ${formula.title} 想成“${formula.oneLineUse}”这件事的快捷模板。`,
+      prompt: "用一句熟悉的动作描述来类比公式用途。",
+    },
+    {
+      type: "mnemonic",
+      content: `${formula.title}：先看条件，再按结构一步步代入。`,
+      prompt: "压成一句上手时能默念的短句。",
+    },
+  ];
+
+  const existingKeys = new Set(
+    existingAiHooks.map((hook) => `${hook.type}:${hook.content}`),
+  );
+  const missingHooks = blueprints
+    .filter((hook) => !existingKeys.has(`${hook.type}:${hook.content}`))
+    .slice(0, Math.max(0, 3 - existingAiHooks.length));
+
+  if (missingHooks.length === 0) {
+    return existingAiHooks;
+  }
+
+  const createdHooks = await createAiFormulaMemoryHooks({
+    formulaIdOrSlug,
+    hooks: missingHooks,
+  });
+
+  if (!createdHooks) {
+    return null;
+  }
+
+  return [...existingAiHooks, ...createdHooks.map(toMemoryHookRecord)];
 }
 
 function toFormulaSummary(formula: FormulaWithCounts): FormulaSummary {
@@ -178,13 +364,7 @@ function toFormulaDetail(formula: FormulaWithDetail): FormulaDetail {
       explanation: item.explanation,
       difficulty: item.difficulty,
     })),
-    memoryHooks: formula.memoryHooks.map((hook) => ({
-      id: hook.id,
-      source: hook.source,
-      type: hook.type,
-      content: hook.content,
-      prompt: hook.prompt,
-    })),
+    memoryHooks: formula.memoryHooks.map(toMemoryHookRecord),
   };
 }
 
@@ -196,5 +376,30 @@ function toFormulaRelationDetail(
     relationType: relation.relationType,
     note: relation.note,
     formula: toFormulaSummary(relation.toFormula),
+  };
+}
+
+function toMemoryHookRecord(hook: {
+  id: string;
+  source: MemoryHookRecord["source"];
+  type: MemoryHookRecord["type"];
+  content: string;
+  prompt: string | null;
+  usedCount: number;
+  helpfulCount: number;
+  lastUsedAt: Date | string | null;
+}): MemoryHookRecord {
+  return {
+    id: hook.id,
+    source: hook.source,
+    type: hook.type,
+    content: hook.content,
+    prompt: hook.prompt,
+    usedCount: hook.usedCount,
+    helpfulCount: hook.helpfulCount,
+    lastUsedAt:
+      hook.lastUsedAt instanceof Date
+        ? hook.lastUsedAt.toISOString()
+        : hook.lastUsedAt,
   };
 }
