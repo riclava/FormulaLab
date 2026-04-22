@@ -39,24 +39,24 @@
 
 ### 任务
 
-- [ ] 初始化 Next.js + TypeScript 项目结构。
-- [ ] 接入 Tailwind CSS、shadcn/ui、lucide-react。
-- [ ] 接入 KaTeX 或等价 LaTeX 渲染能力。
-- [ ] 接入 Prisma 与 PostgreSQL 开发环境。
-- [ ] 规划 V1 路由：
-  - [ ] `/diagnostic`
-  - [ ] `/review`
-  - [ ] `/formulas`
-  - [ ] `/formulas/[id]`
-  - [ ] `/summary`
-- [ ] 确定首个内置知识域和公式数量范围。
-- [ ] 定义 V1 不做清单：
-  - [ ] 独立复杂 Knowledge Graph 页面。
-  - [ ] 完整课程体系。
-  - [ ] 用户自建大规模公式库。
-  - [ ] 复杂联想网络编辑器。
-  - [ ] 高级记忆算法或 FSRS。
-  - [ ] 用户侧 AI 聊天主入口。
+- [x] 初始化 Next.js + TypeScript 项目结构。
+- [x] 接入 Tailwind CSS、shadcn/ui、lucide-react。
+- [x] 接入 KaTeX 或等价 LaTeX 渲染能力。
+- [x] 接入 Prisma 与 PostgreSQL 开发环境。
+- [x] 规划 V1 路由：
+  - [x] `/diagnostic`
+  - [x] `/review`
+  - [x] `/formulas`
+  - [x] `/formulas/[id]`
+  - [x] `/summary`
+- [x] 确定首个内置知识域和公式数量范围。
+- [x] 定义 V1 不做清单：
+  - [x] 独立复杂 Knowledge Graph 页面。
+  - [x] 完整课程体系。
+  - [x] 用户自建大规模公式库。
+  - [x] 复杂联想网络编辑器。
+  - [x] 高级记忆算法或 FSRS。
+  - [x] 用户侧 AI 聊天主入口。
 
 ### 交付物
 
