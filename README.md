@@ -30,6 +30,12 @@ Copy the example environment file and set `DATABASE_URL`:
 cp .env.example .env
 ```
 
+Start PostgreSQL:
+
+```bash
+docker compose up -d postgres
+```
+
 Generate the Prisma client:
 
 ```bash
