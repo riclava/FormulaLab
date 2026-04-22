@@ -19,6 +19,9 @@ CREATE TYPE "MemoryHookType" AS ENUM ('analogy', 'scenario', 'visual', 'mnemonic
 -- CreateEnum
 CREATE TYPE "StudySessionStatus" AS ENUM ('active', 'completed', 'abandoned');
 
+-- CreateEnum
+CREATE TYPE "ProductEventType" AS ENUM ('weak_formula_impression', 'weak_formula_opened');
+
 -- CreateTable
 CREATE TABLE "users" (
     "id" TEXT NOT NULL,
@@ -181,6 +184,18 @@ CREATE TABLE "study_sessions" (
     CONSTRAINT "study_sessions_pkey" PRIMARY KEY ("id")
 );
 
+-- CreateTable
+CREATE TABLE "product_events" (
+    "id" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "formulaId" TEXT,
+    "studySessionId" TEXT,
+    "type" "ProductEventType" NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "product_events_pkey" PRIMARY KEY ("id")
+);
+
 -- CreateIndex
 CREATE UNIQUE INDEX "users_email_key" ON "users"("email");
 
@@ -226,6 +241,12 @@ CREATE INDEX "formula_memory_hooks_formulaId_userId_idx" ON "formula_memory_hook
 -- CreateIndex
 CREATE INDEX "study_sessions_userId_startedAt_idx" ON "study_sessions"("userId", "startedAt");
 
+-- CreateIndex
+CREATE INDEX "product_events_userId_type_createdAt_idx" ON "product_events"("userId", "type", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "product_events_formulaId_type_idx" ON "product_events"("formulaId", "type");
+
 -- AddForeignKey
 ALTER TABLE "formula_variables" ADD CONSTRAINT "formula_variables_formulaId_fkey" FOREIGN KEY ("formulaId") REFERENCES "formulas"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
@@ -270,3 +291,12 @@ ALTER TABLE "formula_memory_hooks" ADD CONSTRAINT "formula_memory_hooks_formulaI
 
 -- AddForeignKey
 ALTER TABLE "study_sessions" ADD CONSTRAINT "study_sessions_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "product_events" ADD CONSTRAINT "product_events_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "product_events" ADD CONSTRAINT "product_events_formulaId_fkey" FOREIGN KEY ("formulaId") REFERENCES "formulas"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "product_events" ADD CONSTRAINT "product_events_studySessionId_fkey" FOREIGN KEY ("studySessionId") REFERENCES "study_sessions"("id") ON DELETE SET NULL ON UPDATE CASCADE;

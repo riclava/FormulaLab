@@ -47,6 +47,11 @@ enum StudySessionStatus {
   abandoned
 }
 
+enum ProductEventType {
+  weak_formula_impression
+  weak_formula_opened
+}
+
 model User {
   id                 String   @id @default(cuid())
   email              String?  @unique
@@ -60,6 +65,7 @@ model User {
   memoryHooks        FormulaMemoryHook[]
   diagnosticAttempts DiagnosticAttempt[]
   studySessions      StudySession[]
+  productEvents      ProductEvent[]
 
   @@map("users")
 }
@@ -92,6 +98,7 @@ model Formula {
   userStates        UserFormulaState[]
   reviewLogs        ReviewLog[]
   memoryHooks       FormulaMemoryHook[]
+  productEvents     ProductEvent[]
 
   @@index([domain, subdomain])
   @@map("formulas")
@@ -244,9 +251,27 @@ model StudySession {
   createdAt   DateTime           @default(now())
   updatedAt   DateTime           @updatedAt
 
-  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  reviewLogs ReviewLog[]
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reviewLogs    ReviewLog[]
+  productEvents ProductEvent[]
 
   @@index([userId, startedAt])
   @@map("study_sessions")
+}
+
+model ProductEvent {
+  id             String           @id @default(cuid())
+  userId         String
+  formulaId      String?
+  studySessionId String?
+  type           ProductEventType
+  createdAt      DateTime         @default(now())
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  formula      Formula?      @relation(fields: [formulaId], references: [id], onDelete: SetNull)
+  studySession StudySession? @relation(fields: [studySessionId], references: [id], onDelete: SetNull)
+
+  @@index([userId, type, createdAt])
+  @@index([formulaId, type])
+  @@map("product_events")
 }

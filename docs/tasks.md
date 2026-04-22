@@ -330,27 +330,27 @@
 
 ### 任务
 
-- [ ] 实现 `/summary` 页面。
-- [ ] 展示本次复习结果：
-  - [ ] 完成题数。
-  - [ ] Again/Hard/Good/Easy 分布。
-  - [ ] 单次复习耗时。
-  - [ ] 今日最薄弱公式。
-  - [ ] 下一次建议复习时间。
-  - [ ] 可立即补弱公式列表。
-  - [ ] 新创建或被使用的记忆钩子。
-- [ ] 实现统计 API：
-  - [ ] `GET /api/stats/summary`
-  - [ ] `GET /api/stats/progress`
-  - [ ] `GET /api/stats/weak-formulas`
-- [ ] 记录 V1 成功指标：
-  - [ ] 首次 Review 完成率。
-  - [ ] 每日 Review 完成率。
-  - [ ] 次日回访率。
-  - [ ] Again/Hard 回收率。
-  - [ ] 薄弱公式点击率。
-  - [ ] 记忆钩子创建率。
-  - [ ] 联想提示有效率。
+- [x] 实现 `/summary` 页面。
+- [x] 展示本次复习结果：
+  - [x] 完成题数。
+  - [x] Again/Hard/Good/Easy 分布。
+  - [x] 单次复习耗时。
+  - [x] 今日最薄弱公式。
+  - [x] 下一次建议复习时间。
+  - [x] 可立即补弱公式列表。
+  - [x] 新创建或被使用的记忆钩子。
+- [x] 实现统计 API：
+  - [x] `GET /api/stats/summary`
+  - [x] `GET /api/stats/progress`
+  - [x] `GET /api/stats/weak-formulas`
+- [x] 记录 V1 成功指标：
+  - [x] 首次 Review 完成率。
+  - [x] 每日 Review 完成率。
+  - [x] 次日回访率。
+  - [x] Again/Hard 回收率。
+  - [x] 薄弱公式点击率。
+  - [x] 记忆钩子创建率。
+  - [x] 联想提示有效率。
 
 ### 交付物
 
