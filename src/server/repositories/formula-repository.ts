@@ -1,14 +1,49 @@
 import { prisma } from "@/lib/db/prisma";
 import type { Prisma } from "@/generated/prisma/client";
 
-const formulaSummaryInclude = {
-  _count: {
-    select: {
-      reviewItems: true,
-      memoryHooks: true,
+function buildFormulaSummaryInclude(userId?: string) {
+  return {
+    variables: {
+      orderBy: {
+        sortOrder: "asc" as const,
+      },
+      select: {
+        symbol: true,
+        name: true,
+      },
     },
-  },
-} satisfies Prisma.FormulaInclude;
+    userStates: {
+      where: {
+        userId: userId ?? "__anonymous_formula_catalog__",
+      },
+      take: 1,
+      select: {
+        nextReviewAt: true,
+        memoryStrength: true,
+        lapseCount: true,
+        consecutiveCorrect: true,
+        totalReviews: true,
+        correctReviews: true,
+      },
+    },
+    memoryHooks: {
+      where: {
+        userId: userId ?? "__anonymous_formula_catalog__",
+        source: "user_created",
+      },
+      take: 1,
+      select: {
+        id: true,
+      },
+    },
+    _count: {
+      select: {
+        reviewItems: true,
+        memoryHooks: true,
+      },
+    },
+  } satisfies Prisma.FormulaInclude;
+}
 
 const formulaDetailInclude = {
   variables: {
@@ -37,25 +72,97 @@ const formulaDetailInclude = {
 
 export async function listFormulas({
   domain,
+  tag,
+  difficulty,
   query,
+  userId,
 }: {
   domain?: string;
+  tag?: string;
+  difficulty?: number;
   query?: string;
+  userId?: string;
 } = {}) {
+  const normalizedQuery = query?.trim();
+  const queryTokens = normalizedQuery
+    ? normalizedQuery.split(/\s+/).filter(Boolean)
+    : [];
+
   return prisma.formula.findMany({
     where: {
       ...(domain ? { domain } : {}),
-      ...(query
+      ...(tag ? { tags: { has: tag } } : {}),
+      ...(typeof difficulty === "number" ? { difficulty } : {}),
+      ...(normalizedQuery
         ? {
             OR: [
-              { title: { contains: query, mode: "insensitive" as const } },
-              { oneLineUse: { contains: query, mode: "insensitive" as const } },
-              { tags: { has: query } },
+              {
+                title: {
+                  contains: normalizedQuery,
+                  mode: "insensitive" as const,
+                },
+              },
+              {
+                oneLineUse: {
+                  contains: normalizedQuery,
+                  mode: "insensitive" as const,
+                },
+              },
+              {
+                meaning: {
+                  contains: normalizedQuery,
+                  mode: "insensitive" as const,
+                },
+              },
+              {
+                subdomain: {
+                  contains: normalizedQuery,
+                  mode: "insensitive" as const,
+                },
+              },
+              {
+                variables: {
+                  some: {
+                    OR: [
+                      {
+                        symbol: {
+                          contains: normalizedQuery,
+                          mode: "insensitive" as const,
+                        },
+                      },
+                      {
+                        name: {
+                          contains: normalizedQuery,
+                          mode: "insensitive" as const,
+                        },
+                      },
+                      {
+                        description: {
+                          contains: normalizedQuery,
+                          mode: "insensitive" as const,
+                        },
+                      },
+                    ],
+                  },
+                },
+              },
+              ...(queryTokens.length > 0 ? [{ tags: { hasSome: queryTokens } }] : []),
             ],
           }
         : {}),
     },
-    include: formulaSummaryInclude,
+    include: buildFormulaSummaryInclude(userId),
+    orderBy: [{ domain: "asc" }, { difficulty: "asc" }, { title: "asc" }],
+  });
+}
+
+export async function listFormulaCatalogFacets() {
+  return prisma.formula.findMany({
+    select: {
+      domain: true,
+      difficulty: true,
+      tags: true,
+    },
     orderBy: [{ domain: "asc" }, { difficulty: "asc" }, { title: "asc" }],
   });
 }
@@ -89,7 +196,7 @@ export async function listFormulaRelations(idOrSlug: string) {
     },
     include: {
       toFormula: {
-        include: formulaSummaryInclude,
+        include: buildFormulaSummaryInclude(),
       },
     },
     orderBy: [{ relationType: "asc" }, { createdAt: "asc" }],

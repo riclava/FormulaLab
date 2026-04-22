@@ -251,6 +251,13 @@ function selectReviewQueueItem({
   const reviewItem =
     state.formula.reviewItems.find((item) => item.type === preferredType) ??
     state.formula.reviewItems[0];
+  const isWeak = state.memoryStrength < 0.4 || state.lapseCount > 0;
+  const isStable = state.memoryStrength >= 0.7 && state.consecutiveCorrect >= 3;
+  const trainingStatus = isWeak
+    ? "weak"
+    : isStable
+      ? "stable"
+      : "due_now";
 
   return {
     reviewItemId: reviewItem.id,
@@ -270,8 +277,24 @@ function selectReviewQueueItem({
       oneLineUse: state.formula.oneLineUse,
       difficulty: state.formula.difficulty,
       tags: state.formula.tags,
+      variablePreview: [],
       reviewItemCount: state.formula.reviewItems.length,
       memoryHookCount: state.formula.memoryHooks.length,
+      trainingStatus,
+      trainingStatusLabel:
+        trainingStatus === "weak"
+          ? "需要补弱"
+          : trainingStatus === "stable"
+            ? "稳定中"
+            : "今天该复习",
+      nextReviewAt: state.nextReviewAt?.toISOString() ?? null,
+      isWeak,
+      isDueNow: true,
+      hasPersonalMemoryHook: state.formula.memoryHooks.some(
+        (hook) => hook.userId !== null,
+      ),
+      totalReviews: state.totalReviews,
+      correctReviews: state.correctReviews,
       meaning: state.formula.meaning,
     },
   };

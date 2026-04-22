@@ -1,5 +1,13 @@
 import type { MemoryHookRecord } from "@/types/memory-hook";
 
+export type FormulaTrainingStatus =
+  | "not_started"
+  | "weak"
+  | "due_now"
+  | "learning"
+  | "scheduled"
+  | "stable";
+
 export type FormulaSummary = {
   id: string;
   slug: string;
@@ -10,8 +18,29 @@ export type FormulaSummary = {
   oneLineUse: string;
   difficulty: number;
   tags: string[];
+  variablePreview: Array<{
+    symbol: string;
+    name: string;
+  }>;
   reviewItemCount: number;
   memoryHookCount: number;
+  trainingStatus: FormulaTrainingStatus;
+  trainingStatusLabel: string;
+  nextReviewAt: string | null;
+  isWeak: boolean;
+  isDueNow: boolean;
+  hasPersonalMemoryHook: boolean;
+  totalReviews: number;
+  correctReviews: number;
+};
+
+export type FormulaCatalog = {
+  formulas: FormulaSummary[];
+  filters: {
+    domains: string[];
+    tags: string[];
+    difficulties: number[];
+  };
 };
 
 export type FormulaDetail = FormulaSummary & {

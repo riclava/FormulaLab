@@ -162,6 +162,10 @@ function toFormulaSummary(formula: {
   oneLineUse: string;
   difficulty: number;
   tags: string[];
+  variables?: Array<{
+    symbol: string;
+    name: string;
+  }>;
   _count: {
     reviewItems: number;
     memoryHooks: number;
@@ -177,7 +181,16 @@ function toFormulaSummary(formula: {
     oneLineUse: formula.oneLineUse,
     difficulty: formula.difficulty,
     tags: formula.tags,
+    variablePreview: formula.variables ?? [],
     reviewItemCount: formula._count.reviewItems,
     memoryHookCount: formula._count.memoryHooks,
+    trainingStatus: "not_started",
+    trainingStatusLabel: "尚未进入训练",
+    nextReviewAt: null,
+    isWeak: false,
+    isDueNow: false,
+    hasPersonalMemoryHook: false,
+    totalReviews: 0,
+    correctReviews: 0,
   };
 }

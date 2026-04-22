@@ -5,6 +5,7 @@ import {
   getFormulaByIdOrSlug,
   getFormulaMemoryHookById,
   listFormulaRelations,
+  listFormulaCatalogFacets,
   listFormulaMemoryHooks,
   listFormulas,
   markMemoryHookHelpful,
@@ -13,13 +14,13 @@ import {
   updateUserFormulaMemoryHook,
 } from "@/server/repositories/formula-repository";
 import type {
+  FormulaCatalog,
   FormulaDetail,
   FormulaRelationDetail,
   FormulaSummary,
 } from "@/types/formula";
 import type { MemoryHookRecord, MemoryHookType } from "@/types/memory-hook";
 
-type FormulaWithCounts = Awaited<ReturnType<typeof listFormulas>>[number];
 type FormulaWithDetail = NonNullable<Awaited<ReturnType<typeof getFormulaByIdOrSlug>>>;
 type RelationWithFormula = NonNullable<
   Awaited<ReturnType<typeof listFormulaRelations>>
@@ -27,11 +28,74 @@ type RelationWithFormula = NonNullable<
 
 export async function getFormulaSummaries(params?: {
   domain?: string;
+  tag?: string;
+  difficulty?: number;
   query?: string;
+  userId?: string;
 }): Promise<FormulaSummary[]> {
   const formulas = await listFormulas(params);
+  const now = new Date();
 
-  return formulas.map(toFormulaSummary);
+  return formulas
+    .map((formula) => toFormulaSummary(formula, now))
+    .sort((left, right) => {
+      const leftPriority = getTrainingStatusPriority(left.trainingStatus);
+      const rightPriority = getTrainingStatusPriority(right.trainingStatus);
+
+      if (leftPriority !== rightPriority) {
+        return leftPriority - rightPriority;
+      }
+
+      if (left.domain !== right.domain) {
+        return left.domain.localeCompare(right.domain, "zh-CN");
+      }
+
+      if (left.difficulty !== right.difficulty) {
+        return left.difficulty - right.difficulty;
+      }
+
+      return left.title.localeCompare(right.title, "zh-CN");
+    });
+}
+
+export async function getFormulaCatalog(params?: {
+  domain?: string;
+  tag?: string;
+  difficulty?: number;
+  query?: string;
+  userId?: string;
+}): Promise<FormulaCatalog> {
+  const [formulas, facetSource] = await Promise.all([
+    getFormulaSummaries(params),
+    listFormulaCatalogFacets(),
+  ]);
+
+  const tagFrequency = new Map<string, number>();
+
+  for (const formula of facetSource) {
+    for (const tag of formula.tags) {
+      tagFrequency.set(tag, (tagFrequency.get(tag) ?? 0) + 1);
+    }
+  }
+
+  return {
+    formulas,
+    filters: {
+      domains: Array.from(new Set(facetSource.map((formula) => formula.domain))),
+      difficulties: Array.from(
+        new Set(facetSource.map((formula) => formula.difficulty)),
+      ).sort((left, right) => left - right),
+      tags: Array.from(tagFrequency.entries())
+        .sort((left, right) => {
+          if (right[1] !== left[1]) {
+            return right[1] - left[1];
+          }
+
+          return left[0].localeCompare(right[0], "zh-CN");
+        })
+        .map(([tag]) => tag),
+    },
+  };
 }
 
 export async function getFormulaDetail(
@@ -43,7 +107,7 @@ export async function getFormulaDetail(
     return null;
   }
 
-  return toFormulaDetail(formula);
+  return toFormulaDetail(formula, new Date());
 }
 
 export async function getFormulaRelationDetails(
@@ -55,7 +119,7 @@ export async function getFormulaRelationDetails(
     return null;
   }
 
-  return relations.map(toFormulaRelationDetail);
+  return relations.map((relation) => toFormulaRelationDetail(relation, new Date()));
 }
 
 export async function getFormulaMemoryHooks({
@@ -321,7 +385,64 @@ export async function suggestFormulaMemoryHooks({
   return [...existingAiHooks, ...createdHooks.map(toMemoryHookRecord)];
 }
 
-function toFormulaSummary(formula: FormulaWithCounts): FormulaSummary {
+function toFormulaSummary(
+  formula: {
+    id: string;
+    slug: string;
+    title: string;
+    expressionLatex: string;
+    domain: string;
+    subdomain: string | null;
+    oneLineUse: string;
+    difficulty: number;
+    tags: string[];
+    variables: Array<{
+      symbol: string;
+      name: string;
+    }>;
+    memoryHooks: Array<{
+      id: string;
+    }>;
+    userStates?: Array<{
+      nextReviewAt: Date | null;
+      memoryStrength: number;
+      lapseCount: number;
+      consecutiveCorrect: number;
+      totalReviews: number;
+      correctReviews: number;
+    }>;
+    _count: {
+      reviewItems: number;
+      memoryHooks: number;
+    };
+  },
+  now: Date,
+): FormulaSummary {
+  const state = formula.userStates?.[0];
+  const hasPersonalMemoryHook = formula.memoryHooks.length > 0;
+  const isWeak =
+    state !== undefined &&
+    (state.memoryStrength < 0.4 || state.lapseCount > 0);
+  const isDueNow =
+    state?.nextReviewAt !== null &&
+    state?.nextReviewAt !== undefined &&
+    state.nextReviewAt.getTime() <= now.getTime();
+  const isStable =
+    state !== undefined &&
+    state.memoryStrength >= 0.7 &&
+    state.consecutiveCorrect >= 3;
+  const trainingStatus = state
+    ? isWeak
+      ? "weak"
+      : isDueNow
+        ? "due_now"
+        : isStable
+          ? "stable"
+          : state.totalReviews > 0 && state.nextReviewAt
+            ? "scheduled"
+            : "learning"
+    : "not_started";
+
   return {
     id: formula.id,
     slug: formula.slug,
@@ -332,14 +453,26 @@ function toFormulaSummary(formula: FormulaWithCounts): FormulaSummary {
     oneLineUse: formula.oneLineUse,
     difficulty: formula.difficulty,
     tags: formula.tags,
+    variablePreview: formula.variables.map((variable) => ({
+      symbol: variable.symbol,
+      name: variable.name,
+    })),
     reviewItemCount: formula._count.reviewItems,
     memoryHookCount: formula._count.memoryHooks,
+    trainingStatus,
+    trainingStatusLabel: getTrainingStatusLabel(trainingStatus),
+    nextReviewAt: state?.nextReviewAt?.toISOString() ?? null,
+    isWeak,
+    isDueNow,
+    hasPersonalMemoryHook,
+    totalReviews: state?.totalReviews ?? 0,
+    correctReviews: state?.correctReviews ?? 0,
   };
 }
 
-function toFormulaDetail(formula: FormulaWithDetail): FormulaDetail {
+function toFormulaDetail(formula: FormulaWithDetail, now: Date): FormulaDetail {
   return {
-    ...toFormulaSummary(formula),
+    ...toFormulaSummary(formula, now),
     meaning: formula.meaning,
     intuition: formula.intuition,
     derivation: formula.derivation,
@@ -370,12 +503,13 @@ function toFormulaDetail(formula: FormulaWithDetail): FormulaDetail {
 
 function toFormulaRelationDetail(
   relation: RelationWithFormula,
+  now: Date,
 ): FormulaRelationDetail {
   return {
     id: relation.id,
     relationType: relation.relationType,
     note: relation.note,
-    formula: toFormulaSummary(relation.toFormula),
+    formula: toFormulaSummary(relation.toFormula, now),
   };
 }
 
@@ -402,4 +536,41 @@ function toMemoryHookRecord(hook: {
         ? hook.lastUsedAt.toISOString()
         : hook.lastUsedAt,
   };
+}
+
+function getTrainingStatusPriority(status: FormulaSummary["trainingStatus"]) {
+  switch (status) {
+    case "weak":
+      return 0;
+    case "due_now":
+      return 1;
+    case "learning":
+      return 2;
+    case "not_started":
+      return 3;
+    case "scheduled":
+      return 4;
+    case "stable":
+      return 5;
+    default:
+      return 6;
+  }
+}
+
+function getTrainingStatusLabel(status: FormulaSummary["trainingStatus"]) {
+  switch (status) {
+    case "weak":
+      return "需要补弱";
+    case "due_now":
+      return "今天该复习";
+    case "learning":
+      return "正在建立";
+    case "scheduled":
+      return "已安排复习";
+    case "stable":
+      return "稳定中";
+    case "not_started":
+    default:
+      return "尚未进入训练";
+  }
 }
