@@ -103,5 +103,52 @@ describe("critical learning path", () => {
 
     const summary = await request("/api/stats/summary");
     assert.equal(summary.status, 200);
+    const summaryBody = (await summary.json()) as {
+      data: {
+        advancedStats: {
+          totalReviews: number;
+        };
+        learningRecommendations: Array<{
+          href: string;
+        }>;
+      };
+    };
+    assert.ok(summaryBody.data.advancedStats.totalReviews >= 1);
+    assert.ok(summaryBody.data.learningRecommendations.length > 0);
+
+    const weakReview = await request("/api/review/today?mode=weak");
+    assert.equal(weakReview.status, 200);
+    const weakReviewBody = (await weakReview.json()) as {
+      data: {
+        mode: string;
+        items: Array<unknown>;
+      };
+    };
+    assert.equal(weakReviewBody.data.mode, "weak");
+    assert.ok(weakReviewBody.data.items.length > 0);
+
+    const customTitle = `测试自定义公式 ${Date.now()}`;
+    const createFormula = await request("/api/formulas", {
+      method: "POST",
+      body: JSON.stringify({
+        title: customTitle,
+        expressionLatex: "a+b=b+a",
+        domain: "测试公式",
+        oneLineUse: "验证加法交换律。",
+        meaning: "两个数相加时交换顺序，总和不变。",
+        derivation: "由加法定义可知两个加数的位置不影响总和。",
+        tags: ["test-custom"],
+        memoryHook: "换位置，总和不变。",
+      }),
+    });
+    assert.equal(createFormula.status, 201);
+    const createFormulaBody = (await createFormula.json()) as {
+      data: {
+        slug: string;
+        reviewItemCount: number;
+      };
+    };
+    assert.ok(createFormulaBody.data.slug);
+    assert.equal(createFormulaBody.data.reviewItemCount, 3);
   });
 });

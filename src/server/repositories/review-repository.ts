@@ -53,6 +53,65 @@ export async function listDueFormulaStates({
   });
 }
 
+export async function listWeakFormulaStatesForReview({
+  userId,
+  take,
+}: {
+  userId: string;
+  take: number;
+}) {
+  return prisma.userFormulaState.findMany({
+    where: {
+      userId,
+      OR: [
+        {
+          memoryStrength: {
+            lt: 0.55,
+          },
+        },
+        {
+          lapseCount: {
+            gt: 0,
+          },
+        },
+        {
+          difficultyEstimate: {
+            gte: 3,
+          },
+        },
+      ],
+    },
+    include: {
+      formula: {
+        include: {
+          reviewItems: {
+            orderBy: [{ difficulty: "asc" }, { createdAt: "asc" }],
+          },
+          memoryHooks: {
+            where: {
+              OR: [{ userId }, { userId: null }],
+            },
+            orderBy: [
+              { userId: "desc" },
+              { helpfulCount: "desc" },
+              { usedCount: "desc" },
+              { lastUsedAt: "desc" },
+              { createdAt: "asc" },
+            ],
+          },
+        },
+      },
+    },
+    orderBy: [
+      { lapseCount: "desc" },
+      { memoryStrength: "asc" },
+      { difficultyEstimate: "desc" },
+      { updatedAt: "desc" },
+    ],
+    take,
+  });
+}
+
 export async function countUserFormulaStates(userId: string) {
   return prisma.userFormulaState.count({
     where: {

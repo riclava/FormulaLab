@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, BarChart3, CalendarClock, Lightbulb, Target } from "lucide-react";
+import { ArrowRight, BarChart3, CalendarClock, Lightbulb, Route, Target } from "lucide-react";
 
 import { PhaseShell } from "@/components/app/phase-shell";
 import { WeakFormulaList } from "@/components/summary/weak-formula-list";
@@ -136,6 +136,97 @@ export default async function SummaryPage() {
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
           <section className="rounded-lg border bg-background p-6 shadow-sm">
             <div className="mb-4 flex items-center gap-2">
+              <Route data-icon="inline-start" />
+              <h2 className="font-semibold">个性化下一步</h2>
+            </div>
+            <div className="grid gap-3">
+              {summary.learningRecommendations.map((item) => (
+                <Link
+                  key={item.id}
+                  href={item.href}
+                  className="grid gap-2 rounded-lg border p-4 transition-colors hover:bg-muted/40"
+                >
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge
+                      variant={
+                        item.priority === "high"
+                          ? "destructive"
+                          : item.priority === "medium"
+                            ? "secondary"
+                            : "outline"
+                      }
+                    >
+                      {item.priority === "high"
+                        ? "优先"
+                        : item.priority === "medium"
+                          ? "建议"
+                          : "可选"}
+                    </Badge>
+                    <span className="font-medium">{item.label}</span>
+                  </div>
+                  <p className="text-sm leading-6 text-muted-foreground">
+                    {item.description}
+                  </p>
+                </Link>
+              ))}
+            </div>
+          </section>
+
+          <section className="rounded-lg border bg-background p-6 shadow-sm">
+            <div className="mb-4 flex items-center gap-2">
+              <BarChart3 data-icon="inline-start" />
+              <h2 className="font-semibold">长期统计</h2>
+            </div>
+            <div className="grid gap-3">
+              <div className="grid gap-3 sm:grid-cols-3">
+                <ProgressCard label="总复习题数" value={summary.advancedStats.totalReviews} />
+                <ProgressCard
+                  label="总正确率"
+                  value={
+                    summary.advancedStats.correctRate === null
+                      ? 0
+                      : Math.round(summary.advancedStats.correctRate * 100)
+                  }
+                  suffix={summary.advancedStats.correctRate === null ? "" : "%"}
+                />
+                <ProgressCard
+                  label="平均耗时"
+                  value={
+                    summary.advancedStats.averageResponseTimeMs === null
+                      ? 0
+                      : Math.round(summary.advancedStats.averageResponseTimeMs / 1000)
+                  }
+                  suffix={summary.advancedStats.averageResponseTimeMs === null ? "" : " 秒"}
+                />
+              </div>
+              {summary.advancedStats.reviewTypeBreakdown.map((item) => (
+                <div key={item.type} className="rounded-lg border p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="font-medium">{item.label}</p>
+                    <span className="text-sm text-muted-foreground">
+                      {item.weakCount}/{item.count} 需要补弱
+                    </span>
+                  </div>
+                  <div className="mt-3 h-2 overflow-hidden rounded-full bg-muted">
+                    <div
+                      className="h-full bg-primary"
+                      style={{
+                        width:
+                          item.count > 0
+                            ? `${Math.round(((item.count - item.weakCount) / item.count) * 100)}%`
+                            : "0%",
+                      }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        </div>
+
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+          <section className="rounded-lg border bg-background p-6 shadow-sm">
+            <div className="mb-4 flex items-center gap-2">
               <Lightbulb data-icon="inline-start" />
               <h2 className="font-semibold">本轮联想活动</h2>
             </div>
@@ -198,13 +289,18 @@ export default async function SummaryPage() {
 function ProgressCard({
   label,
   value,
+  suffix = "",
 }: {
   label: string;
   value: number;
+  suffix?: string;
 }) {
   return (
     <div className="rounded-lg border p-4">
-      <p className="text-2xl font-semibold">{value}</p>
+      <p className="text-2xl font-semibold">
+        {value}
+        {suffix}
+      </p>
       <p className="text-sm text-muted-foreground">{label}</p>
     </div>
   );

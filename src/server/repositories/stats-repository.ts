@@ -54,6 +54,13 @@ export async function listReviewLogsForUser(userId: string, take = 500) {
     orderBy: {
       reviewedAt: "asc",
     },
+    include: {
+      reviewItem: {
+        select: {
+          type: true,
+        },
+      },
+    },
     take,
   });
 }

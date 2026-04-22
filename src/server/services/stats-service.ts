@@ -31,6 +31,12 @@ export async function getSummaryStats({
       nextSuggestedReviewAt: weakStates[0]?.nextReviewAt?.toISOString() ?? null,
       immediateWeakFormulas: weakStates.map(toWeakFormulaStat),
       memoryHookActivity: [],
+      advancedStats: buildAdvancedStats(logs),
+      learningRecommendations: buildLearningRecommendations({
+        weakFormulas: weakStates.map(toWeakFormulaStat),
+        logs,
+        hooks,
+      }),
       metrics: buildMetrics({
         sessions,
         logs,
@@ -122,6 +128,12 @@ export async function getSummaryStats({
     ]
       .sort((left, right) => right.timestamp.localeCompare(left.timestamp))
       .slice(0, 8),
+    advancedStats: buildAdvancedStats(logs),
+    learningRecommendations: buildLearningRecommendations({
+      weakFormulas: immediateWeakFormulas,
+      logs,
+      hooks,
+    }),
     metrics: buildMetrics({
       sessions,
       logs,
@@ -241,6 +253,20 @@ function buildWeakFormulasFromSession({
         hardCount: entry.hardCount,
         nextReviewAt: state?.nextReviewAt?.toISOString() ?? null,
         memoryHookCount: state?.formula._count.memoryHooks ?? 0,
+        weakPoint: inferWeakPoint({
+          latestResult: entry.latestResult,
+          againCount: entry.againCount,
+          hardCount: entry.hardCount,
+          memoryHookCount: state?.formula._count.memoryHooks ?? 0,
+        }),
+        recommendedAction: getRecommendedAction(
+          inferWeakPoint({
+            latestResult: entry.latestResult,
+            againCount: entry.againCount,
+            hardCount: entry.hardCount,
+            memoryHookCount: state?.formula._count.memoryHooks ?? 0,
+          }),
+        ),
         reason:
           entry.againCount > 0
             ? "这条公式在本次复习里出现了 Again，建议优先回看适用条件和误用点。"
@@ -264,6 +290,22 @@ function toWeakFormulaStat(
     hardCount: Math.max(0, state.totalReviews - state.correctReviews - state.lapseCount),
     nextReviewAt: state.nextReviewAt?.toISOString() ?? null,
     memoryHookCount: state.formula._count.memoryHooks,
+    weakPoint: inferWeakPoint({
+      latestResult: null,
+      againCount: state.lapseCount,
+      hardCount: Math.max(0, state.totalReviews - state.correctReviews - state.lapseCount),
+      memoryHookCount: state.formula._count.memoryHooks,
+      memoryStrength: state.memoryStrength,
+    }),
+    recommendedAction: getRecommendedAction(
+      inferWeakPoint({
+        latestResult: null,
+        againCount: state.lapseCount,
+        hardCount: Math.max(0, state.totalReviews - state.correctReviews - state.lapseCount),
+        memoryHookCount: state.formula._count.memoryHooks,
+        memoryStrength: state.memoryStrength,
+      }),
+    ),
     reason:
       state.lapseCount > 0
         ? "近期出现过遗忘，建议从误用点和例题重新建立判断。"
@@ -395,6 +437,160 @@ function buildMetrics({
       description: "已经被用到的联想提示，有多少被认为确实有帮助。",
     },
   ];
+}
+
+function buildAdvancedStats(
+  logs: Awaited<ReturnType<typeof listReviewLogsForUser>>,
+) {
+  const correctCount = logs.filter(
+    (log) => log.result === "good" || log.result === "easy",
+  ).length;
+  const responseTimes = logs
+    .map((log) => log.responseTimeMs)
+    .filter((value): value is number => typeof value === "number");
+  const typeLabels = {
+    recall: "主动回忆",
+    recognition: "判断识别",
+    application: "场景应用",
+  };
+  const reviewTypeBreakdown = (["recall", "recognition", "application"] as const).map(
+    (type) => {
+      const typedLogs = logs.filter((log) => log.reviewItem.type === type);
+
+      return {
+        type,
+        label: typeLabels[type],
+        count: typedLogs.length,
+        weakCount: typedLogs.filter(
+          (log) => log.result === "again" || log.result === "hard",
+        ).length,
+      };
+    },
+  );
+  const sevenDayTrend = Array.from({ length: 7 }, (_, index) => {
+    const date = new Date();
+    date.setDate(date.getDate() - (6 - index));
+    const key = dayKey(date);
+    const dayLogs = logs.filter((log) => dayKey(log.reviewedAt) === key);
+
+    return {
+      date: key,
+      count: dayLogs.length,
+      correctCount: dayLogs.filter(
+        (log) => log.result === "good" || log.result === "easy",
+      ).length,
+    };
+  });
+
+  return {
+    totalReviews: logs.length,
+    correctRate: logs.length > 0 ? correctCount / logs.length : null,
+    averageResponseTimeMs:
+      responseTimes.length > 0
+        ? Math.round(
+            responseTimes.reduce((total, value) => total + value, 0) /
+              responseTimes.length,
+          )
+        : null,
+    reviewTypeBreakdown,
+    sevenDayTrend,
+  };
+}
+
+function buildLearningRecommendations({
+  weakFormulas,
+  logs,
+  hooks,
+}: {
+  weakFormulas: WeakFormulaStat[];
+  logs: Awaited<ReturnType<typeof listReviewLogsForUser>>;
+  hooks: Awaited<ReturnType<typeof listAccessibleMemoryHooks>>;
+}) {
+  const recommendations = [];
+  const applicationWeakCount = logs.filter(
+    (log) =>
+      log.reviewItem.type === "application" &&
+      (log.result === "again" || log.result === "hard"),
+  ).length;
+  const userHookCount = hooks.filter((hook) => hook.source === "user_created").length;
+
+  if (weakFormulas.length > 0) {
+    recommendations.push({
+      id: "weak-review",
+      label: "先做错题重练",
+      description: `当前有 ${weakFormulas.length} 条公式需要补弱，优先用 Again/Hard 队列回收。`,
+      href: "/review?mode=weak",
+      priority: "high" as const,
+    });
+  }
+
+  if (applicationWeakCount > 0) {
+    recommendations.push({
+      id: "application-focus",
+      label: "补场景应用",
+      description: "Application 题里出现困难，先回看典型题型和什么时候不能用。",
+      href: "/formulas?tag=application",
+      priority: "medium" as const,
+    });
+  }
+
+  if (userHookCount < Math.max(1, weakFormulas.length)) {
+    recommendations.push({
+      id: "memory-hooks",
+      label: "补个人记忆钩子",
+      description: "薄弱公式最好至少有一条你自己的联想，提示会优先使用个人钩子。",
+      href: "/memory-hooks",
+      priority: "medium" as const,
+    });
+  }
+
+  recommendations.push({
+    id: "derivation",
+    label: "练一次推导",
+    description: "对会背但不会用的公式，推导训练能把条件和结构重新连起来。",
+    href: "/derivation",
+    priority: "low" as const,
+  });
+
+  return recommendations.slice(0, 4);
+}
+
+function inferWeakPoint({
+  latestResult,
+  againCount,
+  hardCount,
+  memoryHookCount,
+  memoryStrength,
+}: {
+  latestResult: "again" | "hard" | "good" | "easy" | null;
+  againCount: number;
+  hardCount: number;
+  memoryHookCount: number;
+  memoryStrength?: number;
+}): WeakFormulaStat["weakPoint"] {
+  if (againCount > 0 || latestResult === "again" || (memoryStrength ?? 1) < 0.25) {
+    return "retention";
+  }
+
+  if (hardCount > 0 || latestResult === "hard") {
+    return memoryHookCount === 0 ? "concept" : "boundary";
+  }
+
+  return "application";
+}
+
+function getRecommendedAction(weakPoint: WeakFormulaStat["weakPoint"]) {
+  switch (weakPoint) {
+    case "retention":
+      return "先看一条提示，再做一次主动回忆。";
+    case "concept":
+      return "补一条个人记忆钩子，把公式用途压成自己的话。";
+    case "boundary":
+      return "优先看什么时候不能用和常见误用。";
+    case "application":
+    default:
+      return "回看典型题型，再做一题场景应用。";
+  }
 }
 
 function dayKey(date: Date) {

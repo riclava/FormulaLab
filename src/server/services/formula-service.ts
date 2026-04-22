@@ -1,5 +1,6 @@
 import {
   createAiFormulaMemoryHooks,
+  createCustomFormula,
   createUserFormulaMemoryHook,
   deleteUserFormulaMemoryHook,
   getFormulaByIdOrSlug,
@@ -96,6 +97,114 @@ export async function getFormulaCatalog(params?: {
         .map(([tag]) => tag),
     },
   };
+}
+
+export async function addCustomFormula({
+  userId,
+  input,
+}: {
+  userId: string;
+  input: {
+    title: string;
+    expressionLatex: string;
+    domain?: string;
+    subdomain?: string;
+    oneLineUse: string;
+    meaning?: string;
+    derivation?: string;
+    useConditions?: string[];
+    nonUseConditions?: string[];
+    antiPatterns?: string[];
+    typicalProblems?: string[];
+    examples?: string[];
+    difficulty?: number;
+    tags?: string[];
+    memoryHook?: string;
+  };
+}) {
+  const title = input.title.trim();
+  const expressionLatex = input.expressionLatex.trim();
+  const oneLineUse = input.oneLineUse.trim();
+
+  if (!title || !expressionLatex || !oneLineUse) {
+    throw new Error("title, expressionLatex and oneLineUse are required");
+  }
+
+  const domain = input.domain?.trim() || "自定义公式";
+  const slug = await createUniqueFormulaSlug(title);
+  const difficulty = clampInteger(input.difficulty ?? 2, 1, 5);
+  const meaning = input.meaning?.trim() || oneLineUse;
+  const useConditions = normalizeTextList(input.useConditions, [
+    "题目中的条件与公式变量可以一一对应。",
+  ]);
+  const nonUseConditions = normalizeTextList(input.nonUseConditions, [
+    "变量含义或前提条件无法确认时不要直接套用。",
+  ]);
+  const antiPatterns = normalizeTextList(input.antiPatterns, [
+    "只记表达式但没有确认适用条件。",
+  ]);
+  const typicalProblems = normalizeTextList(input.typicalProblems, [
+    `${title} 的基础识别和代入题。`,
+  ]);
+  const examples = normalizeTextList(input.examples, [
+    `看到题目要求“${oneLineUse}”时，先判断是否可以使用 ${title}。`,
+  ]);
+  const tags = normalizeTextList(input.tags, ["custom"]);
+  const reviewItems = [
+    {
+      type: "recall" as const,
+      prompt: `写出「${title}」的公式表达式。`,
+      answer: expressionLatex,
+      explanation: oneLineUse,
+      difficulty,
+    },
+    {
+      type: "recognition" as const,
+      prompt: `题目要求“${oneLineUse}”时，应优先想到哪条公式？`,
+      answer: title,
+      explanation: `这是 ${title} 的典型使用场景。`,
+      difficulty,
+    },
+    {
+      type: "application" as const,
+      prompt: examples[0],
+      answer: `先确认适用条件，再代入 ${title}。`,
+      explanation: meaning,
+      difficulty: Math.min(5, difficulty + 1),
+    },
+  ];
+
+  const formula = await createCustomFormula({
+    userId,
+    input: {
+      slug,
+      title,
+      expressionLatex,
+      domain,
+      subdomain: input.subdomain?.trim() || null,
+      oneLineUse,
+      meaning,
+      derivation: input.derivation?.trim() || null,
+      useConditions,
+      nonUseConditions,
+      antiPatterns,
+      typicalProblems,
+      examples,
+      difficulty,
+      tags,
+      reviewItems,
+      memoryHooks: input.memoryHook?.trim()
+        ? [
+            {
+              content: input.memoryHook.trim(),
+              prompt: "创建自定义公式时写下的个人联想。",
+            },
+          ]
+        : [],
+    },
+  });
+
+  return getFormulaDetail(formula.slug);
 }
 
 export async function getFormulaDetail(
@@ -573,4 +682,40 @@ function getTrainingStatusLabel(status: FormulaSummary["trainingStatus"]) {
     default:
       return "尚未进入训练";
   }
+}
+
+async function createUniqueFormulaSlug(title: string) {
+  const baseSlug =
+    title
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9\u4e00-\u9fa5]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 48) || "custom-formula";
+  let candidate = baseSlug;
+  let index = 1;
+
+  while (await getFormulaByIdOrSlug(candidate)) {
+    index += 1;
+    candidate = `${baseSlug}-${index}`;
+  }
+
+  return candidate;
+}
+
+function normalizeTextList(value: string[] | undefined, fallback: string[]) {
+  const items = value
+    ?.flatMap((item) => item.split("\n"))
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+  return items && items.length > 0 ? items : fallback;
+}
+
+function clampInteger(value: number, min: number, max: number) {
+  if (!Number.isFinite(value)) {
+    return min;
+  }
+
+  return Math.max(min, Math.min(max, Math.round(value)));
 }

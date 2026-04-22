@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db/prisma";
 import type { Prisma } from "@/generated/prisma/client";
+import type { ReviewItemType } from "@/generated/prisma/client";
 
 function buildFormulaSummaryInclude(userId?: string) {
   return {
@@ -164,6 +165,91 @@ export async function listFormulaCatalogFacets() {
       tags: true,
     },
     orderBy: [{ domain: "asc" }, { difficulty: "asc" }, { title: "asc" }],
+  });
+}
+
+export async function createCustomFormula({
+  userId,
+  input,
+}: {
+  userId: string;
+  input: {
+    slug: string;
+    title: string;
+    expressionLatex: string;
+    domain: string;
+    subdomain?: string | null;
+    oneLineUse: string;
+    meaning: string;
+    derivation?: string | null;
+    useConditions: string[];
+    nonUseConditions: string[];
+    antiPatterns: string[];
+    typicalProblems: string[];
+    examples: string[];
+    difficulty: number;
+    tags: string[];
+    reviewItems: Array<{
+      type: ReviewItemType;
+      prompt: string;
+      answer: string;
+      explanation?: string | null;
+      difficulty: number;
+    }>;
+    memoryHooks: Array<{
+      content: string;
+      prompt?: string | null;
+    }>;
+  };
+}) {
+  return prisma.$transaction(async (tx) => {
+    const formula = await tx.formula.create({
+      data: {
+        slug: input.slug,
+        title: input.title,
+        expressionLatex: input.expressionLatex,
+        domain: input.domain,
+        subdomain: input.subdomain,
+        oneLineUse: input.oneLineUse,
+        meaning: input.meaning,
+        intuition: null,
+        derivation: input.derivation,
+        useConditions: input.useConditions,
+        nonUseConditions: input.nonUseConditions,
+        antiPatterns: input.antiPatterns,
+        typicalProblems: input.typicalProblems,
+        examples: input.examples,
+        difficulty: input.difficulty,
+        tags: Array.from(new Set(["user-created", ...input.tags])),
+        reviewItems: {
+          create: input.reviewItems,
+        },
+        memoryHooks: input.memoryHooks.length
+          ? {
+              create: input.memoryHooks.map((hook) => ({
+                userId,
+                source: "user_created",
+                type: "personal",
+                content: hook.content,
+                prompt: hook.prompt,
+              })),
+            }
+          : undefined,
+      },
+    });
+
+    await tx.userFormulaState.create({
+      data: {
+        userId,
+        formulaId: formula.id,
+        memoryStrength: 0.1,
+        stability: 0,
+        difficultyEstimate: input.difficulty,
+        nextReviewAt: new Date(),
+      },
+    });
+
+    return formula;
   });
 }
 

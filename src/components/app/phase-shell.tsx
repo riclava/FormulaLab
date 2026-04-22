@@ -7,6 +7,7 @@ import {
   FlaskConical,
   Lightbulb,
   ListChecks,
+  Route,
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -25,6 +26,8 @@ const navItems: NavItem[] = [
   { href: "/review", label: "今日复习", phase: "Phase 3" },
   { href: "/diagnostic", label: "首次诊断", phase: "Phase 2" },
   { href: "/formulas", label: "公式列表", phase: "Phase 7" },
+  { href: "/paths", label: "学习路径", phase: "V1.5" },
+  { href: "/derivation", label: "推导训练", phase: "V1.5" },
   { href: "/memory-hooks", label: "记忆钩子", phase: "Phase 5" },
   { href: "/summary", label: "复习总结", phase: "Phase 6" },
 ];
@@ -142,10 +145,22 @@ export function PhaseShell({
                 label="Formula Content"
               />
               <PhaseLink
+                href="/paths"
+                active={activePath === "/paths"}
+                icon={Route}
+                label="Learning Paths"
+              />
+              <PhaseLink
                 href="/memory-hooks"
                 active={activePath === "/memory-hooks"}
                 icon={Lightbulb}
                 label="Memory Hook"
+              />
+              <PhaseLink
+                href="/derivation"
+                active={activePath === "/derivation"}
+                icon={Brain}
+                label="Derivation"
               />
               <PhaseLink
                 href="/summary"

@@ -20,6 +20,7 @@ import { cn } from "@/lib/utils";
 import type {
   ReviewHint,
   ReviewGrade,
+  ReviewMode,
   ReviewQueueItem,
   ReviewSessionPayload,
   ReviewSubmitResult,
@@ -45,7 +46,7 @@ const gradeButtons: Array<{
   { value: "easy", label: "Easy", description: "7 天后" },
 ];
 
-export function ReviewSession() {
+export function ReviewSession({ mode = "today" }: { mode?: ReviewMode }) {
   const [session, setSession] = useState<ReviewSessionPayload | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [cardState, setCardState] = useState<CardState>("prompt");
@@ -73,7 +74,7 @@ export function ReviewSession() {
 
     async function loadSession() {
       try {
-        const response = await fetch("/api/review/today");
+        const response = await fetch(`/api/review/today?mode=${mode}`);
         const payload = (await response.json()) as {
           data?: ReviewSessionPayload;
           error?: string;
@@ -100,7 +101,7 @@ export function ReviewSession() {
     return () => {
       ignore = true;
     };
-  }, []);
+  }, [mode]);
 
   const items = session?.items ?? [];
   const currentItem = items[currentIndex];
@@ -135,7 +136,7 @@ export function ReviewSession() {
   }
 
   if (items.length === 0) {
-    return <EmptyReviewState emptyReason={session.emptyReason} />;
+    return <EmptyReviewState emptyReason={session.emptyReason} mode={mode} />;
   }
 
   if (completedSessionId) {
@@ -511,19 +512,23 @@ export function ReviewSession() {
 
 function EmptyReviewState({
   emptyReason,
+  mode,
 }: {
   emptyReason: ReviewSessionPayload["emptyReason"];
+  mode: ReviewMode;
 }) {
   return (
     <section className="flex flex-col gap-4 rounded-lg border bg-background p-6 shadow-sm">
       <Badge variant="secondary" className="w-fit">
-        今日复习
+        {mode === "weak" ? "错题重练" : "今日复习"}
       </Badge>
       <h2 className="text-2xl font-semibold">
         {emptyReason === "needs_diagnostic"
           ? "先做一次首次诊断，生成你的初始复习队列。"
           : emptyReason === "no_review_content"
             ? "当前有到期公式，但还没有可用的 Review 题目。"
+          : mode === "weak"
+            ? "当前没有需要立即补弱的公式。"
           : "当前没有到期的复习任务。"}
       </h2>
       <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
@@ -531,12 +536,20 @@ function EmptyReviewState({
           ? "诊断会快速标记薄弱公式，把需要优先复习的内容推到今日队列里。"
           : emptyReason === "no_review_content"
             ? "请先为这些公式补齐 Recall、Recognition 或 Application 题目。"
+          : mode === "weak"
+            ? "可以先回到今日复习，或者去公式列表挑一条想巩固的内容。"
           : "可以稍后回来继续，也可以先去浏览公式详情和内容。"}
       </p>
       <div className="flex flex-wrap gap-3">
         <Link href="/diagnostic" className={buttonVariants()}>
           前往首次诊断
           <ArrowRight data-icon="inline-end" />
+        </Link>
+        <Link
+          href={mode === "weak" ? "/review" : "/review?mode=weak"}
+          className={buttonVariants({ variant: "secondary" })}
+        >
+          {mode === "weak" ? "回到今日复习" : "错题重练"}
         </Link>
         <Link
           href="/formulas"

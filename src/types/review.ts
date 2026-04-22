@@ -3,6 +3,7 @@ import type { FormulaSummary } from "@/types/formula";
 export type ReviewGrade = "again" | "hard" | "good" | "easy";
 export type ReviewItemKind = "recall" | "recognition" | "application";
 export type ReviewHintSource = "memory_hook" | "one_line_use";
+export type ReviewMode = "today" | "weak";
 
 export type ReviewQueueItem = {
   reviewItemId: string;
@@ -20,6 +21,7 @@ export type ReviewQueueItem = {
 export type ReviewSessionPayload = {
   sessionId: string | null;
   domain: string | null;
+  mode: ReviewMode;
   items: ReviewQueueItem[];
   emptyReason:
     | "no_due_reviews"

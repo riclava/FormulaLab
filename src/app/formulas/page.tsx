@@ -105,6 +105,12 @@ export default async function FormulasPage({
                 <ArrowRight data-icon="inline-end" />
               </Link>
               <Link
+                href="/formulas/new"
+                className={buttonVariants({ size: "sm", variant: "secondary" })}
+              >
+                新建公式
+              </Link>
+              <Link
                 href={buildHref({
                   q: null,
                   domain: null,

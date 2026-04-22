@@ -12,6 +12,8 @@ export type WeakFormulaStat = {
   nextReviewAt: string | null;
   memoryHookCount: number;
   reason: string;
+  weakPoint: "concept" | "application" | "boundary" | "retention";
+  recommendedAction: string;
 };
 
 export type MemoryHookActivity = {
@@ -38,6 +40,29 @@ export type SummaryStats = {
   nextSuggestedReviewAt: string | null;
   immediateWeakFormulas: WeakFormulaStat[];
   memoryHookActivity: MemoryHookActivity[];
+  advancedStats: {
+    totalReviews: number;
+    correctRate: number | null;
+    averageResponseTimeMs: number | null;
+    reviewTypeBreakdown: Array<{
+      type: "recall" | "recognition" | "application";
+      label: string;
+      count: number;
+      weakCount: number;
+    }>;
+    sevenDayTrend: Array<{
+      date: string;
+      count: number;
+      correctCount: number;
+    }>;
+  };
+  learningRecommendations: Array<{
+    id: string;
+    label: string;
+    description: string;
+    href: string;
+    priority: "high" | "medium" | "low";
+  }>;
   metrics: Array<{
     id:
       | "first_review_completion_rate"
@@ -62,4 +87,3 @@ export type ProgressStats = {
   memoryHookFormulaCount: number;
   latestDiagnosticAt: string | null;
 };
-

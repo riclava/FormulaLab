@@ -8,6 +8,7 @@ import {
   getStudySessionById,
   getUserFormulaState,
   listDueFormulaStates,
+  listWeakFormulaStatesForReview,
   updateUserFormulaState,
 } from "@/server/repositories/review-repository";
 import { recordMemoryHookUsed } from "@/server/services/formula-service";
@@ -19,6 +20,7 @@ import {
 import type {
   ReviewGrade,
   ReviewHint,
+  ReviewMode,
   ReviewQueueItem,
   ReviewSessionPayload,
   ReviewSessionSnapshot,
@@ -30,34 +32,43 @@ const REVIEW_QUEUE_LIMIT = 8;
 
 export async function getTodayReviewSession({
   userId,
+  mode = "today",
 }: {
   userId: string;
+  mode?: ReviewMode;
 }): Promise<ReviewSessionPayload> {
-  const [formulaStateCount, dueStates] = await Promise.all([
+  const [formulaStateCount, states] = await Promise.all([
     countUserFormulaStates(userId),
-    listDueFormulaStates({
-      userId,
-      now: new Date(),
-      take: REVIEW_QUEUE_LIMIT,
-    }),
+    mode === "weak"
+      ? listWeakFormulaStatesForReview({
+          userId,
+          take: REVIEW_QUEUE_LIMIT,
+        })
+      : listDueFormulaStates({
+          userId,
+          now: new Date(),
+          take: REVIEW_QUEUE_LIMIT,
+        }),
   ]);
 
-  if (dueStates.length === 0) {
+  if (states.length === 0) {
     return {
       sessionId: null,
       domain: null,
+      mode,
       items: [],
       emptyReason:
         formulaStateCount === 0 ? "needs_diagnostic" : "no_due_reviews",
     };
   }
 
-  const eligibleStates = dueStates.filter((state) => state.formula.reviewItems.length > 0);
+  const eligibleStates = states.filter((state) => state.formula.reviewItems.length > 0);
 
   if (eligibleStates.length === 0) {
     return {
       sessionId: null,
       domain: null,
+      mode,
       items: [],
       emptyReason: "no_review_content",
     };
@@ -77,6 +88,7 @@ export async function getTodayReviewSession({
   return {
     sessionId: session.id,
     domain: session.domain,
+    mode,
     items,
     emptyReason: null,
   };

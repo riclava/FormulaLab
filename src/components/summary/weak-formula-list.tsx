@@ -48,9 +48,13 @@ export function WeakFormulaList({
             <h3 className="font-medium">{formula.title}</h3>
             <Badge variant="secondary">{formula.domain}</Badge>
             {formula.latestResult ? <Badge variant="outline">{formula.latestResult}</Badge> : null}
+            <Badge variant="outline">{weakPointLabel(formula.weakPoint)}</Badge>
           </div>
           <p className="mt-2 text-sm leading-6 text-muted-foreground">
             {formula.reason}
+          </p>
+          <p className="mt-2 text-sm leading-6">
+            {formula.recommendedAction}
           </p>
           <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted-foreground">
             <span>Again {formula.againCount}</span>
@@ -86,4 +90,18 @@ export function WeakFormulaList({
       ))}
     </div>
   );
+}
+
+function weakPointLabel(weakPoint: WeakFormulaStat["weakPoint"]) {
+  switch (weakPoint) {
+    case "retention":
+      return "记忆保持";
+    case "concept":
+      return "概念联想";
+    case "boundary":
+      return "适用边界";
+    case "application":
+    default:
+      return "应用迁移";
+  }
 }
