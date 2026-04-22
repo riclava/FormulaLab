@@ -63,6 +63,9 @@ npm run dev
 
 ```bash
 npm run lint
+npm run test
+npm run test:e2e
+npm run test:all
 npm run build
 npm run prisma:generate
 npm run prisma:migrate
@@ -93,6 +96,9 @@ Phase 8 新增了一个内部工作台：
 - `AGENTS.md`：给 Codex 和其他 coding agent 的项目工作说明。
 - `docs/draft.md`：产品方案、V1 范围、核心流程、领域模型和 API 草案。
 - `docs/tasks.md`：多阶段开发计划和验收标准。
+- `docs/qa-checklist.md`：V1 Alpha 关键路径、响应式和可访问性检查清单。
+- `docs/deployment.md`：Vercel 部署、生产数据库和环境变量说明。
+- `docs/alpha-release.md`：V1 Alpha 发布说明和验收指标。
 - `docs/demo.tsx`：交互原型参考，不作为生产代码或最终视觉规范直接照搬。
 
 ## Git 提交格式

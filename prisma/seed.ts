@@ -551,6 +551,7 @@ async function main() {
         intuition: formula.intuition,
         derivation: formula.derivation,
         useConditions: formula.useConditions,
+        nonUseConditions: formula.nonUseConditions,
         antiPatterns: formula.antiPatterns,
         typicalProblems: formula.typicalProblems,
         examples: formula.examples,

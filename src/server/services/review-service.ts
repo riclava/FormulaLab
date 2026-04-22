@@ -11,6 +11,11 @@ import {
   updateUserFormulaState,
 } from "@/server/repositories/review-repository";
 import { recordMemoryHookUsed } from "@/server/services/formula-service";
+import {
+  calculateNextReviewState,
+  chooseReviewItemType,
+  REVIEW_TYPE_CYCLE,
+} from "@/server/services/review-rules";
 import type {
   ReviewGrade,
   ReviewHint,
@@ -22,15 +27,6 @@ import type {
 } from "@/types/review";
 
 const REVIEW_QUEUE_LIMIT = 8;
-const REVIEW_TYPE_CYCLE: Array<"recall" | "recognition" | "recall" | "application"> =
-  ["recall", "recognition", "recall", "application"];
-
-const REVIEW_INTERVAL_MS: Record<ReviewGrade, number> = {
-  again: 10 * 60 * 1000,
-  hard: 24 * 60 * 60 * 1000,
-  good: 3 * 24 * 60 * 60 * 1000,
-  easy: 7 * 24 * 60 * 60 * 1000,
-};
 
 export async function getTodayReviewSession({
   userId,
@@ -106,7 +102,7 @@ export async function submitReview({
   }
 
   const now = new Date();
-  const nextState = calculateNextFormulaState({
+  const nextState = calculateNextReviewState({
     state,
     result: input.result,
     now,
@@ -248,8 +244,12 @@ function selectReviewQueueItem({
   state: Awaited<ReturnType<typeof listDueFormulaStates>>[number];
   preferredType: "recall" | "recognition" | "application";
 }): ReviewQueueItem {
+  const selectedType = chooseReviewItemType({
+    availableTypes: state.formula.reviewItems.map((item) => item.type),
+    preferredType,
+  });
   const reviewItem =
-    state.formula.reviewItems.find((item) => item.type === preferredType) ??
+    state.formula.reviewItems.find((item) => item.type === selectedType) ??
     state.formula.reviewItems[0];
   const isWeak = state.memoryStrength < 0.4 || state.lapseCount > 0;
   const isStable = state.memoryStrength >= 0.7 && state.consecutiveCorrect >= 3;
@@ -298,79 +298,4 @@ function selectReviewQueueItem({
       meaning: state.formula.meaning,
     },
   };
-}
-
-function calculateNextFormulaState({
-  state,
-  result,
-  now,
-}: {
-  state: NonNullable<Awaited<ReturnType<typeof getUserFormulaState>>>;
-  result: ReviewGrade;
-  now: Date;
-}) {
-  const correct = result === "good" || result === "easy";
-  const nextConsecutiveCorrect = correct ? state.consecutiveCorrect + 1 : 0;
-  const multiplier = getReviewMultiplier(nextConsecutiveCorrect);
-  const nextReviewAt = new Date(
-    now.getTime() + REVIEW_INTERVAL_MS[result] * multiplier,
-  );
-
-  return {
-    memoryStrength: clamp(
-      result === "again"
-        ? state.memoryStrength - 0.35
-        : result === "hard"
-          ? state.memoryStrength - 0.15
-          : result === "good"
-            ? state.memoryStrength + 0.2
-            : state.memoryStrength + 0.3,
-      0.05,
-      1,
-    ),
-    stability: clamp(
-      result === "again"
-        ? 0
-        : result === "hard"
-          ? state.stability - 1
-          : result === "good"
-            ? state.stability + 1
-            : state.stability + 2,
-      0,
-      365,
-    ),
-    difficultyEstimate: clamp(
-      result === "again"
-        ? state.difficultyEstimate + 0.4
-        : result === "hard"
-          ? state.difficultyEstimate + 0.2
-          : result === "good"
-            ? state.difficultyEstimate - 0.1
-            : state.difficultyEstimate - 0.2,
-      1,
-      5,
-    ),
-    lastReviewedAt: now,
-    nextReviewAt,
-    totalReviews: state.totalReviews + 1,
-    correctReviews: state.correctReviews + (correct ? 1 : 0),
-    lapseCount: state.lapseCount + (result === "again" ? 1 : 0),
-    consecutiveCorrect: nextConsecutiveCorrect,
-  };
-}
-
-function getReviewMultiplier(consecutiveCorrect: number) {
-  if (consecutiveCorrect >= 5) {
-    return 3;
-  }
-
-  if (consecutiveCorrect >= 3) {
-    return 2;
-  }
-
-  return 1;
-}
-
-function clamp(value: number, min: number, max: number) {
-  return Math.max(min, Math.min(max, value));
 }

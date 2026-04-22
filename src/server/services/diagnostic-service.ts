@@ -5,9 +5,12 @@ import {
   listReviewItemsByIds,
   upsertDiagnosticFormulaStates,
 } from "@/server/repositories/diagnostic-repository";
+import {
+  calculateBestDiagnosticAssessmentsByFormula,
+  calculateDiagnosticWeakFormulaIds,
+} from "@/server/services/diagnostic-rules";
 import { getFormulaSummaries } from "@/server/services/formula-service";
 import type {
-  DiagnosticAssessment,
   DiagnosticResult,
   DiagnosticStart,
   DiagnosticSubmission,
@@ -49,34 +52,19 @@ export async function submitDiagnostic({
   userId: string;
   submission: DiagnosticSubmission;
 }): Promise<DiagnosticResult> {
-  const answersByReviewItemId = new Map(
-    submission.answers.map((answer) => [answer.reviewItemId, answer.assessment]),
-  );
   const reviewItemIds = submission.answers.map((answer) => answer.reviewItemId);
   const reviewItems = await listReviewItemsByIds(reviewItemIds);
   const formulaIds = Array.from(
     new Set(reviewItems.map((item) => item.formulaId)),
   );
-  const weakFormulaIds = Array.from(
-    new Set(
-      reviewItems
-        .filter((item) => {
-          const assessment = answersByReviewItemId.get(item.id);
-          return assessment === "none" || assessment === "partial";
-        })
-        .map((item) => item.formulaId),
-    ),
-  );
-  const assessmentsByFormulaId = new Map<string, DiagnosticAssessment>();
-
-  for (const item of reviewItems) {
-    const assessment = answersByReviewItemId.get(item.id) ?? "none";
-    const previous = assessmentsByFormulaId.get(item.formulaId);
-
-    if (!previous || assessmentPriority(assessment) > assessmentPriority(previous)) {
-      assessmentsByFormulaId.set(item.formulaId, assessment);
-    }
-  }
+  const weakFormulaIds = calculateDiagnosticWeakFormulaIds({
+    reviewItems,
+    answers: submission.answers,
+  });
+  const assessmentsByFormulaId = calculateBestDiagnosticAssessmentsByFormula({
+    reviewItems,
+    answers: submission.answers,
+  });
 
   await upsertDiagnosticFormulaStates({
     userId,
@@ -127,18 +115,6 @@ export async function getLatestDiagnosticResult({
     weakFormulas,
     reviewQueueFormulaIds: attempt.weakFormulaIds,
   };
-}
-
-function assessmentPriority(assessment: DiagnosticAssessment) {
-  if (assessment === "clear") {
-    return 3;
-  }
-
-  if (assessment === "partial") {
-    return 2;
-  }
-
-  return 1;
 }
 
 async function getWeakFormulaSummaries(formulaIds: string[]) {

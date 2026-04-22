@@ -1,4 +1,5 @@
 import type { MemoryHookType } from "@/types/memory-hook";
+import type { MemoryHookRecord } from "@/types/memory-hook";
 
 export const MEMORY_HOOK_TYPE_LABELS: Record<MemoryHookType, string> = {
   analogy: "类比联想",
@@ -29,3 +30,33 @@ export function formatMemoryHookLastUsed(lastUsedAt: string | null) {
   }).format(new Date(lastUsedAt));
 }
 
+export function sortMemoryHooksForPrompt<T extends MemoryHookRecord>(
+  hooks: T[],
+) {
+  return [...hooks].sort((left, right) => {
+    const sourcePriority =
+      getMemoryHookSourcePriority(left) - getMemoryHookSourcePriority(right);
+
+    if (sourcePriority !== 0) {
+      return sourcePriority;
+    }
+
+    if (right.helpfulCount !== left.helpfulCount) {
+      return right.helpfulCount - left.helpfulCount;
+    }
+
+    if (right.usedCount !== left.usedCount) {
+      return right.usedCount - left.usedCount;
+    }
+
+    return getTimestamp(right.lastUsedAt) - getTimestamp(left.lastUsedAt);
+  });
+}
+
+function getMemoryHookSourcePriority(hook: MemoryHookRecord) {
+  return hook.source === "user_created" ? 0 : 1;
+}
+
+function getTimestamp(value: string | null) {
+  return value ? new Date(value).getTime() : 0;
+}
