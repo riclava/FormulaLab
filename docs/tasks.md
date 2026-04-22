@@ -134,27 +134,27 @@
 
 ### 任务
 
-- [ ] 实现 `/diagnostic` 页面。
-- [ ] 支持选择知识域，或默认进入首个知识域。
-- [ ] 从代表性 ReviewItem 中生成 3-5 道诊断题。
-- [ ] 支持诊断作答或自评：
-  - [ ] 完全没头绪。
-  - [ ] 有点印象。
-  - [ ] 很清楚。
-- [ ] 提交诊断结果：
-  - [ ] 创建 `diagnostic_attempts`。
-  - [ ] 标记初始薄弱公式。
-  - [ ] 创建或更新 `user_formula_states`。
-  - [ ] 生成今日初始复习队列。
-- [ ] 诊断完成后跳转 `/review`。
+- [x] 实现 `/diagnostic` 页面。
+- [x] 支持选择知识域，或默认进入首个知识域。
+- [x] 从代表性 ReviewItem 中生成 3-5 道诊断题。
+- [x] 支持诊断作答或自评：
+  - [x] 完全没头绪。
+  - [x] 有点印象。
+  - [x] 很清楚。
+- [x] 提交诊断结果：
+  - [x] 创建 `diagnostic_attempts`。
+  - [x] 标记初始薄弱公式。
+  - [x] 创建或更新 `user_formula_states`。
+  - [x] 生成今日初始复习队列。
+- [x] 诊断完成后跳转 `/review`。
 
 ### 交付物
 
 - 首次诊断 UI。
 - 诊断开始、提交、结果 API：
-  - [ ] `GET /api/diagnostic/start`
-  - [ ] `POST /api/diagnostic/submit`
-  - [ ] `GET /api/diagnostic/result`
+  - [x] `GET /api/diagnostic/start`
+  - [x] `POST /api/diagnostic/submit`
+  - [x] `GET /api/diagnostic/result`
 
 ### 验收标准
 

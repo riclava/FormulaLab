@@ -1,16 +1,12 @@
-import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
 import {
-  ANONYMOUS_SESSION_COOKIE,
-  getOrCreateAnonymousUser,
-} from "@/server/services/anonymous-user-service";
+  getAnonymousUserFromCookies,
+  setAnonymousSessionCookie,
+} from "@/server/http/anonymous-user-cookie";
 
 export async function GET() {
-  const cookieStore = await cookies();
-  const existingSessionId = cookieStore.get(ANONYMOUS_SESSION_COOKIE)?.value;
-  const { user, sessionId, created } =
-    await getOrCreateAnonymousUser(existingSessionId);
+  const { user, sessionId, created } = await getAnonymousUserFromCookies();
 
   const response = NextResponse.json({
     data: {
@@ -21,12 +17,7 @@ export async function GET() {
     },
   });
 
-  response.cookies.set(ANONYMOUS_SESSION_COOKIE, sessionId, {
-    httpOnly: true,
-    sameSite: "lax",
-    path: "/",
-    maxAge: 60 * 60 * 24 * 365,
-  });
+  setAnonymousSessionCookie(response, sessionId);
 
   return response;
 }
