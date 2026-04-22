@@ -170,46 +170,46 @@
 
 ### 任务
 
-- [ ] 实现 `/review` 页面作为主入口。
-- [ ] 实现 Review 队列生成逻辑：
-  - [ ] 优先取 `nextReviewAt <= now` 的公式。
-  - [ ] 新用户使用诊断结果生成初始队列。
-  - [ ] 题型占比参考 Recall 45%、Recognition 35%、Application 20%。
-- [ ] 实现 `ReviewCard`：
-  - [ ] 题型标签。
-  - [ ] 当前题目。
-  - [ ] 进度计数。
-  - [ ] 显示答案按钮。
-  - [ ] 分级提示入口。
-  - [ ] 自评按钮。
-- [ ] 实现主动回忆流程：
-  - [ ] 默认只显示题目。
-  - [ ] 用户点击后才显示提示。
-  - [ ] 用户点击后才显示答案。
-  - [ ] 显示答案后才能自评。
-- [ ] 实现自评选项：
-  - [ ] Again。
-  - [ ] Hard。
-  - [ ] Good。
-  - [ ] Easy。
-- [ ] 实现简单调度规则：
-  - [ ] `again -> 10 分钟后`
-  - [ ] `hard -> 1 天后`
-  - [ ] `good -> 3 天后`
-  - [ ] `easy -> 7 天后`
-  - [ ] 连续正确 1 次：间隔 `x1`
-  - [ ] 连续正确 3 次：间隔 `x2`
-  - [ ] 连续正确 5 次：间隔 `x3`
-- [ ] 提交复习结果时更新：
-  - [ ] `review_logs`
-  - [ ] `user_formula_states`
-  - [ ] `study_sessions`
-- [ ] 实现训练 API：
-  - [ ] `GET /api/review/today`
-  - [ ] `POST /api/review/submit`
-  - [ ] `POST /api/review/defer`
-  - [ ] `POST /api/review/hint`
-  - [ ] `GET /api/review/session/:id`
+- [x] 实现 `/review` 页面作为主入口。
+- [x] 实现 Review 队列生成逻辑：
+  - [x] 优先取 `nextReviewAt <= now` 的公式。
+  - [x] 新用户使用诊断结果生成初始队列。
+  - [x] 题型占比参考 Recall 45%、Recognition 35%、Application 20%。
+- [x] 实现 `ReviewCard`：
+  - [x] 题型标签。
+  - [x] 当前题目。
+  - [x] 进度计数。
+  - [x] 显示答案按钮。
+  - [x] 分级提示入口。
+  - [x] 自评按钮。
+- [x] 实现主动回忆流程：
+  - [x] 默认只显示题目。
+  - [x] 用户点击后才显示提示。
+  - [x] 用户点击后才显示答案。
+  - [x] 显示答案后才能自评。
+- [x] 实现自评选项：
+  - [x] Again。
+  - [x] Hard。
+  - [x] Good。
+  - [x] Easy。
+- [x] 实现简单调度规则：
+  - [x] `again -> 10 分钟后`
+  - [x] `hard -> 1 天后`
+  - [x] `good -> 3 天后`
+  - [x] `easy -> 7 天后`
+  - [x] 连续正确 1 次：间隔 `x1`
+  - [x] 连续正确 3 次：间隔 `x2`
+  - [x] 连续正确 5 次：间隔 `x3`
+- [x] 提交复习结果时更新：
+  - [x] `review_logs`
+  - [x] `user_formula_states`
+  - [x] `study_sessions`
+- [x] 实现训练 API：
+  - [x] `GET /api/review/today`
+  - [x] `POST /api/review/submit`
+  - [x] `POST /api/review/defer`
+  - [x] `POST /api/review/hint`
+  - [x] `GET /api/review/session/:id`
 
 ### 交付物
 
