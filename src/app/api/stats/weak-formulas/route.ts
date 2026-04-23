@@ -1,19 +1,14 @@
 import { NextResponse } from "next/server";
 
-import {
-  getAnonymousUserFromCookies,
-  setAnonymousSessionCookie,
-} from "@/server/http/anonymous-user-cookie";
+import { getCurrentLearner } from "@/server/auth/current-learner";
 import { getWeakFormulas } from "@/server/services/stats-service";
 
 export async function GET() {
-  const { user, sessionId } = await getAnonymousUserFromCookies();
+  const current = await getCurrentLearner();
   const formulas = await getWeakFormulas({
-    userId: user.id,
+    userId: current.learner.id,
   });
-  const response = NextResponse.json({
+  return NextResponse.json({
     data: formulas,
   });
-  setAnonymousSessionCookie(response, sessionId);
-  return response;
 }

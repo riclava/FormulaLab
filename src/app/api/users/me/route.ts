@@ -1,23 +1,23 @@
 import { NextResponse } from "next/server";
 
-import {
-  getAnonymousUserFromCookies,
-  setAnonymousSessionCookie,
-} from "@/server/http/anonymous-user-cookie";
+import { getCurrentLearner } from "@/server/auth/current-learner";
 
 export async function GET() {
-  const { user, sessionId, created } = await getAnonymousUserFromCookies();
+  const current = await getCurrentLearner();
 
-  const response = NextResponse.json({
+  return NextResponse.json({
     data: {
-      id: user.id,
-      displayName: user.displayName,
-      anonymous: true,
-      created,
+      id: current.learner.id,
+      displayName: current.learner.displayName,
+      email: current.learner.email,
+      anonymous: current.anonymous,
+      auth: current.authUser
+        ? {
+            id: current.authUser.id,
+            email: current.authUser.email,
+            name: current.authUser.name,
+          }
+        : null,
     },
   });
-
-  setAnonymousSessionCookie(response, sessionId);
-
-  return response;
 }

@@ -16,12 +16,17 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
-    "db:seed": "tsx prisma/seed.ts"
+    "db:seed": "tsx prisma/seed.ts",
+    "db:push": "prisma db push",
+    "db:reset": "node scripts/dev-db-reset.mjs",
+    "db:baseline": "node scripts/dev-db-baseline.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.4.1",
+    "@better-auth/prisma-adapter": "^1.6.7",
     "@prisma/adapter-pg": "^7.7.0",
     "@prisma/client": "^7.7.0",
+    "better-auth": "^1.6.7",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "katex": "^0.16.45",

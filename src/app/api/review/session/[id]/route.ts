@@ -1,9 +1,6 @@
 import { NextResponse } from "next/server";
 
-import {
-  getAnonymousUserFromCookies,
-  setAnonymousSessionCookie,
-} from "@/server/http/anonymous-user-cookie";
+import { getCurrentLearner } from "@/server/auth/current-learner";
 import { getReviewSessionSnapshot } from "@/server/services/review-service";
 
 export async function GET(
@@ -11,30 +8,22 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
-  const { user, sessionId } = await getAnonymousUserFromCookies();
+  const current = await getCurrentLearner();
   const snapshot = await getReviewSessionSnapshot({
-    userId: user.id,
+    userId: current.learner.id,
     sessionId: id,
   });
 
   if (!snapshot) {
-    const response = NextResponse.json(
+    return NextResponse.json(
       {
         error: "Review session not found",
       },
       { status: 404 },
     );
-
-    setAnonymousSessionCookie(response, sessionId);
-
-    return response;
   }
 
-  const response = NextResponse.json({
+  return NextResponse.json({
     data: snapshot,
   });
-
-  setAnonymousSessionCookie(response, sessionId);
-
-  return response;
 }

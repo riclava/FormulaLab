@@ -4,15 +4,15 @@ import { ArrowRight, BookOpenCheck } from "lucide-react";
 import { PhaseShell } from "@/components/app/phase-shell";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
-import { getAnonymousUserFromCookies } from "@/server/http/anonymous-user-cookie";
+import { getCurrentLearner } from "@/server/auth/current-learner";
 import { getFormulaCatalog } from "@/server/services/formula-service";
 
 export const dynamic = "force-dynamic";
 
 export default async function PathsPage() {
-  const { user } = await getAnonymousUserFromCookies();
+  const current = await getCurrentLearner();
   const catalog = await getFormulaCatalog({
-    userId: user.id,
+    userId: current.learner.id,
   });
   const groups = groupByDomain(catalog.formulas);
 

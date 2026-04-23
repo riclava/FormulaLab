@@ -35,6 +35,65 @@ CREATE TABLE "users" (
 );
 
 -- CreateTable
+CREATE TABLE "auth_users" (
+    "id" TEXT NOT NULL,
+    "email" TEXT NOT NULL,
+    "emailVerified" BOOLEAN NOT NULL DEFAULT false,
+    "name" TEXT NOT NULL,
+    "image" TEXT,
+    "learnerId" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "auth_users_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "auth_sessions" (
+    "id" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "expiresAt" TIMESTAMP(3) NOT NULL,
+    "token" TEXT NOT NULL,
+    "ipAddress" TEXT,
+    "userAgent" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "auth_sessions_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "auth_accounts" (
+    "id" TEXT NOT NULL,
+    "accountId" TEXT NOT NULL,
+    "providerId" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "accessToken" TEXT,
+    "refreshToken" TEXT,
+    "idToken" TEXT,
+    "accessTokenExpiresAt" TIMESTAMP(3),
+    "refreshTokenExpiresAt" TIMESTAMP(3),
+    "scope" TEXT,
+    "password" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "auth_accounts_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "auth_verifications" (
+    "id" TEXT NOT NULL,
+    "identifier" TEXT NOT NULL,
+    "value" TEXT NOT NULL,
+    "expiresAt" TIMESTAMP(3) NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "auth_verifications_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "formulas" (
     "id" TEXT NOT NULL,
     "slug" TEXT NOT NULL,
@@ -107,6 +166,7 @@ CREATE TABLE "user_formula_states" (
     "id" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "formulaId" TEXT NOT NULL,
+    "preferredMemoryHookId" TEXT,
     "memoryStrength" DOUBLE PRECISION NOT NULL DEFAULT 0,
     "stability" DOUBLE PRECISION NOT NULL DEFAULT 0,
     "difficultyEstimate" DOUBLE PRECISION NOT NULL DEFAULT 0,
@@ -203,6 +263,33 @@ CREATE UNIQUE INDEX "users_email_key" ON "users"("email");
 CREATE UNIQUE INDEX "users_anonymousSessionId_key" ON "users"("anonymousSessionId");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "auth_users_email_key" ON "auth_users"("email");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "auth_users_learnerId_key" ON "auth_users"("learnerId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "auth_sessions_token_key" ON "auth_sessions"("token");
+
+-- CreateIndex
+CREATE INDEX "auth_sessions_userId_idx" ON "auth_sessions"("userId");
+
+-- CreateIndex
+CREATE INDEX "auth_sessions_expiresAt_idx" ON "auth_sessions"("expiresAt");
+
+-- CreateIndex
+CREATE INDEX "auth_accounts_userId_idx" ON "auth_accounts"("userId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "auth_accounts_providerId_accountId_key" ON "auth_accounts"("providerId", "accountId");
+
+-- CreateIndex
+CREATE INDEX "auth_verifications_identifier_idx" ON "auth_verifications"("identifier");
+
+-- CreateIndex
+CREATE INDEX "auth_verifications_expiresAt_idx" ON "auth_verifications"("expiresAt");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "formulas_slug_key" ON "formulas"("slug");
 
 -- CreateIndex
@@ -222,6 +309,9 @@ CREATE INDEX "review_items_formulaId_type_idx" ON "review_items"("formulaId", "t
 
 -- CreateIndex
 CREATE INDEX "user_formula_states_formulaId_idx" ON "user_formula_states"("formulaId");
+
+-- CreateIndex
+CREATE INDEX "user_formula_states_preferredMemoryHookId_idx" ON "user_formula_states"("preferredMemoryHookId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "user_formula_states_userId_formulaId_key" ON "user_formula_states"("userId", "formulaId");
@@ -248,6 +338,15 @@ CREATE INDEX "product_events_userId_type_createdAt_idx" ON "product_events"("use
 CREATE INDEX "product_events_formulaId_type_idx" ON "product_events"("formulaId", "type");
 
 -- AddForeignKey
+ALTER TABLE "auth_users" ADD CONSTRAINT "auth_users_learnerId_fkey" FOREIGN KEY ("learnerId") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "auth_sessions" ADD CONSTRAINT "auth_sessions_userId_fkey" FOREIGN KEY ("userId") REFERENCES "auth_users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "auth_accounts" ADD CONSTRAINT "auth_accounts_userId_fkey" FOREIGN KEY ("userId") REFERENCES "auth_users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "formula_variables" ADD CONSTRAINT "formula_variables_formulaId_fkey" FOREIGN KEY ("formulaId") REFERENCES "formulas"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -264,6 +363,9 @@ ALTER TABLE "user_formula_states" ADD CONSTRAINT "user_formula_states_userId_fke
 
 -- AddForeignKey
 ALTER TABLE "user_formula_states" ADD CONSTRAINT "user_formula_states_formulaId_fkey" FOREIGN KEY ("formulaId") REFERENCES "formulas"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "user_formula_states" ADD CONSTRAINT "user_formula_states_preferredMemoryHookId_fkey" FOREIGN KEY ("preferredMemoryHookId") REFERENCES "formula_memory_hooks"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "review_logs" ADD CONSTRAINT "review_logs_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;

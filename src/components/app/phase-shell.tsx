@@ -9,6 +9,7 @@ import {
   Route,
 } from "lucide-react";
 
+import { AccountEntry } from "@/components/app/account-entry";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -101,26 +102,30 @@ export function PhaseShell({
             </Link>
           </div>
 
-          <nav aria-label="核心页面" className="flex flex-wrap gap-2">
-            {primaryItems.map((item) => {
-              const Icon = item.icon;
+          <div className="flex flex-wrap items-center gap-2">
+            <nav aria-label="核心页面" className="flex flex-wrap gap-2">
+              {primaryItems.map((item) => {
+                const Icon = item.icon;
 
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  aria-current={activePath === item.href ? "page" : undefined}
-                  className={buttonVariants({
-                    size: "sm",
-                    variant: activePath === item.href ? "default" : "ghost",
-                  })}
-                >
-                  <Icon data-icon="inline-start" />
-                  {item.label}
-                </Link>
-              );
-            })}
-          </nav>
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    aria-current={activePath === item.href ? "page" : undefined}
+                    className={buttonVariants({
+                      size: "sm",
+                      variant: activePath === item.href ? "default" : "ghost",
+                    })}
+                  >
+                    <Icon data-icon="inline-start" />
+                    {item.label}
+                  </Link>
+                );
+              })}
+            </nav>
+
+            <AccountEntry returnTo={activePath} />
+          </div>
         </div>
       </header>
 

@@ -14,7 +14,7 @@ import { PhaseShell } from "@/components/app/phase-shell";
 import { WeakFormulaList } from "@/components/summary/weak-formula-list";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
-import { getAnonymousUserFromCookies } from "@/server/http/anonymous-user-cookie";
+import { getCurrentLearner } from "@/server/auth/current-learner";
 import {
   getProgressStats,
   getSummaryStats,
@@ -24,13 +24,13 @@ import type { ProgressStats, SummaryStats } from "@/types/stats";
 export const dynamic = "force-dynamic";
 
 export default async function SummaryPage() {
-  const { user } = await getAnonymousUserFromCookies();
+  const current = await getCurrentLearner();
   const [summary, progress] = await Promise.all([
     getSummaryStats({
-      userId: user.id,
+      userId: current.learner.id,
     }),
     getProgressStats({
-      userId: user.id,
+      userId: current.learner.id,
     }),
   ]);
   const latestSession = summary.latestSession;

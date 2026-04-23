@@ -1,9 +1,6 @@
 import { NextResponse } from "next/server";
 
-import {
-  getAnonymousUserFromCookies,
-  setAnonymousSessionCookie,
-} from "@/server/http/anonymous-user-cookie";
+import { getCurrentLearner } from "@/server/auth/current-learner";
 import {
   addCustomFormula,
   getFormulaCatalog,
@@ -16,7 +13,7 @@ export async function GET(request: Request) {
   const query = url.searchParams.get("q") ?? undefined;
   const difficultyValue = url.searchParams.get("difficulty");
   const difficulty = difficultyValue ? Number(difficultyValue) : undefined;
-  const { user, sessionId } = await getAnonymousUserFromCookies();
+  const current = await getCurrentLearner();
   const catalog = await getFormulaCatalog({
     domain,
     tag,
@@ -25,18 +22,14 @@ export async function GET(request: Request) {
         ? difficulty
         : undefined,
     query,
-    userId: user.id,
+    userId: current.learner.id,
   });
-  const response = NextResponse.json({
+  return NextResponse.json({
     data: catalog.formulas,
     meta: {
       filters: catalog.filters,
     },
   });
-
-  setAnonymousSessionCookie(response, sessionId);
-
-  return response;
 }
 
 export async function POST(request: Request) {
@@ -67,11 +60,11 @@ export async function POST(request: Request) {
     );
   }
 
-  const { user, sessionId } = await getAnonymousUserFromCookies();
+  const current = await getCurrentLearner();
 
   try {
     const formula = await addCustomFormula({
-      userId: user.id,
+      userId: current.learner.id,
       input: {
         title: payload.title,
         expressionLatex: payload.expressionLatex,
@@ -90,16 +83,12 @@ export async function POST(request: Request) {
         memoryHook: payload.memoryHook,
       },
     });
-    const response = NextResponse.json(
+    return NextResponse.json(
       {
         data: formula,
       },
       { status: 201 },
     );
-
-    setAnonymousSessionCookie(response, sessionId);
-
-    return response;
   } catch (error) {
     return NextResponse.json(
       {

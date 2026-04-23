@@ -1,9 +1,6 @@
 import { NextResponse } from "next/server";
 
-import {
-  getAnonymousUserFromCookies,
-  setAnonymousSessionCookie,
-} from "@/server/http/anonymous-user-cookie";
+import { getCurrentLearner } from "@/server/auth/current-learner";
 import {
   addUserFormulaMemoryHook,
   adoptAiMemoryHook,
@@ -16,32 +13,24 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
-  const { user, sessionId } = await getAnonymousUserFromCookies();
+  const current = await getCurrentLearner();
   const hooks = await getFormulaMemoryHooks({
     formulaIdOrSlug: id,
-    userId: user.id,
+    userId: current.learner.id,
   });
 
   if (!hooks) {
-    const response = NextResponse.json(
+    return NextResponse.json(
       {
         error: "Formula not found",
       },
       { status: 404 },
     );
-
-    setAnonymousSessionCookie(response, sessionId);
-
-    return response;
   }
 
-  const response = NextResponse.json({
+  return NextResponse.json({
     data: hooks,
   });
-
-  setAnonymousSessionCookie(response, sessionId);
-
-  return response;
 }
 
 export async function POST(
@@ -65,45 +54,37 @@ export async function POST(
     );
   }
 
-  const { user, sessionId } = await getAnonymousUserFromCookies();
+  const current = await getCurrentLearner();
   const hook = payload.sourceHookId
     ? await adoptAiMemoryHook({
         formulaIdOrSlug: id,
         sourceHookId: payload.sourceHookId,
-        userId: user.id,
+        userId: current.learner.id,
         content: payload.content?.trim(),
         prompt: payload.prompt?.trim() || undefined,
         type: payload.type,
       })
     : await addUserFormulaMemoryHook({
         formulaIdOrSlug: id,
-        userId: user.id,
+        userId: current.learner.id,
         content: payload.content!.trim(),
         prompt: payload.prompt?.trim() || undefined,
         type: payload.type,
       });
 
   if (!hook) {
-    const response = NextResponse.json(
+    return NextResponse.json(
       {
         error: "Formula not found",
       },
       { status: 404 },
     );
-
-    setAnonymousSessionCookie(response, sessionId);
-
-    return response;
   }
 
-  const response = NextResponse.json(
+  return NextResponse.json(
     {
       data: hook,
     },
     { status: 201 },
   );
-
-  setAnonymousSessionCookie(response, sessionId);
-
-  return response;
 }

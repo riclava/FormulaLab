@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { getAnonymousUserFromCookies } from "@/server/http/anonymous-user-cookie";
+import { getCurrentLearner } from "@/server/auth/current-learner";
 import { getFormulaCatalog } from "@/server/services/formula-service";
 import type { FormulaSummary } from "@/types/formula";
 
@@ -40,13 +40,13 @@ export default async function FormulasPage({
   const domain = params.domain?.trim() || undefined;
   const tag = params.tag?.trim() || undefined;
   const difficulty = parseDifficulty(params.difficulty);
-  const { user } = await getAnonymousUserFromCookies();
+  const current = await getCurrentLearner();
   const catalog = await getFormulaCatalog({
     query: query || undefined,
     domain,
     tag,
     difficulty,
-    userId: user.id,
+    userId: current.learner.id,
   });
   const resultSummary = buildResultSummary(catalog.formulas);
   const buildHref = createFormulaCatalogHrefBuilder({

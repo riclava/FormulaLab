@@ -1,9 +1,6 @@
 import { NextResponse } from "next/server";
 
-import {
-  getAnonymousUserFromCookies,
-  setAnonymousSessionCookie,
-} from "@/server/http/anonymous-user-cookie";
+import { getCurrentLearner } from "@/server/auth/current-learner";
 import { deferReview } from "@/server/services/review-service";
 
 export async function POST(request: Request) {
@@ -21,17 +18,13 @@ export async function POST(request: Request) {
     );
   }
 
-  const { user, sessionId } = await getAnonymousUserFromCookies();
+  const current = await getCurrentLearner();
   const result = await deferReview({
-    userId: user.id,
+    userId: current.learner.id,
     formulaId: payload.formulaId,
     minutes: payload.minutes,
   });
-  const response = NextResponse.json({
+  return NextResponse.json({
     data: result,
   });
-
-  setAnonymousSessionCookie(response, sessionId);
-
-  return response;
 }

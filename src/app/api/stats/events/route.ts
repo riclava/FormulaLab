@@ -1,9 +1,6 @@
 import { NextResponse } from "next/server";
 
-import {
-  getAnonymousUserFromCookies,
-  setAnonymousSessionCookie,
-} from "@/server/http/anonymous-user-cookie";
+import { getCurrentLearner } from "@/server/auth/current-learner";
 import { recordStatsEvents } from "@/server/services/stats-service";
 
 export async function POST(request: Request) {
@@ -34,17 +31,15 @@ export async function POST(request: Request) {
     type: "weak_formula_impression" | "weak_formula_opened";
   }>;
 
-  const { user, sessionId } = await getAnonymousUserFromCookies();
+  const current = await getCurrentLearner();
   await recordStatsEvents({
-    userId: user.id,
+    userId: current.learner.id,
     events: validEvents,
   });
 
-  const response = NextResponse.json({
+  return NextResponse.json({
     data: {
       recorded: validEvents.length,
     },
   });
-  setAnonymousSessionCookie(response, sessionId);
-  return response;
 }

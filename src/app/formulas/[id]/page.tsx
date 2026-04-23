@@ -1,4 +1,3 @@
-import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 
 import { PhaseShell } from "@/components/app/phase-shell";
@@ -6,10 +5,7 @@ import {
   FormulaDetailView,
   type FocusSection,
 } from "@/components/formula/formula-detail-view";
-import {
-  ANONYMOUS_SESSION_COOKIE,
-  getOrCreateAnonymousUser,
-} from "@/server/services/anonymous-user-service";
+import { getCurrentLearner } from "@/server/auth/current-learner";
 import {
   getFormulaDetail,
   getFormulaMemoryHooks,
@@ -104,17 +100,13 @@ export default async function FormulaDetailPage({
 }) {
   const { id } = await params;
   const { focus, from, mode } = await searchParams;
-  const cookieStore = await cookies();
-  const existingSessionId = cookieStore.get(ANONYMOUS_SESSION_COOKIE)?.value;
-  const anonymousUser = existingSessionId
-    ? await getOrCreateAnonymousUser(existingSessionId)
-    : null;
+  const current = await getCurrentLearner();
   const [formula, relations, hooks] = await Promise.all([
     getFormulaDetail(id),
     getFormulaRelationDetails(id),
     getFormulaMemoryHooks({
       formulaIdOrSlug: id,
-      userId: anonymousUser?.user.id,
+      userId: current.learner.id,
     }),
   ]);
 

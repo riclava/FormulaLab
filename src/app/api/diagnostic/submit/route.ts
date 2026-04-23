@@ -1,9 +1,6 @@
 import { NextResponse } from "next/server";
 
-import {
-  getAnonymousUserFromCookies,
-  setAnonymousSessionCookie,
-} from "@/server/http/anonymous-user-cookie";
+import { getCurrentLearner } from "@/server/auth/current-learner";
 import { submitDiagnostic } from "@/server/services/diagnostic-service";
 import type {
   DiagnosticAssessment,
@@ -29,18 +26,14 @@ export async function POST(request: Request) {
     );
   }
 
-  const { user, sessionId } = await getAnonymousUserFromCookies();
+  const current = await getCurrentLearner();
   const result = await submitDiagnostic({
-    userId: user.id,
+    userId: current.learner.id,
     submission: payload as DiagnosticSubmission,
   });
-  const response = NextResponse.json({
+  return NextResponse.json({
     data: result,
   });
-
-  setAnonymousSessionCookie(response, sessionId);
-
-  return response;
 }
 
 function validateSubmission(payload: unknown): string | null {
