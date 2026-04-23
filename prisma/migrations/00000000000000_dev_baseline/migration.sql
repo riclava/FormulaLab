@@ -11,12 +11,6 @@ CREATE TYPE "ReviewItemType" AS ENUM ('recall', 'recognition', 'application');
 CREATE TYPE "ReviewResult" AS ENUM ('easy', 'good', 'hard', 'again');
 
 -- CreateEnum
-CREATE TYPE "MemoryHookSource" AS ENUM ('ai_suggested', 'user_created');
-
--- CreateEnum
-CREATE TYPE "MemoryHookType" AS ENUM ('analogy', 'scenario', 'visual', 'mnemonic', 'contrast', 'personal');
-
--- CreateEnum
 CREATE TYPE "StudySessionStatus" AS ENUM ('active', 'completed', 'abandoned');
 
 -- CreateEnum
@@ -166,7 +160,6 @@ CREATE TABLE "user_formula_states" (
     "id" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "formulaId" TEXT NOT NULL,
-    "preferredMemoryHookId" TEXT,
     "memoryStrength" DOUBLE PRECISION NOT NULL DEFAULT 0,
     "stability" DOUBLE PRECISION NOT NULL DEFAULT 0,
     "difficultyEstimate" DOUBLE PRECISION NOT NULL DEFAULT 0,
@@ -215,15 +208,9 @@ CREATE TABLE "diagnostic_attempts" (
 -- CreateTable
 CREATE TABLE "formula_memory_hooks" (
     "id" TEXT NOT NULL,
-    "userId" TEXT,
+    "userId" TEXT NOT NULL,
     "formulaId" TEXT NOT NULL,
-    "source" "MemoryHookSource" NOT NULL,
-    "type" "MemoryHookType" NOT NULL,
     "content" TEXT NOT NULL,
-    "prompt" TEXT,
-    "usedCount" INTEGER NOT NULL DEFAULT 0,
-    "helpfulCount" INTEGER NOT NULL DEFAULT 0,
-    "lastUsedAt" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -311,9 +298,6 @@ CREATE INDEX "review_items_formulaId_type_idx" ON "review_items"("formulaId", "t
 CREATE INDEX "user_formula_states_formulaId_idx" ON "user_formula_states"("formulaId");
 
 -- CreateIndex
-CREATE INDEX "user_formula_states_preferredMemoryHookId_idx" ON "user_formula_states"("preferredMemoryHookId");
-
--- CreateIndex
 CREATE UNIQUE INDEX "user_formula_states_userId_formulaId_key" ON "user_formula_states"("userId", "formulaId");
 
 -- CreateIndex
@@ -326,7 +310,10 @@ CREATE INDEX "review_logs_formulaId_idx" ON "review_logs"("formulaId");
 CREATE INDEX "diagnostic_attempts_userId_completedAt_idx" ON "diagnostic_attempts"("userId", "completedAt");
 
 -- CreateIndex
-CREATE INDEX "formula_memory_hooks_formulaId_userId_idx" ON "formula_memory_hooks"("formulaId", "userId");
+CREATE INDEX "formula_memory_hooks_formulaId_idx" ON "formula_memory_hooks"("formulaId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "formula_memory_hooks_userId_formulaId_key" ON "formula_memory_hooks"("userId", "formulaId");
 
 -- CreateIndex
 CREATE INDEX "study_sessions_userId_startedAt_idx" ON "study_sessions"("userId", "startedAt");
@@ -363,9 +350,6 @@ ALTER TABLE "user_formula_states" ADD CONSTRAINT "user_formula_states_userId_fke
 
 -- AddForeignKey
 ALTER TABLE "user_formula_states" ADD CONSTRAINT "user_formula_states_formulaId_fkey" FOREIGN KEY ("formulaId") REFERENCES "formulas"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "user_formula_states" ADD CONSTRAINT "user_formula_states_preferredMemoryHookId_fkey" FOREIGN KEY ("preferredMemoryHookId") REFERENCES "formula_memory_hooks"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "review_logs" ADD CONSTRAINT "review_logs_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;

@@ -168,7 +168,7 @@ export function CustomFormulaForm() {
 
       <TextAreaField label="例题" name="examples" placeholder="每行一题，第一题会用于 Application 训练。" />
       <Field label="标签" name="tags" placeholder="逗号或换行分隔，例如 custom, distribution" />
-      <Field label="个人记忆钩子" name="memoryHook" placeholder="可选：一句你自己最容易记住的联想" />
+      <Field label="下次提示" name="memoryHook" placeholder="可选：一句你下次卡住时想看到的提醒" />
 
       {error ? <p className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">{error}</p> : null}
       {createdSlug ? (

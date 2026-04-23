@@ -25,7 +25,6 @@ export async function getLatestCompletedStudySessionSummary(userId: string) {
             select: {
               id: true,
               content: true,
-              helpfulCount: true,
             },
           },
         },
@@ -237,7 +236,6 @@ export async function listRecentMemoryHookActivity({
           select: {
             id: true,
             content: true,
-            helpfulCount: true,
           },
         },
       },
@@ -257,25 +255,10 @@ export async function listRecentMemoryHookActivity({
 export async function listAccessibleMemoryHooks(userId: string) {
   return prisma.formulaMemoryHook.findMany({
     where: {
-      OR: [
-        { userId },
-        {
-          userId: null,
-          formula: {
-            userStates: {
-              some: {
-                userId,
-              },
-            },
-          },
-        },
-      ],
+      userId,
     },
     select: {
       id: true,
-      source: true,
-      usedCount: true,
-      helpfulCount: true,
     },
   });
 }

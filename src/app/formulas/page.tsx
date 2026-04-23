@@ -187,7 +187,7 @@ export default async function FormulasPage({
       <section className="grid gap-4 md:grid-cols-4">
         <StatCard label="需要补弱" value={resultSummary.weakCount} tone="destructive" />
         <StatCard label="今天到期" value={resultSummary.dueCount} tone="secondary" />
-        <StatCard label="已有个人联想" value={resultSummary.hookedCount} />
+        <StatCard label="已有下次提示" value={resultSummary.hookedCount} />
         <StatCard label="稳定中" value={resultSummary.stableCount} />
       </section>
 
@@ -209,7 +209,7 @@ export default async function FormulasPage({
                     {formula.hasPersonalMemoryHook ? (
                       <Badge variant="secondary">
                         <Sparkles data-icon="inline-start" />
-                        已有个人联想
+                        已有下次提示
                       </Badge>
                     ) : null}
                     {formula.isWeak ? (
@@ -254,7 +254,7 @@ export default async function FormulasPage({
                 <div className="flex flex-wrap gap-4">
                   <span>变量：{formatVariablePreview(formula)}</span>
                   <span>训练题：{formula.reviewItemCount}</span>
-                  <span>可用联想：{formula.memoryHookCount}</span>
+                  <span>下次提示：{formula.memoryHookCount}</span>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <Link

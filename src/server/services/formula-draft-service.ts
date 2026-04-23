@@ -67,7 +67,7 @@ function buildFormulaDraftPrompt(prompt: string) {
     '  "antiPatterns": ["常见误用"],',
     '  "typicalProblems": ["典型题型"],',
     '  "examples": ["例题或应用场景"],',
-    '  "memoryHook": "一句记忆钩子"',
+    '  "memoryHook": "一句下次提示"',
     "}",
     "",
     "用户输入：",

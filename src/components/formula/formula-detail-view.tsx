@@ -39,7 +39,6 @@ export function FormulaDetailView({
   returnLink,
   footer,
   compact = false,
-  selectableHooks = false,
 }: {
   formulaIdOrSlug: string;
   initialFormula?: FormulaDetail;
@@ -60,7 +59,6 @@ export function FormulaDetailView({
   };
   footer?: React.ReactNode;
   compact?: boolean;
-  selectableHooks?: boolean;
 }) {
   const [formula, setFormula] = useState<FormulaDetail | null>(initialFormula ?? null);
   const [relations, setRelations] = useState<FormulaRelationDetail[]>(
@@ -248,14 +246,12 @@ export function FormulaDetailView({
             }}
             focused={focusSection === "hooks"}
             icon={Lightbulb}
-            title="记忆联想"
+            title="下次提示"
           >
             <FormulaMemoryHookPanel
               key={formula.id}
               formulaIdOrSlug={formula.slug}
               initialHooks={initialHooks ?? formula.memoryHooks}
-              selectableHooks={selectableHooks}
-              compact
             />
           </DetailSection>
 

@@ -27,20 +27,6 @@ enum ReviewResult {
   again
 }
 
-enum MemoryHookSource {
-  ai_suggested
-  user_created
-}
-
-enum MemoryHookType {
-  analogy
-  scenario
-  visual
-  mnemonic
-  contrast
-  personal
-}
-
 enum StudySessionStatus {
   active
   completed
@@ -72,16 +58,16 @@ model User {
 }
 
 model AuthUser {
-  id            String    @id @default(cuid())
-  email         String    @unique
-  emailVerified Boolean   @default(false)
+  id            String   @id @default(cuid())
+  email         String   @unique
+  emailVerified Boolean  @default(false)
   name          String
   image         String?
-  learnerId     String?   @unique
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  learnerId     String?  @unique
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
-  learner  User?          @relation(fields: [learnerId], references: [id], onDelete: SetNull)
+  learner  User?         @relation(fields: [learnerId], references: [id], onDelete: SetNull)
   sessions AuthSession[]
   accounts AuthAccount[]
 
@@ -141,25 +127,25 @@ model AuthVerification {
 }
 
 model Formula {
-  id              String   @id @default(cuid())
-  slug            String   @unique
-  title           String
-  expressionLatex String
-  domain          String
-  subdomain       String?
-  oneLineUse      String
-  meaning         String
-  intuition       String?
-  derivation      String?
-  useConditions   String[]
+  id               String   @id @default(cuid())
+  slug             String   @unique
+  title            String
+  expressionLatex  String
+  domain           String
+  subdomain        String?
+  oneLineUse       String
+  meaning          String
+  intuition        String?
+  derivation       String?
+  useConditions    String[]
   nonUseConditions String[]
-  antiPatterns    String[]
-  typicalProblems String[]
-  examples        String[]
-  difficulty      Int
-  tags            String[]
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  antiPatterns     String[]
+  typicalProblems  String[]
+  examples         String[]
+  difficulty       Int
+  tags             String[]
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
   variables         FormulaVariable[]
   reviewItems       ReviewItem[]
@@ -230,7 +216,6 @@ model UserFormulaState {
   id                 String    @id @default(cuid())
   userId             String
   formulaId          String
-  preferredMemoryHookId String?
   memoryStrength     Float     @default(0)
   stability          Float     @default(0)
   difficultyEstimate Float     @default(0)
@@ -245,11 +230,9 @@ model UserFormulaState {
 
   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   formula Formula @relation(fields: [formulaId], references: [id], onDelete: Cascade)
-  preferredMemoryHook FormulaMemoryHook? @relation("PreferredMemoryHook", fields: [preferredMemoryHookId], references: [id], onDelete: SetNull)
 
   @@unique([userId, formulaId])
   @@index([formulaId])
-  @@index([preferredMemoryHookId])
   @@map("user_formula_states")
 }
 
@@ -293,25 +276,19 @@ model DiagnosticAttempt {
 }
 
 model FormulaMemoryHook {
-  id           String           @id @default(cuid())
-  userId       String?
-  formulaId    String
-  source       MemoryHookSource
-  type         MemoryHookType
-  content      String
-  prompt       String?
-  usedCount    Int              @default(0)
-  helpfulCount Int              @default(0)
-  lastUsedAt   DateTime?
-  createdAt    DateTime         @default(now())
-  updatedAt    DateTime         @updatedAt
+  id        String   @id @default(cuid())
+  userId    String
+  formulaId String
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  user       User?       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   formula    Formula     @relation(fields: [formulaId], references: [id], onDelete: Cascade)
   reviewLogs ReviewLog[]
-  preferredByStates UserFormulaState[] @relation("PreferredMemoryHook")
 
-  @@index([formulaId, userId])
+  @@unique([userId, formulaId])
+  @@index([formulaId])
   @@map("formula_memory_hooks")
 }
 

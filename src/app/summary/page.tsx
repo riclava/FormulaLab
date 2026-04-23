@@ -299,7 +299,7 @@ export default async function SummaryPage() {
                 </>
               ) : (
                 <div className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
-                  这一轮还没有新的记忆钩子创建或使用记录。
+                  这一轮还没有新的下次提示创建或使用记录。
                 </div>
               )}
             </section>

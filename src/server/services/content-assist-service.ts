@@ -5,7 +5,6 @@ import { getFormulaDetail, getFormulaRelationDetails, getFormulaSummaries } from
 import type { FormulaDetail, FormulaRelationDetail } from "@/types/formula";
 import type {
   ContentAssistDraft,
-  ContentAssistMemoryHookDraft,
   ContentAssistRelationDraft,
   ContentAssistReviewItemDraft,
   ContentAssistWorkspaceItem,
@@ -213,7 +212,6 @@ async function generateContentAssistDraft({
     },
     reviewItems: buildReviewItemDrafts(formula),
     relationCandidates,
-    memoryHookCandidates: buildMemoryHookCandidates(formula),
   };
 
   await saveDraft(draft);
@@ -296,58 +294,6 @@ function buildReviewItemDrafts(formula: FormulaDetail): ContentAssistReviewItemD
         existingByType.get("application")?.explanation ??
         `${formula.antiPatterns[0] ?? "先确认边界，再代入计算。"}。`,
       difficulty: existingByType.get("application")?.difficulty ?? Math.max(formula.difficulty, 2),
-    },
-  ];
-}
-
-function buildMemoryHookCandidates(formula: FormulaDetail): ContentAssistMemoryHookDraft[] {
-  const hooksByType = new Map(formula.memoryHooks.map((hook) => [hook.type, hook]));
-
-  return [
-    {
-      type: "analogy",
-      content:
-        hooksByType.get("analogy")?.content ??
-        `把 ${formula.title} 想成“${formula.oneLineUse}”这件事的快捷模板。`,
-      prompt:
-        hooksByType.get("analogy")?.prompt ??
-        "用熟悉动作来类比公式用途。",
-    },
-    {
-      type: "scenario",
-      content:
-        hooksByType.get("scenario")?.content ??
-        `当题目出现“${formula.typicalProblems[0] ?? formula.domain}”这类场景时，先想到 ${formula.title}。`,
-      prompt:
-        hooksByType.get("scenario")?.prompt ??
-        "绑定一个常见题型或生活场景。",
-    },
-    {
-      type: "visual",
-      content:
-        hooksByType.get("visual")?.content ??
-        `先在脑中放一个画面：${formula.examples[0] ?? formula.oneLineUse}`,
-      prompt:
-        hooksByType.get("visual")?.prompt ??
-        "用图像化画面帮助回忆。",
-    },
-    {
-      type: "mnemonic",
-      content:
-        hooksByType.get("mnemonic")?.content ??
-        `${formula.title}：先看条件，再按结构一步步代入。`,
-      prompt:
-        hooksByType.get("mnemonic")?.prompt ??
-        "压成一句做题时能默念的短句。",
-    },
-    {
-      type: "contrast",
-      content:
-        hooksByType.get("contrast")?.content ??
-        `先提醒自己：${formula.antiPatterns[0] ?? formula.nonUseConditions[0] ?? formula.useConditions[0] ?? formula.oneLineUse}`,
-      prompt:
-        hooksByType.get("contrast")?.prompt ??
-        "把最常见的误用点变成反向提醒。",
     },
   ];
 }

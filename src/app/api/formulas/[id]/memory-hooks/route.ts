@@ -2,11 +2,9 @@ import { NextResponse } from "next/server";
 
 import { withAuthenticatedApi } from "@/server/auth/current-learner";
 import {
-  addUserFormulaMemoryHook,
-  adoptAiMemoryHook,
   getFormulaMemoryHooks,
+  saveFormulaMemoryHook,
 } from "@/server/services/formula-service";
-import type { MemoryHookType } from "@/types/memory-hook";
 
 export async function GET(
   _request: Request,
@@ -41,41 +39,25 @@ export async function POST(
   const { id } = await params;
   const payload = (await request.json()) as {
     content?: string;
-    prompt?: string;
-    type?: MemoryHookType;
-    sourceHookId?: string;
   };
 
-  if (!payload.content?.trim() && !payload.sourceHookId) {
+  if (!payload.content?.trim()) {
     return NextResponse.json(
       {
-        error: "content or sourceHookId is required",
+        error: "content is required",
       },
       { status: 400 },
     );
   }
 
-  const sourceHookId = payload.sourceHookId;
   const content = payload.content?.trim();
-  const prompt = payload.prompt?.trim() || undefined;
 
   return withAuthenticatedApi(async (current) => {
-    const hook = sourceHookId
-      ? await adoptAiMemoryHook({
-          formulaIdOrSlug: id,
-          sourceHookId,
-          userId: current.learner.id,
-          content,
-          prompt,
-          type: payload.type,
-        })
-      : await addUserFormulaMemoryHook({
-          formulaIdOrSlug: id,
-          userId: current.learner.id,
-          content: content!,
-          prompt,
-          type: payload.type,
-        });
+    const hook = await saveFormulaMemoryHook({
+      formulaIdOrSlug: id,
+      userId: current.learner.id,
+      content: content!,
+    });
 
     if (!hook) {
       return NextResponse.json(

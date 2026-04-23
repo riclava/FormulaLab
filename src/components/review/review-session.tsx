@@ -60,7 +60,6 @@ export function ReviewSession({ mode = "today" }: { mode?: ReviewMode }) {
     good: 0,
     easy: 0,
   });
-  const [helpfulHookIds, setHelpfulHookIds] = useState<string[]>([]);
   const [hookDraftByFormulaId, setHookDraftByFormulaId] = useState<Record<string, string>>(
     {},
   );
@@ -215,28 +214,6 @@ export function ReviewSession({ mode = "today" }: { mode?: ReviewMode }) {
                   <h3 className="font-medium">一点提示</h3>
                 </div>
                 <p className="text-sm leading-6">{currentHint.content}</p>
-                {currentHint.memoryHookUsedId ? (
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant={
-                        helpfulHookIds.includes(currentHint.memoryHookUsedId)
-                          ? "secondary"
-                          : "outline"
-                      }
-                      disabled={
-                        isPending ||
-                        helpfulHookIds.includes(currentHint.memoryHookUsedId)
-                      }
-                      onClick={() => markHintHelpful(currentHint.memoryHookUsedId!)}
-                    >
-                      {helpfulHookIds.includes(currentHint.memoryHookUsedId)
-                        ? "已记录有帮助"
-                        : "这个提示有帮助"}
-                    </Button>
-                  </div>
-                ) : null}
               </div>
 
               <ReviewMemoryHookCapture
@@ -247,7 +224,7 @@ export function ReviewSession({ mode = "today" }: { mode?: ReviewMode }) {
                 disabled={isPending}
                 context="hint"
                 onDraftChange={(value) => updateHookDraft(currentItem.formulaId, value)}
-                onSave={() => saveReviewMemoryHook(currentItem, "hint")}
+                onSave={() => saveReviewMemoryHook(currentItem)}
               />
             </>
           ) : null}
@@ -355,9 +332,7 @@ export function ReviewSession({ mode = "today" }: { mode?: ReviewMode }) {
                 disabled={isPending}
                 context={activeRemediation.grade}
                 onDraftChange={(value) => updateHookDraft(currentItem.formulaId, value)}
-                onSave={() =>
-                  saveReviewMemoryHook(currentItem, activeRemediation.grade)
-                }
+                onSave={() => saveReviewMemoryHook(currentItem)}
               />
             </div>
           ) : (
@@ -466,30 +441,6 @@ export function ReviewSession({ mode = "today" }: { mode?: ReviewMode }) {
     });
   }
 
-  function markHintHelpful(hookId: string) {
-    startTransition(async () => {
-      try {
-        const response = await fetch(`/api/memory-hooks/${hookId}/helpful`, {
-          method: "POST",
-        });
-        const payload = (await response.json()) as { error?: string };
-
-        if (!response.ok) {
-          throw new Error(payload.error ?? "提示反馈提交失败");
-        }
-
-        setHelpfulHookIds((previous) => [...previous, hookId]);
-        setStatusMessage("已记录这条提示对你有帮助，后面会更优先出现。");
-      } catch (helpfulError) {
-        setError(
-          helpfulError instanceof Error
-            ? helpfulError.message
-            : "提示反馈提交失败",
-        );
-      }
-    });
-  }
-
   function updateHookDraft(formulaId: string, value: string) {
     setHookDraftByFormulaId((previous) => ({
       ...previous,
@@ -497,10 +448,7 @@ export function ReviewSession({ mode = "today" }: { mode?: ReviewMode }) {
     }));
   }
 
-  function saveReviewMemoryHook(
-    item: ReviewQueueItem,
-    context: "hint" | "again" | "hard",
-  ) {
+  function saveReviewMemoryHook(item: ReviewQueueItem) {
     const content = hookDraftByFormulaId[item.formulaId]?.trim();
 
     if (!content) {
@@ -517,11 +465,7 @@ export function ReviewSession({ mode = "today" }: { mode?: ReviewMode }) {
             headers: {
               "Content-Type": "application/json",
             },
-            body: JSON.stringify({
-              content,
-              prompt: memoryHookPromptForContext(context, item),
-              type: "personal",
-            }),
+            body: JSON.stringify({ content }),
           },
         );
         const payload = (await response.json()) as {
@@ -533,22 +477,10 @@ export function ReviewSession({ mode = "today" }: { mode?: ReviewMode }) {
           throw new Error(payload.error ?? "提醒保存失败");
         }
 
-        const selectResponse = await fetch(
-          `/api/formulas/${item.formula.slug}/memory-hooks/${payload.data.id}/select`,
-          {
-            method: "POST",
-          },
-        );
-        const selectPayload = (await selectResponse.json()) as { error?: string };
-
-        if (!selectResponse.ok) {
-          throw new Error(selectPayload.error ?? "默认提示设置失败");
-        }
-
         setSavedHookFormulaIds((previous) =>
           previous.includes(item.formulaId) ? previous : [...previous, item.formulaId],
         );
-        setStatusMessage("已保存为这条公式的默认提示，下次卡住会优先出现。");
+        setStatusMessage("已保存为这条公式的下次提示。");
         setError(null);
       } catch (saveError) {
         setError(saveError instanceof Error ? saveError.message : "提醒保存失败");
@@ -689,7 +621,7 @@ function ReviewMemoryHookCapture({
         <div className="flex flex-wrap items-center gap-2">
           <Lightbulb data-icon="inline-start" />
           <h3 className="font-medium">{title}</h3>
-          {saved ? <Badge variant="secondary">已设为默认提示</Badge> : null}
+          {saved ? <Badge variant="secondary">已保存</Badge> : null}
         </div>
         <p className="text-sm leading-6 text-muted-foreground">{description}</p>
       </div>
@@ -725,26 +657,11 @@ function ReviewMemoryHookCapture({
           {saved ? "已保存" : "保存为下次提示"}
         </Button>
         <p className="text-xs leading-5 text-muted-foreground">
-          保存后会成为 {item.formula.title} 的默认提示。
+          保存后会成为 {item.formula.title} 的下次提示。
         </p>
       </div>
     </section>
   );
-}
-
-function memoryHookPromptForContext(
-  context: "hint" | "again" | "hard",
-  item: ReviewQueueItem,
-) {
-  if (context === "again") {
-    return `复习时想不起来：${item.prompt}`;
-  }
-
-  if (context === "hard") {
-    return `复习时有点吃力：${item.prompt}`;
-  }
-
-  return `看提示后写下：${item.prompt}`;
 }
 
 function memoryHookPlaceholderForContext(

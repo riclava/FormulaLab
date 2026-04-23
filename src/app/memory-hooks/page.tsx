@@ -15,8 +15,8 @@ export default async function MemoryHooksPage() {
     <PhaseShell
       activePath="/memory-hooks"
       eyebrow="提示整理"
-      title="整理联想与默认提示"
-      description="集中回看你在复习和补弱中留下的线索，把更有效的那句设成默认。"
+      title="整理下次提示"
+      description="每条公式只保留一句你下次卡住时最想看到的提醒。"
     >
       <MemoryHookWorkspace formulas={formulas} />
     </PhaseShell>

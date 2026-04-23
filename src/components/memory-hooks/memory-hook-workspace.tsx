@@ -74,7 +74,7 @@ export function MemoryHookWorkspace({
           <div className="flex flex-wrap items-center gap-2">
             <Badge>选公式</Badge>
             <Badge variant="outline">回看这条公式的线索</Badge>
-            <Badge variant="outline">设默认提示</Badge>
+            <Badge variant="outline">整理下次提示</Badge>
           </div>
           <div className="mt-4 flex flex-wrap items-center gap-2">
             <Badge variant="secondary">{selectedFormula.domain}</Badge>
@@ -94,7 +94,6 @@ export function MemoryHookWorkspace({
         <FormulaMemoryHookPanel
           key={selectedFormula.slug}
           formulaIdOrSlug={selectedFormula.slug}
-          selectableHooks
         />
       </div>
     </div>

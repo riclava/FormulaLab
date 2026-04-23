@@ -12,7 +12,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import type {
   ContentAssistDraft,
-  ContentAssistMemoryHookDraft,
   ContentAssistRelationDraft,
   ContentAssistReviewItemDraft,
   ContentAssistVariableDraft,
@@ -338,18 +337,6 @@ export function ContentAssistEditor({
             />
           </EditableSection>
 
-          <EditableSection title="记忆联想候选" eyebrow="Memory Hooks">
-            <MemoryHookEditor
-              hooks={draft.memoryHookCandidates}
-              onChange={(hooks) =>
-                setDraft((current) => ({
-                  ...current,
-                  memoryHookCandidates: hooks,
-                }))
-              }
-            />
-          </EditableSection>
-
           <EditableSection title="审核备注" eyebrow="Reviewer Notes">
             <TextAreaField
               label="备注"
@@ -575,66 +562,6 @@ function RelationEditor({
             value={relation.note}
             onChange={(value) =>
               onChange(updateAtIndex(relations, index, { ...relation, note: value }))
-            }
-          />
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function MemoryHookEditor({
-  hooks,
-  onChange,
-}: {
-  hooks: ContentAssistMemoryHookDraft[];
-  onChange: (hooks: ContentAssistMemoryHookDraft[]) => void;
-}) {
-  return (
-    <div className="grid gap-3">
-      {hooks.map((hook, index) => (
-        <div key={`${hook.type}-${index}`} className="grid gap-3 rounded-lg border p-4">
-          <div className="grid gap-2">
-            <Label>联想类型</Label>
-            <div className="flex flex-wrap gap-2">
-              {(
-                [
-                  "analogy",
-                  "scenario",
-                  "visual",
-                  "mnemonic",
-                  "contrast",
-                  "personal",
-                ] as const
-              ).map((type) => (
-                <button
-                  key={type}
-                  type="button"
-                  className={buttonVariants({
-                    size: "sm",
-                    variant: hook.type === type ? "default" : "outline",
-                  })}
-                  onClick={() =>
-                    onChange(updateAtIndex(hooks, index, { ...hook, type }))
-                  }
-                >
-                  {type}
-                </button>
-              ))}
-            </div>
-          </div>
-          <TextAreaField
-            label="联想内容"
-            value={hook.content}
-            onChange={(value) =>
-              onChange(updateAtIndex(hooks, index, { ...hook, content: value }))
-            }
-          />
-          <TextAreaField
-            label="提示用途"
-            value={hook.prompt}
-            onChange={(value) =>
-              onChange(updateAtIndex(hooks, index, { ...hook, prompt: value }))
             }
           />
         </div>

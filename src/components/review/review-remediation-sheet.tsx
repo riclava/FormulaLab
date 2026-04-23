@@ -111,7 +111,6 @@ export function ReviewRemediationSheet({
             focusSection={meta.focusSection}
             entryPoint="review"
             compact
-            selectableHooks
           />
         </div>
 

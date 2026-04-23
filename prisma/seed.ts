@@ -6,8 +6,6 @@ import { PrismaPg } from "@prisma/adapter-pg";
 
 import {
   FormulaRelationType,
-  MemoryHookSource,
-  MemoryHookType,
   PrismaClient,
   ReviewItemType,
 } from "../src/generated/prisma/client";
@@ -46,11 +44,6 @@ type ApprovedContentAssistDraft = {
     toSlug: string;
     relationType: FormulaRelationType;
     note: string;
-  }>;
-  memoryHookCandidates: Array<{
-    type: MemoryHookType;
-    content: string;
-    prompt: string;
   }>;
 };
 
@@ -136,23 +129,6 @@ const formulas = [
         difficulty: 3,
       },
     ],
-    hooks: [
-      {
-        type: MemoryHookType.mnemonic,
-        content: "先验乘似然，再除总证据。",
-        prompt: "用短句压缩贝叶斯结构。",
-      },
-      {
-        type: MemoryHookType.scenario,
-        content: "看到检测阳性这个结果，反推真正患病这个原因。",
-        prompt: "绑定常见医疗检测场景。",
-      },
-      {
-        type: MemoryHookType.contrast,
-        content: "贝叶斯是执果索因，全概率多用于执因求果。",
-        prompt: "和全概率公式做区分。",
-      },
-    ],
   },
   {
     slug: "law-of-total-probability",
@@ -226,18 +202,6 @@ const formulas = [
         difficulty: 2,
       },
     ],
-    hooks: [
-      {
-        type: MemoryHookType.visual,
-        content: "想象树状图：每条分支走到结果 B，再把所有路径加起来。",
-        prompt: "用图像记住路径求和。",
-      },
-      {
-        type: MemoryHookType.contrast,
-        content: "全概率先算结果总量，贝叶斯再用这个总量反推原因。",
-        prompt: "和贝叶斯公式形成链路。",
-      },
-    ],
   },
   {
     slug: "expectation-linearity",
@@ -303,18 +267,6 @@ const formulas = [
         answer: "2*3-4*5+7=-7。",
         explanation: "常数 7 的期望仍是 7。",
         difficulty: 1,
-      },
-    ],
-    hooks: [
-      {
-        type: MemoryHookType.analogy,
-        content: "像算平均账：每项先算平均，再按系数合并。",
-        prompt: "用日常算账类比线性性。",
-      },
-      {
-        type: MemoryHookType.contrast,
-        content: "加法不需要独立，乘法通常才需要独立。",
-        prompt: "区分 E(X+Y) 和 E(XY)。",
       },
     ],
   },
@@ -389,18 +341,6 @@ const formulas = [
         answer: "Var(3X-2)=9*4=36。",
         explanation: "平移 -2 不影响方差。",
         difficulty: 2,
-      },
-    ],
-    hooks: [
-      {
-        type: MemoryHookType.visual,
-        content: "把一排点整体右移，散开程度没变；把间距拉大 3 倍，平方距离变 9 倍。",
-        prompt: "用点列的平移和拉伸记住公式。",
-      },
-      {
-        type: MemoryHookType.contrast,
-        content: "期望跟着 a 和 b 走，方差只认 a²，不认 b。",
-        prompt: "和期望线性变换做对比。",
       },
     ],
   },
@@ -488,7 +428,6 @@ function applyApprovedDrafts(
         unit: variable.unit ?? undefined,
       })),
       reviewItems: approvedDraft.reviewItems,
-      hooks: approvedDraft.memoryHookCandidates,
     };
   });
   const baseRelationKeys = new Set(
@@ -565,12 +504,6 @@ async function main() {
         },
         reviewItems: {
           create: formula.reviewItems,
-        },
-        memoryHooks: {
-          create: formula.hooks.map((hook) => ({
-            ...hook,
-            source: MemoryHookSource.ai_suggested,
-          })),
         },
       },
     });

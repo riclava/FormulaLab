@@ -35,15 +35,10 @@ export async function listDueFormulaStates({
           },
           memoryHooks: {
             where: {
-              OR: [{ userId }, { userId: null }],
+              userId,
             },
-            orderBy: [
-              { userId: "desc" },
-              { helpfulCount: "desc" },
-              { usedCount: "desc" },
-              { lastUsedAt: "desc" },
-              { createdAt: "asc" },
-            ],
+            orderBy: { updatedAt: "desc" },
+            take: 1,
           },
         },
       },
@@ -89,15 +84,10 @@ export async function listWeakFormulaStatesForReview({
           },
           memoryHooks: {
             where: {
-              OR: [{ userId }, { userId: null }],
+              userId,
             },
-            orderBy: [
-              { userId: "desc" },
-              { helpfulCount: "desc" },
-              { usedCount: "desc" },
-              { lastUsedAt: "desc" },
-              { createdAt: "asc" },
-            ],
+            orderBy: { updatedAt: "desc" },
+            take: 1,
           },
         },
       },
@@ -262,20 +252,14 @@ export async function getReviewHintSource({
       },
     },
     include: {
-      preferredMemoryHook: true,
       formula: {
         include: {
           memoryHooks: {
             where: {
-              OR: [{ userId }, { userId: null }],
+              userId,
             },
-            orderBy: [
-              { userId: "desc" },
-              { helpfulCount: "desc" },
-              { usedCount: "desc" },
-              { lastUsedAt: "desc" },
-              { createdAt: "asc" },
-            ],
+            orderBy: { updatedAt: "desc" },
+            take: 1,
           },
         },
       },

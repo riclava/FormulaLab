@@ -57,7 +57,7 @@ export function WeakFormulaList({
           <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted-foreground">
             <span>Again {formula.againCount}</span>
             <span>Hard {formula.hardCount}</span>
-            <span>联想 {formula.memoryHookCount} 条</span>
+            <span>提示 {formula.memoryHookCount} 条</span>
           </div>
           <div className="mt-4">
             <Link

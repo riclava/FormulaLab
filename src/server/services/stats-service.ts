@@ -112,7 +112,6 @@ export async function getSummaryStats({
         content: hook.content,
         source: "created" as const,
         timestamp: hook.createdAt.toISOString(),
-        helpfulCount: hook.helpfulCount,
       })),
       ...hookActivity.usedHooks
         .filter((log) => log.memoryHookUsed)
@@ -123,7 +122,6 @@ export async function getSummaryStats({
           content: log.memoryHookUsed!.content,
           source: "used" as const,
           timestamp: log.reviewedAt.toISOString(),
-          helpfulCount: log.memoryHookUsed!.helpfulCount,
         })),
     ]
       .sort((left, right) => right.timestamp.localeCompare(left.timestamp))
@@ -384,9 +382,7 @@ function buildMetrics({
   const againHardCount = logs.filter(
     (log) => log.result === "again" || log.result === "hard",
   ).length;
-  const createdHookCount = hooks.filter((hook) => hook.source === "user_created").length;
-  const totalHookUses = hooks.reduce((total, hook) => total + hook.usedCount, 0);
-  const totalHelpful = hooks.reduce((total, hook) => total + hook.helpfulCount, 0);
+  const createdHookCount = hooks.length;
 
   return [
     {
@@ -426,15 +422,9 @@ function buildMetrics({
     },
     {
       id: "memory_hook_creation_rate" as const,
-      label: "记忆钩子创建率",
+      label: "下次提示创建率",
       value: againHardCount > 0 ? createdHookCount / againHardCount : null,
-      description: "遇到困难后，用户是否愿意把联想真正写下来。",
-    },
-    {
-      id: "hint_helpful_rate" as const,
-      label: "联想提示有效率",
-      value: totalHookUses > 0 ? totalHelpful / totalHookUses : null,
-      description: "已经被用到的联想提示，有多少被认为确实有帮助。",
+      description: "遇到困难后，用户是否愿意把提醒真正写下来。",
     },
   ];
 }
@@ -512,7 +502,7 @@ function buildLearningRecommendations({
       log.reviewItem.type === "application" &&
       (log.result === "again" || log.result === "hard"),
   ).length;
-  const userHookCount = hooks.filter((hook) => hook.source === "user_created").length;
+  const userHookCount = hooks.length;
 
   if (weakFormulas.length > 0) {
     recommendations.push({
@@ -537,8 +527,8 @@ function buildLearningRecommendations({
   if (userHookCount < Math.max(1, weakFormulas.length)) {
     recommendations.push({
       id: "memory-hooks",
-      label: "补个人记忆钩子",
-      description: "薄弱公式最好至少有一条你自己的联想，提示会优先使用个人钩子。",
+      label: "补下次提示",
+      description: "薄弱公式最好写一句自己的提醒，卡住时会优先看到它。",
       href: "/memory-hooks",
       priority: "medium" as const,
     });
@@ -584,7 +574,7 @@ function getRecommendedAction(weakPoint: WeakFormulaStat["weakPoint"]) {
     case "retention":
       return "先看一条提示，再做一次主动回忆。";
     case "concept":
-      return "补一条个人记忆钩子，把公式用途压成自己的话。";
+      return "补一条下次提示，把公式用途压成自己的话。";
     case "boundary":
       return "优先看什么时候不能用和常见误用。";
     case "application":

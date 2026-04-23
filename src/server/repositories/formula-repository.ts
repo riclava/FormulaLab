@@ -30,7 +30,6 @@ function buildFormulaSummaryInclude(userId?: string) {
     memoryHooks: {
       where: {
         userId: userId ?? "__anonymous_formula_catalog__",
-        source: "user_created",
       },
       take: 1,
       select: {
@@ -57,7 +56,7 @@ const formulaDetailInclude = {
   },
   memoryHooks: {
     where: {
-      userId: null,
+      userId: "__formula_detail_without_learner__",
     },
     orderBy: {
       createdAt: "asc" as const,
@@ -198,7 +197,6 @@ export async function createCustomFormula({
     }>;
     memoryHooks: Array<{
       content: string;
-      prompt?: string | null;
     }>;
   };
 }) {
@@ -227,24 +225,20 @@ export async function createCustomFormula({
       },
     });
 
-    const createdHook = input.memoryHooks.length
-      ? await tx.formulaMemoryHook.create({
-          data: {
-            formulaId: formula.id,
-            userId,
-            source: "user_created",
-            type: "personal",
-            content: input.memoryHooks[0].content,
-            prompt: input.memoryHooks[0].prompt,
-          },
-        })
-      : null;
+    if (input.memoryHooks.length) {
+      await tx.formulaMemoryHook.create({
+        data: {
+          formulaId: formula.id,
+          userId,
+          content: input.memoryHooks[0].content,
+        },
+      });
+    }
 
     await tx.userFormulaState.create({
       data: {
         userId,
         formulaId: formula.id,
-        preferredMemoryHookId: createdHook?.id ?? null,
         memoryStrength: 0.1,
         stability: 0,
         difficultyEstimate: input.difficulty,
@@ -299,6 +293,10 @@ export async function listFormulaMemoryHooks({
   formulaIdOrSlug: string;
   userId?: string;
 }) {
+  if (!userId) {
+    return [];
+  }
+
   const formula = await prisma.formula.findFirst({
     where: {
       OR: [{ id: formulaIdOrSlug }, { slug: formulaIdOrSlug }],
@@ -315,69 +313,20 @@ export async function listFormulaMemoryHooks({
   return prisma.formulaMemoryHook.findMany({
     where: {
       formulaId: formula.id,
-      OR: [{ userId: null }, ...(userId ? [{ userId }] : [])],
+      userId,
     },
-    orderBy: [
-      { userId: "desc" },
-      { helpfulCount: "desc" },
-      { usedCount: "desc" },
-      { lastUsedAt: "desc" },
-      { createdAt: "asc" },
-    ],
+    orderBy: { updatedAt: "desc" },
   });
 }
 
-export async function getPreferredFormulaMemoryHookId({
-  formulaIdOrSlug,
-  userId,
-}: {
-  formulaIdOrSlug: string;
-  userId?: string;
-}) {
-  if (!userId) {
-    return null;
-  }
-
-  const formula = await prisma.formula.findFirst({
-    where: {
-      OR: [{ id: formulaIdOrSlug }, { slug: formulaIdOrSlug }],
-    },
-    select: {
-      id: true,
-    },
-  });
-
-  if (!formula) {
-    return null;
-  }
-
-  const state = await prisma.userFormulaState.findUnique({
-    where: {
-      userId_formulaId: {
-        userId,
-        formulaId: formula.id,
-      },
-    },
-    select: {
-      preferredMemoryHookId: true,
-    },
-  });
-
-  return state?.preferredMemoryHookId ?? null;
-}
-
-export async function createUserFormulaMemoryHook({
+export async function saveUserFormulaMemoryHook({
   formulaIdOrSlug,
   userId,
   content,
-  prompt,
-  type = "personal",
 }: {
   formulaIdOrSlug: string;
   userId: string;
   content: string;
-  prompt?: string;
-  type?: "analogy" | "scenario" | "visual" | "mnemonic" | "contrast" | "personal";
 }) {
   const formula = await prisma.formula.findFirst({
     where: {
@@ -392,110 +341,22 @@ export async function createUserFormulaMemoryHook({
     return null;
   }
 
-  return prisma.formulaMemoryHook.create({
-    data: {
-      formulaId: formula.id,
-      userId,
-      source: "user_created",
-      type,
-      content,
-      prompt,
-    },
-  });
-}
-
-export async function createAiFormulaMemoryHooks({
-  formulaIdOrSlug,
-  hooks,
-}: {
-  formulaIdOrSlug: string;
-  hooks: Array<{
-    type: "analogy" | "scenario" | "visual" | "mnemonic" | "contrast" | "personal";
-    content: string;
-    prompt?: string;
-  }>;
-}) {
-  const formula = await prisma.formula.findFirst({
-    where: {
-      OR: [{ id: formulaIdOrSlug }, { slug: formulaIdOrSlug }],
-    },
-    select: {
-      id: true,
-    },
-  });
-
-  if (!formula) {
-    return null;
-  }
-
-  const createdHooks = await Promise.all(
-    hooks.map((hook) =>
-      prisma.formulaMemoryHook.create({
-        data: {
-          formulaId: formula.id,
-          source: "ai_suggested",
-          type: hook.type,
-          content: hook.content,
-          prompt: hook.prompt,
-        },
-      }),
-    ),
-  );
-
-  return createdHooks;
-}
-
-export async function selectFormulaMemoryHook({
-  formulaIdOrSlug,
-  hookId,
-  userId,
-}: {
-  formulaIdOrSlug: string;
-  hookId: string;
-  userId?: string;
-}) {
-  const formula = await prisma.formula.findFirst({
-    where: {
-      OR: [{ id: formulaIdOrSlug }, { slug: formulaIdOrSlug }],
-    },
-    select: {
-      id: true,
-    },
-  });
-
-  if (!formula) {
-    return null;
-  }
-
-  const hook = await prisma.formulaMemoryHook.findFirst({
-    where: {
-      id: hookId,
-      formulaId: formula.id,
-      OR: [{ userId: null }, ...(userId ? [{ userId }] : [])],
-    },
-  });
-
-  if (!hook) {
-    return null;
-  }
-
-  if (!userId) {
-    return null;
-  }
-
-  await prisma.userFormulaState.update({
+  return prisma.formulaMemoryHook.upsert({
     where: {
       userId_formulaId: {
         userId,
         formulaId: formula.id,
       },
     },
-    data: {
-      preferredMemoryHookId: hook.id,
+    create: {
+      formulaId: formula.id,
+      userId,
+      content,
+    },
+    update: {
+      content,
     },
   });
-
-  return hook;
 }
 
 export async function getFormulaMemoryHookById({
@@ -508,7 +369,7 @@ export async function getFormulaMemoryHookById({
   return prisma.formulaMemoryHook.findFirst({
     where: {
       id: hookId,
-      OR: [{ userId: null }, ...(userId ? [{ userId }] : [])],
+      ...(userId ? { userId } : {}),
     },
     include: {
       formula: {
@@ -519,43 +380,6 @@ export async function getFormulaMemoryHookById({
           domain: true,
         },
       },
-    },
-  });
-}
-
-export async function updateUserFormulaMemoryHook({
-  hookId,
-  userId,
-  content,
-  prompt,
-  type,
-}: {
-  hookId: string;
-  userId: string;
-  content?: string;
-  prompt?: string | null;
-  type?: "analogy" | "scenario" | "visual" | "mnemonic" | "contrast" | "personal";
-}) {
-  const hook = await prisma.formulaMemoryHook.findFirst({
-    where: {
-      id: hookId,
-      userId,
-      source: "user_created",
-    },
-  });
-
-  if (!hook) {
-    return null;
-  }
-
-  return prisma.formulaMemoryHook.update({
-    where: {
-      id: hook.id,
-    },
-    data: {
-      ...(content !== undefined ? { content } : {}),
-      ...(prompt !== undefined ? { prompt } : {}),
-      ...(type !== undefined ? { type } : {}),
     },
   });
 }
@@ -571,7 +395,6 @@ export async function deleteUserFormulaMemoryHook({
     where: {
       id: hookId,
       userId,
-      source: "user_created",
     },
     select: {
       id: true,
@@ -589,61 +412,4 @@ export async function deleteUserFormulaMemoryHook({
   });
 
   return hook;
-}
-
-export async function markMemoryHookUsed({
-  hookId,
-  userId,
-}: {
-  hookId: string;
-  userId?: string;
-}) {
-  const hook = await getFormulaMemoryHookById({
-    hookId,
-    userId,
-  });
-
-  if (!hook) {
-    return null;
-  }
-
-  return prisma.formulaMemoryHook.update({
-    where: {
-      id: hook.id,
-    },
-    data: {
-      usedCount: {
-        increment: 1,
-      },
-      lastUsedAt: new Date(),
-    },
-  });
-}
-
-export async function markMemoryHookHelpful({
-  hookId,
-  userId,
-}: {
-  hookId: string;
-  userId?: string;
-}) {
-  const hook = await getFormulaMemoryHookById({
-    hookId,
-    userId,
-  });
-
-  if (!hook) {
-    return null;
-  }
-
-  return prisma.formulaMemoryHook.update({
-    where: {
-      id: hook.id,
-    },
-    data: {
-      helpfulCount: {
-        increment: 1,
-      },
-    },
-  });
 }

@@ -11,7 +11,6 @@ import {
   listWeakFormulaStatesForReview,
   updateUserFormulaState,
 } from "@/server/repositories/review-repository";
-import { recordMemoryHookUsed } from "@/server/services/formula-service";
 import {
   calculateNextReviewState,
   chooseReviewItemType,
@@ -191,19 +190,9 @@ export async function getReviewHint({
     throw new Error("Formula not found");
   }
 
-  const hook =
-    state.preferredMemoryHook &&
-    (state.preferredMemoryHook.userId === userId ||
-      state.preferredMemoryHook.userId === null)
-      ? state.preferredMemoryHook
-      : state.formula.memoryHooks[0];
+  const hook = state.formula.memoryHooks[0];
 
   if (hook) {
-    await recordMemoryHookUsed({
-      hookId: hook.id,
-      userId,
-    });
-
     return {
       formulaId,
       content: hook.content,

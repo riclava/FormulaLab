@@ -75,7 +75,7 @@ function buildReturnLink({
     case "memory-hooks":
       return {
         href: "/memory-hooks",
-        label: "回到记忆钩子",
+        label: "回到提示整理",
       };
     case "custom":
       return {
@@ -131,7 +131,6 @@ export default async function FormulaDetailPage({
           entryPoint: parseEntryPoint(from),
           mode,
         })}
-        selectableHooks
       />
     </PhaseShell>
   );

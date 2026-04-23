@@ -1,5 +1,4 @@
 import type { FormulaRelationDetail } from "@/types/formula";
-import type { MemoryHookType } from "@/types/memory-hook";
 
 export type ContentAssistDraftStatus = "draft" | "approved";
 
@@ -16,12 +15,6 @@ export type ContentAssistRelationDraft = {
   toTitle: string;
   relationType: FormulaRelationDetail["relationType"];
   note: string;
-};
-
-export type ContentAssistMemoryHookDraft = {
-  type: MemoryHookType;
-  content: string;
-  prompt: string;
 };
 
 export type ContentAssistVariableDraft = {
@@ -57,7 +50,6 @@ export type ContentAssistDraft = {
   };
   reviewItems: ContentAssistReviewItemDraft[];
   relationCandidates: ContentAssistRelationDraft[];
-  memoryHookCandidates: ContentAssistMemoryHookDraft[];
 };
 
 export type ContentAssistWorkspaceItem = {

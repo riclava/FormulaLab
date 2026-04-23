@@ -23,7 +23,6 @@ export type MemoryHookActivity = {
   content: string;
   source: "created" | "used";
   timestamp: string;
-  helpfulCount: number;
 };
 
 export type SummaryStats = {
@@ -70,8 +69,7 @@ export type SummaryStats = {
       | "next_day_return_rate"
       | "again_hard_recovery_rate"
       | "weak_formula_click_rate"
-      | "memory_hook_creation_rate"
-      | "hint_helpful_rate";
+      | "memory_hook_creation_rate";
     label: string;
     value: number | null;
     description: string;
