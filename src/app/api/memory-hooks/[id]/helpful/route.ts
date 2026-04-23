@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { getCurrentLearner } from "@/server/auth/current-learner";
+import { withAuthenticatedApi } from "@/server/auth/current-learner";
 import { recordMemoryHookHelpful } from "@/server/services/formula-service";
 
 export async function POST(
@@ -8,22 +8,23 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
-  const current = await getCurrentLearner();
-  const hook = await recordMemoryHookHelpful({
-    hookId: id,
-    userId: current.learner.id,
-  });
+  return withAuthenticatedApi(async (current) => {
+    const hook = await recordMemoryHookHelpful({
+      hookId: id,
+      userId: current.learner.id,
+    });
 
-  if (!hook) {
-    return NextResponse.json(
-      {
-        error: "Memory hook not found",
-      },
-      { status: 404 },
-    );
-  }
+    if (!hook) {
+      return NextResponse.json(
+        {
+          error: "Memory hook not found",
+        },
+        { status: 404 },
+      );
+    }
 
-  return NextResponse.json({
-    data: hook,
+    return NextResponse.json({
+      data: hook,
+    });
   });
 }

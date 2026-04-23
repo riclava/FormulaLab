@@ -36,7 +36,7 @@ export function WeakFormulaList({
   if (formulas.length === 0) {
     return (
       <div className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
-        今天这轮复习里还没有明显需要立刻补弱的公式。
+        当前没有待补弱公式。
       </div>
     );
   }

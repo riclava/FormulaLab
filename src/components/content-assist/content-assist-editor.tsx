@@ -169,7 +169,7 @@ export function ContentAssistEditor({
           <LatexRenderer expression={formula.expressionLatex} />
         </div>
         <p className="mt-3 max-w-3xl text-sm leading-6 text-muted-foreground">
-          这是内部内容辅助页。这里生成的是候选草稿，不会直接进入正式内容，必须经过人工编辑和审核。
+          内部草稿页。内容需人工编辑和审核。
         </p>
 
         <div className="mt-4 flex flex-wrap gap-2">

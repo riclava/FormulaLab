@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { withAuthenticatedApi } from "@/server/auth/current-learner";
 import { getFormulaDetail } from "@/server/services/formula-service";
 
 export async function GET(
@@ -7,18 +8,20 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
-  const formula = await getFormulaDetail(id);
+  return withAuthenticatedApi(async () => {
+    const formula = await getFormulaDetail(id);
 
-  if (!formula) {
-    return NextResponse.json(
-      {
-        error: "Formula not found",
-      },
-      { status: 404 },
-    );
-  }
+    if (!formula) {
+      return NextResponse.json(
+        {
+          error: "Formula not found",
+        },
+        { status: 404 },
+      );
+    }
 
-  return NextResponse.json({
-    data: formula,
+    return NextResponse.json({
+      data: formula,
+    });
   });
 }

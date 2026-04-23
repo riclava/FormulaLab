@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { getCurrentLearner } from "@/server/auth/current-learner";
+import { withAuthenticatedApi } from "@/server/auth/current-learner";
 import { recordStatsEvents } from "@/server/services/stats-service";
 
 export async function POST(request: Request) {
@@ -31,15 +31,16 @@ export async function POST(request: Request) {
     type: "weak_formula_impression" | "weak_formula_opened";
   }>;
 
-  const current = await getCurrentLearner();
-  await recordStatsEvents({
-    userId: current.learner.id,
-    events: validEvents,
-  });
+  return withAuthenticatedApi(async (current) => {
+    await recordStatsEvents({
+      userId: current.learner.id,
+      events: validEvents,
+    });
 
-  return NextResponse.json({
-    data: {
-      recorded: validEvents.length,
-    },
+    return NextResponse.json({
+      data: {
+        recorded: validEvents.length,
+      },
+    });
   });
 }

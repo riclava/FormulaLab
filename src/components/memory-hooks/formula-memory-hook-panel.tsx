@@ -163,7 +163,7 @@ export function FormulaMemoryHookPanel({
         setDraftContent("");
         setDraftPrompt("");
         setDraftType("personal");
-        setMessage("个人联想已保存。");
+        setMessage("已保存。");
         setError(null);
 
         if (selectableHooks) {
@@ -193,7 +193,7 @@ export function FormulaMemoryHookPanel({
 
     syncHook(payload.data);
     setSelectedHookId(payload.data.id);
-    setMessage("这条联想会优先作为后续提示。");
+    setMessage("已设为默认提示。");
     setError(null);
   }
 
@@ -231,9 +231,9 @@ export function FormulaMemoryHookPanel({
         );
         setEditingHookId(null);
         setEditContent("");
-        setEditPrompt("");
+       setEditPrompt("");
         setEditType("personal");
-        setMessage("AI 候选已转成你的个人联想。");
+        setMessage("已保存到个人联想。");
         setError(null);
 
         if (selectableHooks) {
@@ -273,7 +273,7 @@ export function FormulaMemoryHookPanel({
         setEditContent("");
         setEditPrompt("");
         setEditType("personal");
-        setMessage("个人联想已更新。");
+        setMessage("已更新。");
         setError(null);
       } catch (updateError) {
         setError(
@@ -302,7 +302,7 @@ export function FormulaMemoryHookPanel({
         if (selectedHookId === hookId) {
           setSelectedHookId(null);
         }
-        setMessage("个人联想已删除。");
+        setMessage("已删除。");
         setError(null);
       } catch (deleteError) {
         setError(
@@ -332,7 +332,7 @@ export function FormulaMemoryHookPanel({
 
         setHooks((previous) => mergeHooks(previous, payload.data!));
         setDismissedSuggestionIds([]);
-        setMessage("AI 候选已刷新。");
+        setMessage("候选已刷新。");
         setError(null);
       } catch (suggestError) {
         setError(
@@ -358,9 +358,9 @@ export function FormulaMemoryHookPanel({
       {selectableHooks ? (
         <section className="rounded-lg border bg-muted/20 p-4">
           <div className="flex flex-wrap items-start justify-between gap-3">
-            <h4 className="font-medium">复习里的提示预览</h4>
+            <h4 className="font-medium">默认提示</h4>
             <Badge variant={preferredHook ? "secondary" : "outline"}>
-              {preferredHook ? "已设置默认提示" : "还没设置默认提示"}
+              {preferredHook ? "已设置" : "未设置"}
             </Badge>
           </div>
           <div className="mt-4 rounded-lg border bg-background p-4">
@@ -379,7 +379,7 @@ export function FormulaMemoryHookPanel({
               </div>
             ) : (
               <p className="text-sm leading-6 text-muted-foreground">
-                先选一条，再设为默认提示。
+                还没有默认提示。
               </p>
             )}
           </div>
@@ -391,7 +391,7 @@ export function FormulaMemoryHookPanel({
           <div className="mb-3 flex items-center justify-between gap-3">
             <div className="flex items-center gap-2">
               <Lightbulb data-icon="inline-start" />
-              <h4 className="font-medium">你的个人联想</h4>
+              <h4 className="font-medium">个人联想</h4>
             </div>
             <Badge variant="secondary">{personalHooks.length} 条</Badge>
           </div>
@@ -526,7 +526,7 @@ export function FormulaMemoryHookPanel({
               ))
             ) : (
               <div className="rounded-lg border border-dashed p-3 text-sm text-muted-foreground">
-                还没有个人联想。
+                暂无个人联想。
               </div>
             )}
           </div>
@@ -536,7 +536,7 @@ export function FormulaMemoryHookPanel({
           <div className="mb-3 flex items-center justify-between gap-3">
             <div className="flex items-center gap-2">
               <Sparkles data-icon="inline-start" />
-              <h4 className="font-medium">AI 推荐候选</h4>
+              <h4 className="font-medium">AI 候选</h4>
             </div>
             <Button
               type="button"
@@ -570,7 +570,7 @@ export function FormulaMemoryHookPanel({
               ))
             ) : (
               <div className="rounded-lg border border-dashed p-3 text-sm text-muted-foreground">
-                当前没有可用候选。
+                暂无候选。
               </div>
             )}
           </div>
@@ -580,7 +580,7 @@ export function FormulaMemoryHookPanel({
       <section className="rounded-lg border bg-background p-4">
         <div className="mb-4 flex items-center gap-2">
           <Pencil data-icon="inline-start" />
-          <h4 className="font-medium">创建个人联想</h4>
+          <h4 className="font-medium">新建联想</h4>
         </div>
 
         <div className="mb-4 grid gap-2">
@@ -592,7 +592,7 @@ export function FormulaMemoryHookPanel({
                 className="rounded-lg border px-3 py-2 text-left text-xs text-muted-foreground transition-colors hover:bg-muted"
                 onClick={() => {
                   setDraftPrompt(prompt);
-                  setMessage(`已选中提示：${prompt}`);
+                  setMessage(`已选择：${prompt}`);
                 }}
               >
                 {prompt}
@@ -620,7 +620,7 @@ export function FormulaMemoryHookPanel({
               id={`memory-hook-create-prompt-${formulaIdOrSlug}`}
               value={draftPrompt}
               onChange={(event) => setDraftPrompt(event.target.value)}
-              placeholder="可留空，或写成“它通常出现在什么题型里？”"
+              placeholder="可留空"
             />
           </div>
           <div className="flex flex-wrap gap-3">
@@ -630,7 +630,7 @@ export function FormulaMemoryHookPanel({
               onClick={createPersonalHook}
             >
               <Lightbulb data-icon="inline-start" />
-              保存为下次提示
+              保存
             </Button>
           </div>
         </div>
@@ -674,11 +674,11 @@ function AiSuggestionCard({
         <div className="grid gap-3">
           <MemoryHookTypeField value={type} onChange={setType} />
           <Textarea value={content} onChange={(event) => setContent(event.target.value)} />
-          <Input
-            value={prompt}
-            onChange={(event) => setPrompt(event.target.value)}
-            placeholder="这条候选想帮助你从哪个角度想起公式？"
-          />
+            <Input
+              value={prompt}
+              onChange={(event) => setPrompt(event.target.value)}
+              placeholder="提示来源"
+            />
           <div className="flex flex-wrap gap-2">
             <Button
               type="button"

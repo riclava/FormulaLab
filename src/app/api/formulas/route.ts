@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { getCurrentLearner } from "@/server/auth/current-learner";
+import { withAuthenticatedApi } from "@/server/auth/current-learner";
 import {
   addCustomFormula,
   getFormulaCatalog,
@@ -13,22 +13,24 @@ export async function GET(request: Request) {
   const query = url.searchParams.get("q") ?? undefined;
   const difficultyValue = url.searchParams.get("difficulty");
   const difficulty = difficultyValue ? Number(difficultyValue) : undefined;
-  const current = await getCurrentLearner();
-  const catalog = await getFormulaCatalog({
-    domain,
-    tag,
-    difficulty:
-      typeof difficulty === "number" && Number.isFinite(difficulty)
-        ? difficulty
-        : undefined,
-    query,
-    userId: current.learner.id,
-  });
-  return NextResponse.json({
-    data: catalog.formulas,
-    meta: {
-      filters: catalog.filters,
-    },
+  return withAuthenticatedApi(async (current) => {
+    const catalog = await getFormulaCatalog({
+      domain,
+      tag,
+      difficulty:
+        typeof difficulty === "number" && Number.isFinite(difficulty)
+          ? difficulty
+          : undefined,
+      query,
+      userId: current.learner.id,
+    });
+
+    return NextResponse.json({
+      data: catalog.formulas,
+      meta: {
+        filters: catalog.filters,
+      },
+    });
   });
 }
 
@@ -60,41 +62,45 @@ export async function POST(request: Request) {
     );
   }
 
-  const current = await getCurrentLearner();
+  const title = payload.title.trim();
+  const expressionLatex = payload.expressionLatex.trim();
+  const oneLineUse = payload.oneLineUse.trim();
 
-  try {
-    const formula = await addCustomFormula({
-      userId: current.learner.id,
-      input: {
-        title: payload.title,
-        expressionLatex: payload.expressionLatex,
-        domain: payload.domain,
-        subdomain: payload.subdomain,
-        oneLineUse: payload.oneLineUse,
-        meaning: payload.meaning,
-        derivation: payload.derivation,
-        useConditions: payload.useConditions,
-        nonUseConditions: payload.nonUseConditions,
-        antiPatterns: payload.antiPatterns,
-        typicalProblems: payload.typicalProblems,
-        examples: payload.examples,
-        difficulty: payload.difficulty,
-        tags: payload.tags,
-        memoryHook: payload.memoryHook,
-      },
-    });
-    return NextResponse.json(
-      {
-        data: formula,
-      },
-      { status: 201 },
-    );
-  } catch (error) {
-    return NextResponse.json(
-      {
-        error: error instanceof Error ? error.message : "Failed to create formula",
-      },
-      { status: 400 },
-    );
-  }
+  return withAuthenticatedApi(async (current) => {
+    try {
+      const formula = await addCustomFormula({
+        userId: current.learner.id,
+        input: {
+          title,
+          expressionLatex,
+          domain: payload.domain,
+          subdomain: payload.subdomain,
+          oneLineUse,
+          meaning: payload.meaning,
+          derivation: payload.derivation,
+          useConditions: payload.useConditions,
+          nonUseConditions: payload.nonUseConditions,
+          antiPatterns: payload.antiPatterns,
+          typicalProblems: payload.typicalProblems,
+          examples: payload.examples,
+          difficulty: payload.difficulty,
+          tags: payload.tags,
+          memoryHook: payload.memoryHook,
+        },
+      });
+      return NextResponse.json(
+        {
+          data: formula,
+        },
+        { status: 201 },
+      );
+    } catch (error) {
+      return NextResponse.json(
+        {
+          error: error instanceof Error ? error.message : "Failed to create formula",
+        },
+        { status: 400 },
+      );
+    }
+  });
 }

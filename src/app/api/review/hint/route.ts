@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { getCurrentLearner } from "@/server/auth/current-learner";
+import { withAuthenticatedApi } from "@/server/auth/current-learner";
 import { getReviewHint } from "@/server/services/review-service";
 
 export async function POST(request: Request) {
@@ -17,12 +17,16 @@ export async function POST(request: Request) {
     );
   }
 
-  const current = await getCurrentLearner();
-  const hint = await getReviewHint({
-    userId: current.learner.id,
-    formulaId: payload.formulaId,
-  });
-  return NextResponse.json({
-    data: hint,
+  const formulaId = payload.formulaId;
+
+  return withAuthenticatedApi(async (current) => {
+    const hint = await getReviewHint({
+      userId: current.learner.id,
+      formulaId,
+    });
+
+    return NextResponse.json({
+      data: hint,
+    });
   });
 }

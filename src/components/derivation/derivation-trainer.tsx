@@ -21,7 +21,7 @@ export function DerivationTrainer({
   if (!formula) {
     return (
       <section className="rounded-lg border border-dashed bg-background p-6 text-sm text-muted-foreground">
-        当前还没有带推导过程的公式。可以先去自定义公式里补一条推导，或在内容辅助里完善内置内容。
+        当前没有可练的推导内容。
       </section>
     );
   }
@@ -52,7 +52,7 @@ export function DerivationTrainer({
       <div className="rounded-lg border bg-muted/40 p-4">
         <div className="mb-2 flex items-center gap-2">
           <BookOpen data-icon="inline-start" />
-          <h3 className="font-medium">先自己说出推导线索</h3>
+          <h3 className="font-medium">先自己回忆推导</h3>
         </div>
       </div>
 

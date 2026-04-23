@@ -69,7 +69,7 @@ export function CustomFormulaForm() {
       }}
     >
       <div className="grid gap-2">
-        <h2 className="text-xl font-semibold">创建自定义公式</h2>
+        <h2 className="text-xl font-semibold">新建公式</h2>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
@@ -109,7 +109,7 @@ export function CustomFormulaForm() {
       {error ? <p className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">{error}</p> : null}
       {createdSlug ? (
         <div className="flex flex-wrap items-center gap-3 rounded-lg border bg-muted/40 p-3 text-sm">
-          <span>已创建并加入训练队列。</span>
+          <span>已创建。</span>
           <Button
             type="button"
             size="sm"

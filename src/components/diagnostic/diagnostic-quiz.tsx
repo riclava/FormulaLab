@@ -297,8 +297,8 @@ function DiagnosticResultView({ result }: { result: DiagnosticResult }) {
         <Badge className="w-fit">诊断完成</Badge>
         <h2 className="text-2xl font-semibold">
           {weakCount > 0
-            ? `发现 ${weakCount} 个优先补弱公式`
-            : "这组诊断表现不错"}
+            ? `发现 ${weakCount} 条待补弱公式`
+            : "当前没有明显弱项"}
         </h2>
       </div>
 

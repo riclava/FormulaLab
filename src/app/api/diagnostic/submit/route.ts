@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { getCurrentLearner } from "@/server/auth/current-learner";
+import { withAuthenticatedApi } from "@/server/auth/current-learner";
 import { submitDiagnostic } from "@/server/services/diagnostic-service";
 import type {
   DiagnosticAssessment,
@@ -26,13 +26,15 @@ export async function POST(request: Request) {
     );
   }
 
-  const current = await getCurrentLearner();
-  const result = await submitDiagnostic({
-    userId: current.learner.id,
-    submission: payload as DiagnosticSubmission,
-  });
-  return NextResponse.json({
-    data: result,
+  return withAuthenticatedApi(async (current) => {
+    const result = await submitDiagnostic({
+      userId: current.learner.id,
+      submission: payload as DiagnosticSubmission,
+    });
+
+    return NextResponse.json({
+      data: result,
+    });
   });
 }
 

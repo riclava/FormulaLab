@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { getCurrentLearner } from "@/server/auth/current-learner";
+import { withAuthenticatedApi } from "@/server/auth/current-learner";
 import {
   removeMemoryHook,
   updateMemoryHook,
@@ -27,27 +27,28 @@ export async function PATCH(
     );
   }
 
-  const current = await getCurrentLearner();
+  return withAuthenticatedApi(async (current) => {
+    const hook = await updateMemoryHook({
+      hookId: id,
+      userId: current.learner.id,
+      content: payload.content?.trim(),
+      prompt:
+        payload.prompt === undefined ? undefined : payload.prompt?.trim() || null,
+      type: payload.type,
+    });
 
-  const hook = await updateMemoryHook({
-    hookId: id,
-    userId: current.learner.id,
-    content: payload.content?.trim(),
-    prompt: payload.prompt === undefined ? undefined : payload.prompt?.trim() || null,
-    type: payload.type,
-  });
+    if (!hook) {
+      return NextResponse.json(
+        {
+          error: "Memory hook not found",
+        },
+        { status: 404 },
+      );
+    }
 
-  if (!hook) {
-    return NextResponse.json(
-      {
-        error: "Memory hook not found",
-      },
-      { status: 404 },
-    );
-  }
-
-  return NextResponse.json({
-    data: hook,
+    return NextResponse.json({
+      data: hook,
+    });
   });
 }
 
@@ -56,24 +57,25 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
-  const current = await getCurrentLearner();
-  const result = await removeMemoryHook({
-    hookId: id,
-    userId: current.learner.id,
-  });
+  return withAuthenticatedApi(async (current) => {
+    const result = await removeMemoryHook({
+      hookId: id,
+      userId: current.learner.id,
+    });
 
-  if (!result) {
-    return NextResponse.json(
-      {
-        error: "Memory hook not found",
+    if (!result) {
+      return NextResponse.json(
+        {
+          error: "Memory hook not found",
+        },
+        { status: 404 },
+      );
+    }
+
+    return NextResponse.json({
+      data: {
+        id: result.id,
       },
-      { status: 404 },
-    );
-  }
-
-  return NextResponse.json({
-    data: {
-      id: result.id,
-    },
+    });
   });
 }

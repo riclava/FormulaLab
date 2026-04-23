@@ -14,7 +14,7 @@ import { PhaseShell } from "@/components/app/phase-shell";
 import { WeakFormulaList } from "@/components/summary/weak-formula-list";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
-import { getCurrentLearner } from "@/server/auth/current-learner";
+import { requireCurrentLearner } from "@/server/auth/current-learner";
 import {
   getProgressStats,
   getSummaryStats,
@@ -24,7 +24,7 @@ import type { ProgressStats, SummaryStats } from "@/types/stats";
 export const dynamic = "force-dynamic";
 
 export default async function SummaryPage() {
-  const current = await getCurrentLearner();
+  const current = await requireCurrentLearner();
   const [summary, progress] = await Promise.all([
     getSummaryStats({
       userId: current.learner.id,
@@ -41,7 +41,7 @@ export default async function SummaryPage() {
     <PhaseShell
       activePath="/summary"
       eyebrow="复习总结"
-      title="先判断这一轮有没有收住，再决定下一步。"
+      title="结果与下一步"
     >
       <div className="grid gap-6">
         <section className="rounded-lg border bg-background p-6 shadow-sm">
@@ -358,20 +358,20 @@ function ProgressCard({
 function buildPrimaryAction(summary: SummaryStats, progress: ProgressStats) {
   if (!summary.latestSession) {
     if (progress.latestDiagnosticAt) {
-      return {
-        href: progress.dueNowCount > 0 ? "/review" : "/formulas",
-        label: progress.dueNowCount > 0 ? "回到今日复习" : "先浏览公式",
-        badge: progress.dueNowCount > 0 ? "回到主任务" : "先热启动一下",
-        priority: progress.dueNowCount > 0 ? "high" : "medium",
-      } as const;
-    }
-
     return {
-      href: "/diagnostic",
-      label: "开始 1 分钟诊断",
-      badge: "先完成冷启动",
-      priority: "high",
+      href: progress.dueNowCount > 0 ? "/review" : "/formulas",
+      label: progress.dueNowCount > 0 ? "回到今日复习" : "浏览公式",
+      badge: progress.dueNowCount > 0 ? "待完成" : "可开始",
+      priority: progress.dueNowCount > 0 ? "high" : "medium",
     } as const;
+  }
+
+  return {
+    href: "/diagnostic",
+    label: "开始诊断",
+    badge: "未诊断",
+    priority: "high",
+  } as const;
   }
 
   const difficultCount =
@@ -380,8 +380,8 @@ function buildPrimaryAction(summary: SummaryStats, progress: ProgressStats) {
   if (summary.immediateWeakFormulas.length > 0 && difficultCount > 0) {
     return {
       href: "/review?mode=weak",
-      label: "先补弱 1 条",
-      badge: "先把最弱点补回来",
+      label: "补弱项",
+      badge: "优先处理",
       priority: "high",
     } as const;
   }
@@ -390,7 +390,7 @@ function buildPrimaryAction(summary: SummaryStats, progress: ProgressStats) {
     return {
       href: "/review",
       label: "继续今日复习",
-      badge: "主任务还在继续",
+      badge: "继续",
       priority: "medium",
     } as const;
   }
@@ -398,8 +398,8 @@ function buildPrimaryAction(summary: SummaryStats, progress: ProgressStats) {
   if (summary.memoryHookActivity.some((activity) => activity.source === "created")) {
     return {
       href: "/memory-hooks",
-      label: "确认默认提示",
-      badge: "顺手收一个尾",
+      label: "检查默认提示",
+      badge: "待确认",
       priority: "medium",
     } as const;
   }
@@ -407,7 +407,7 @@ function buildPrimaryAction(summary: SummaryStats, progress: ProgressStats) {
   return {
     href: "/review",
     label: "回到今日复习",
-    badge: "今天可以停在这里",
+    badge: "已完成",
     priority: "low",
   } as const;
 }
@@ -415,7 +415,7 @@ function buildPrimaryAction(summary: SummaryStats, progress: ProgressStats) {
 function buildCompletionMessage(summary: SummaryStats, progress: ProgressStats) {
   if (!summary.latestSession) {
     return {
-      title: "这里先看结果，再安排下一步。",
+      title: "还没有最近一次复习。",
     };
   }
 
@@ -424,18 +424,18 @@ function buildCompletionMessage(summary: SummaryStats, progress: ProgressStats) 
 
   if (summary.immediateWeakFormulas.length > 0 && difficultCount > 0) {
     return {
-      title: "这一轮主任务完成了，但还有几条值得立刻补弱。",
+      title: "本轮有弱项待处理。",
     };
   }
 
   if (progress.dueNowCount > 0) {
     return {
-      title: "这一轮收住了，还可以继续今天的主队列。",
+      title: "今天还有到期内容。",
     };
   }
 
   return {
-    title: "今天这一轮已经收尾，可以安心停在这里。",
+    title: "今天这轮已完成。",
   };
 }
 

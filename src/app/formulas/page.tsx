@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { getCurrentLearner } from "@/server/auth/current-learner";
+import { requireCurrentLearner } from "@/server/auth/current-learner";
 import { getFormulaCatalog } from "@/server/services/formula-service";
 import type { FormulaSummary } from "@/types/formula";
 
@@ -40,7 +40,7 @@ export default async function FormulasPage({
   const domain = params.domain?.trim() || undefined;
   const tag = params.tag?.trim() || undefined;
   const difficulty = parseDifficulty(params.difficulty);
-  const current = await getCurrentLearner();
+  const current = await requireCurrentLearner();
   const catalog = await getFormulaCatalog({
     query: query || undefined,
     domain,
@@ -60,7 +60,7 @@ export default async function FormulasPage({
     <PhaseShell
       activePath="/formulas"
       eyebrow="公式列表"
-      title="先快速定位，再回到训练。"
+      title="查找与浏览公式"
     >
       <section className="grid gap-5 rounded-lg border bg-background p-6 shadow-sm">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">

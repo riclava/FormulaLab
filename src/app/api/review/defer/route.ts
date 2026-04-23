@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { getCurrentLearner } from "@/server/auth/current-learner";
+import { withAuthenticatedApi } from "@/server/auth/current-learner";
 import { deferReview } from "@/server/services/review-service";
 
 export async function POST(request: Request) {
@@ -18,13 +18,17 @@ export async function POST(request: Request) {
     );
   }
 
-  const current = await getCurrentLearner();
-  const result = await deferReview({
-    userId: current.learner.id,
-    formulaId: payload.formulaId,
-    minutes: payload.minutes,
-  });
-  return NextResponse.json({
-    data: result,
+  const formulaId = payload.formulaId;
+
+  return withAuthenticatedApi(async (current) => {
+    const result = await deferReview({
+      userId: current.learner.id,
+      formulaId,
+      minutes: payload.minutes,
+    });
+
+    return NextResponse.json({
+      data: result,
+    });
   });
 }

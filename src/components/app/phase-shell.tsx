@@ -96,7 +96,7 @@ export function PhaseShell({
                   FormulaLab
                 </span>
                 <span className="mt-1 block text-xs text-muted-foreground">
-                  每天练一点，公式真的记住
+                  今日复习优先
                 </span>
               </span>
             </Link>

@@ -2,12 +2,11 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, LogOut, Mail, ShieldCheck } from "lucide-react";
+import { Loader2, LogOut, ShieldCheck } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { MagicLinkSignInForm } from "@/components/account/magic-link-sign-in-form";
 import { authClient } from "@/lib/auth-client";
 
 export function AccountPanel({
@@ -18,10 +17,8 @@ export function AccountPanel({
   authenticated: boolean;
   email: string | null;
   returnTo: string;
-}) {
+  }) {
   const router = useRouter();
-  const [emailInput, setEmailInput] = useState(email ?? "");
-  const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -33,7 +30,7 @@ export function AccountPanel({
             <Badge variant="secondary" className="w-fit">
               已连接账号
             </Badge>
-            <h2 className="text-xl font-semibold">你的学习进度已经可以跨设备继续。</h2>
+            <h2 className="text-xl font-semibold">已登录</h2>
             <p className="text-sm leading-6 text-muted-foreground">
               当前登录邮箱：<span className="font-medium text-foreground">{email}</span>
             </p>
@@ -42,9 +39,9 @@ export function AccountPanel({
           <div className="rounded-lg border bg-muted/30 p-4 text-sm leading-6 text-muted-foreground">
             <div className="mb-2 flex items-center gap-2 font-medium text-foreground">
               <ShieldCheck data-icon="inline-start" />
-              账号已生效
+              当前状态
             </div>
-            登录后，当前设备上的训练记录会优先绑定到这个账号，之后在新设备登录也能继续同一条复习链路。
+            当前训练记录已绑定到这个账号。
           </div>
 
           {error ? (
@@ -61,7 +58,6 @@ export function AccountPanel({
               onClick={() =>
                 startTransition(async () => {
                   setError(null);
-                  setMessage(null);
 
                   const result = await authClient.signOut();
 
@@ -85,60 +81,15 @@ export function AccountPanel({
           </div>
         </div>
       ) : (
-        <form
-          className="grid gap-4"
-          onSubmit={(event) => {
-            event.preventDefault();
-            startTransition(async () => {
-              setError(null);
-              setMessage(null);
-
-              const normalizedEmail = emailInput.trim();
-
-              if (!normalizedEmail) {
-                setError("请输入邮箱地址");
-                return;
-              }
-
-              const result = await authClient.signIn.magicLink({
-                email: normalizedEmail,
-                callbackURL: returnTo,
-                newUserCallbackURL: returnTo,
-              });
-
-              if (result?.error) {
-                setError(result.error.message ?? "发送登录链接失败");
-                return;
-              }
-
-              setMessage(
-                "登录链接已发送。开发环境未配置邮件服务时，可以在服务端日志里查看 magic link。",
-              );
-            });
-          }}
-        >
+        <div className="grid gap-4">
           <div className="grid gap-2">
             <Badge variant="secondary" className="w-fit">
-              保存学习进度
+              登录
             </Badge>
-            <h2 className="text-xl font-semibold">先练习，再决定什么时候绑定账号。</h2>
+            <h2 className="text-xl font-semibold">输入邮箱继续</h2>
             <p className="text-sm leading-6 text-muted-foreground">
-              输入邮箱后，我们会发送一封 magic link。登录完成后，当前设备上的学习记录会自动绑定到账户。
+              使用 magic link 登录。登录后进入训练页。
             </p>
-          </div>
-
-          <div className="grid gap-2">
-            <Label htmlFor="account-email">邮箱地址</Label>
-            <Input
-              id="account-email"
-              type="email"
-              name="email"
-              autoComplete="email"
-              value={emailInput}
-              onChange={(event) => setEmailInput(event.target.value)}
-              placeholder="you@example.com"
-              required
-            />
           </div>
 
           {error ? (
@@ -147,23 +98,8 @@ export function AccountPanel({
             </div>
           ) : null}
 
-          {message ? (
-            <div className="rounded-lg border border-emerald-200 bg-emerald-50/80 px-4 py-3 text-sm text-emerald-950">
-              {message}
-            </div>
-          ) : null}
-
-          <div className="flex flex-wrap gap-3">
-            <Button type="submit" disabled={isPending}>
-              {isPending ? (
-                <Loader2 data-icon="inline-start" className="animate-spin" />
-              ) : (
-                <Mail data-icon="inline-start" />
-              )}
-              发送登录链接
-            </Button>
-          </div>
-        </form>
+          <MagicLinkSignInForm callbackURL={returnTo} />
+        </div>
       )}
     </section>
   );

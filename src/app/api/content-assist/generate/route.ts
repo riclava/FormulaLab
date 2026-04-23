@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { withAuthenticatedApi } from "@/server/auth/current-learner";
 import { regenerateContentAssistDraft } from "@/server/services/content-assist-service";
 
 export async function POST(request: Request) {
@@ -16,20 +17,24 @@ export async function POST(request: Request) {
     );
   }
 
-  const result = await regenerateContentAssistDraft({
-    formulaIdOrSlug: payload.formulaIdOrSlug.trim(),
-  });
+  const formulaIdOrSlug = payload.formulaIdOrSlug.trim();
 
-  if (!result) {
-    return NextResponse.json(
-      {
-        error: "Formula not found",
-      },
-      { status: 404 },
-    );
-  }
+  return withAuthenticatedApi(async () => {
+    const result = await regenerateContentAssistDraft({
+      formulaIdOrSlug,
+    });
 
-  return NextResponse.json({
-    data: result.draft,
+    if (!result) {
+      return NextResponse.json(
+        {
+          error: "Formula not found",
+        },
+        { status: 404 },
+      );
+    }
+
+    return NextResponse.json({
+      data: result.draft,
+    });
   });
 }

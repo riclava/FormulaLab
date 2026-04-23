@@ -1,12 +1,15 @@
 import { PhaseShell } from "@/components/app/phase-shell";
 import { CustomFormulaForm } from "@/components/formula/custom-formula-form";
+import { requireCurrentLearner } from "@/server/auth/current-learner";
 
-export default function NewFormulaPage() {
+export default async function NewFormulaPage() {
+  await requireCurrentLearner();
+
   return (
     <PhaseShell
       activePath="/formulas"
       eyebrow="自定义公式"
-      title="把自己的公式放进同一套训练闭环。"
+      title="添加自定义公式"
     >
       <CustomFormulaForm />
     </PhaseShell>

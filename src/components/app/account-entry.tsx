@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Cloud, UserRound } from "lucide-react";
+import { LogIn, UserRound } from "lucide-react";
 
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -35,8 +35,8 @@ export async function AccountEntry({ returnTo }: { returnTo: string }) {
         variant: "outline",
       })}
     >
-      <Cloud data-icon="inline-start" />
-      保存进度
+      <LogIn data-icon="inline-start" />
+      登录
     </Link>
   );
 }

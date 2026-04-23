@@ -1,9 +1,9 @@
-import { cookies, headers } from "next/headers";
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
+import { NextResponse } from "next/server";
 
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db/prisma";
-import { ANONYMOUS_SESSION_COOKIE } from "@/server/auth/session-cookies";
-import { getOrCreateAnonymousUser } from "@/server/services/anonymous-user-service";
 
 type AuthSession = Awaited<ReturnType<typeof auth.api.getSession>>;
 
@@ -31,56 +31,65 @@ export async function getCurrentAuthSession() {
   });
 }
 
-export async function getCurrentLearner(): Promise<CurrentLearner> {
-  const [cookieStore, authSession] = await Promise.all([
-    cookies(),
-    getCurrentAuthSession(),
-  ]);
-  const anonymousSessionId = cookieStore.get(ANONYMOUS_SESSION_COOKIE)?.value;
+export async function getCurrentLearner(): Promise<CurrentLearner | null> {
+  const authSession = await getCurrentAuthSession();
 
-  if (authSession?.user?.id) {
-    const authUser = await ensureLearnerForAuthUser({
-      authUserId: authSession.user.id,
-      anonymousSessionId,
-    });
-
-    return {
-      learner: {
-        id: authUser.learner!.id,
-        email: authUser.learner!.email,
-        displayName: authUser.learner!.displayName,
-      },
-      anonymous: false,
-      authSession,
-      authUser: {
-        id: authUser.id,
-        email: authUser.email,
-        name: authUser.name,
-        learnerId: authUser.learnerId,
-      },
-    };
+  if (!authSession?.user?.id) {
+    return null;
   }
 
-  const anonymousUser = await getOrCreateAnonymousUser(anonymousSessionId);
+  const authUser = await ensureLearnerForAuthUser({
+    authUserId: authSession.user.id,
+  });
 
   return {
     learner: {
-      id: anonymousUser.user.id,
-      email: anonymousUser.user.email,
-      displayName: anonymousUser.user.displayName,
+      id: authUser.learner!.id,
+      email: authUser.learner!.email,
+      displayName: authUser.learner!.displayName,
     },
-    anonymous: true,
-    authSession: null,
-    authUser: null,
+    anonymous: false,
+    authSession,
+    authUser: {
+      id: authUser.id,
+      email: authUser.email,
+      name: authUser.name,
+      learnerId: authUser.learnerId,
+    },
   };
+}
+
+export async function requireCurrentLearner() {
+  const current = await getCurrentLearner();
+
+  if (!current) {
+    redirect("/");
+  }
+
+  return current;
+}
+
+export async function withAuthenticatedApi<T>(
+  handler: (current: CurrentLearner) => Promise<T> | T,
+) {
+  const current = await getCurrentLearner();
+
+  if (!current) {
+    return NextResponse.json(
+      {
+        error: "请先登录后再继续。",
+      },
+      { status: 401 },
+    );
+  }
+
+  return handler(current);
 }
 
 async function ensureLearnerForAuthUser({
   authUserId,
-  anonymousSessionId,
 }: {
   authUserId: string;
-  anonymousSessionId?: string;
 }) {
   return prisma.$transaction(async (tx) => {
     const authUser = await tx.authUser.findUnique({
@@ -101,26 +110,7 @@ async function ensureLearnerForAuthUser({
     }
 
     const learnerDisplayName = authUser.name.trim() || authUser.email.split("@")[0];
-    const anonymousLearner = anonymousSessionId
-      ? await tx.user.findUnique({
-          where: {
-            anonymousSessionId,
-          },
-        })
-      : null;
-
     const candidateLearner =
-      (anonymousLearner &&
-      !(await tx.authUser.findFirst({
-        where: {
-          learnerId: anonymousLearner.id,
-        },
-        select: {
-          id: true,
-        },
-      }))
-        ? anonymousLearner
-        : null) ??
       (await tx.user.findFirst({
         where: {
           email: authUser.email,

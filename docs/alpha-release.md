@@ -11,8 +11,8 @@ V1 Alpha 用来验证 FormulaLab 的核心学习闭环是否成立：
 ## 已包含能力
 
 - Review First 主入口。
-- 匿名学习会话。
-- 邮箱 magic link 账号绑定与跨设备继续。
+- 邮箱 magic link 登录。
+- 登录后跨设备继续同一条训练链路。
 - 概率统计 Alpha 公式集。
 - 首次诊断和初始薄弱公式识别。
 - 今日复习队列。
@@ -47,7 +47,7 @@ V1 Alpha 用来验证 FormulaLab 的核心学习闭环是否成立：
 
 ```bash
 npm run test:all
-E2E_BASE_URL=http://localhost:3000 npm run test:e2e
+E2E_BASE_URL=http://localhost:3000 E2E_AUTH_COOKIE="better-auth.session_token=..." npm run test:e2e
 ```
 
 ## Alpha 反馈重点

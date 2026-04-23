@@ -1,10 +1,12 @@
 import { DerivationTrainer } from "@/components/derivation/derivation-trainer";
 import { PhaseShell } from "@/components/app/phase-shell";
+import { requireCurrentLearner } from "@/server/auth/current-learner";
 import { getFormulaDetail, getFormulaSummaries } from "@/server/services/formula-service";
 
 export const dynamic = "force-dynamic";
 
 export default async function DerivationPage() {
+  await requireCurrentLearner();
   const summaries = await getFormulaSummaries();
   const details = (
     await Promise.all(summaries.map((formula) => getFormulaDetail(formula.slug)))
@@ -16,7 +18,7 @@ export default async function DerivationPage() {
     <PhaseShell
       activePath="/derivation"
       eyebrow="推导训练"
-      title="会背之后，再练为什么成立。"
+      title="推导练习"
     >
       <DerivationTrainer formulas={details} />
     </PhaseShell>

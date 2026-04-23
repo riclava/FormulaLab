@@ -5,7 +5,7 @@ import {
   FormulaDetailView,
   type FocusSection,
 } from "@/components/formula/formula-detail-view";
-import { getCurrentLearner } from "@/server/auth/current-learner";
+import { requireCurrentLearner } from "@/server/auth/current-learner";
 import {
   getFormulaDetail,
   getFormulaMemoryHooks,
@@ -100,7 +100,7 @@ export default async function FormulaDetailPage({
 }) {
   const { id } = await params;
   const { focus, from, mode } = await searchParams;
-  const current = await getCurrentLearner();
+  const current = await requireCurrentLearner();
   const [formula, relations, hooks] = await Promise.all([
     getFormulaDetail(id),
     getFormulaRelationDetails(id),
@@ -118,7 +118,7 @@ export default async function FormulaDetailPage({
     <PhaseShell
       activePath="/formulas"
       eyebrow="公式详情"
-      title="先确认边界，再决定回到哪条训练链路。"
+      title="查看公式详情"
     >
       <FormulaDetailView
         formulaIdOrSlug={id}

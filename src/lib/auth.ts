@@ -5,6 +5,8 @@ import { magicLink } from "better-auth/plugins";
 
 import { prisma } from "@/lib/db/prisma";
 
+const THIRTY_DAYS_IN_SECONDS = 60 * 60 * 24 * 30;
+
 function getAuthBaseUrl() {
   return (
     process.env.BETTER_AUTH_URL ??
@@ -100,6 +102,7 @@ export const auth = betterAuth({
   },
   session: {
     modelName: "AuthSession",
+    expiresIn: THIRTY_DAYS_IN_SECONDS,
   },
   account: {
     modelName: "AuthAccount",

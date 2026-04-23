@@ -4,12 +4,14 @@ import { PhaseShell } from "@/components/app/phase-shell";
 import { ReviewSession } from "@/components/review/review-session";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { requireCurrentLearner } from "@/server/auth/current-learner";
 
 export default async function ReviewPage({
   searchParams,
 }: {
   searchParams: Promise<{ mode?: string }>;
 }) {
+  await requireCurrentLearner();
   const params = await searchParams;
   const mode = params.mode === "weak" ? "weak" : "today";
 
@@ -19,8 +21,8 @@ export default async function ReviewPage({
       eyebrow={mode === "weak" ? "错题重练" : "今日复习"}
       title={
         mode === "weak"
-          ? "先把卡住的公式补回来。"
-          : "从第一题开始，完成今天的公式复习。"
+          ? "重练薄弱公式"
+          : "开始今日复习"
       }
     >
       <section className="flex flex-col gap-4 rounded-lg border bg-background p-4 shadow-sm md:flex-row md:items-center md:justify-between">

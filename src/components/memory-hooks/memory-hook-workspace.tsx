@@ -30,7 +30,7 @@ export function MemoryHookWorkspace({
   if (!selectedFormula) {
     return (
       <section className="rounded-lg border bg-background p-6 shadow-sm">
-        <p className="text-sm text-muted-foreground">当前还没有可管理的公式内容。</p>
+        <p className="text-sm text-muted-foreground">当前没有可管理的公式。</p>
       </section>
     );
   }
@@ -72,9 +72,9 @@ export function MemoryHookWorkspace({
       <div className="flex min-w-0 flex-col gap-6">
         <section className="rounded-lg border bg-background p-5 shadow-sm">
           <div className="flex flex-wrap items-center gap-2">
-            <Badge>第 1 步 选公式</Badge>
-            <Badge variant="outline">第 2 步 选或写联想</Badge>
-            <Badge variant="outline">第 3 步 设为默认提示</Badge>
+            <Badge>选公式</Badge>
+            <Badge variant="outline">选或写联想</Badge>
+            <Badge variant="outline">设默认提示</Badge>
           </div>
           <div className="mt-4 flex flex-wrap items-center gap-2">
             <Badge variant="secondary">{selectedFormula.domain}</Badge>
@@ -86,7 +86,7 @@ export function MemoryHookWorkspace({
           <div className="mt-4 flex flex-wrap gap-3 text-sm text-muted-foreground">
             <span className={buttonVariants({ variant: "outline", size: "sm" })}>
               <Lightbulb data-icon="inline-start" />
-              当前已有 {selectedFormula.memoryHookCount} 条联想记录
+              {selectedFormula.memoryHookCount} 条联想
             </span>
           </div>
         </section>

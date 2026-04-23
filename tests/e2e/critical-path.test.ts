@@ -2,13 +2,16 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 const baseUrl = process.env.E2E_BASE_URL;
-const maybeIt = baseUrl ? it : it.skip;
+const authCookie = process.env.E2E_AUTH_COOKIE;
+const maybeIt = baseUrl && authCookie ? it : it.skip;
 
 describe("critical learning path", () => {
   maybeIt("walks diagnostic to review summary through API smoke checks", async () => {
     assert.ok(baseUrl);
+    assert.ok(authCookie);
 
     const cookieJar = new Map<string, string>();
+    cookieJar.set(authCookie.split("=")[0], authCookie);
 
     const request = async (path: string, init?: RequestInit) => {
       const response = await fetch(new URL(path, baseUrl), {

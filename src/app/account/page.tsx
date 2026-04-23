@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, Cloud, Database, ShieldCheck } from "lucide-react";
+import { ArrowRight, Database, Mail, ShieldCheck } from "lucide-react";
 
 import { PhaseShell } from "@/components/app/phase-shell";
 import { AccountPanel } from "@/components/account/account-panel";
@@ -23,18 +23,18 @@ export default async function AccountPage({
   const params = await searchParams;
   const current = await getCurrentLearner();
   const returnTo = sanitizeReturnTo(params.returnTo);
-  const signedInEmail = current.authSession?.user.email ?? null;
+  const signedInEmail = current?.authSession?.user.email ?? null;
 
   return (
     <PhaseShell
       activePath="/account"
-      eyebrow="账号与同步"
-      title="先把训练记录稳稳留住，再考虑跨设备继续。"
-      description="FormulaLab 继续保留匿名起步。只有当你想保存进度、跨设备继续或者长期积累复习记录时，才需要绑定账号。"
+      eyebrow="账号"
+      title="登录与会话"
+      description="管理当前登录状态。"
     >
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
         <AccountPanel
-          authenticated={!current.anonymous}
+          authenticated={Boolean(current)}
           email={signedInEmail}
           returnTo={returnTo}
         />
@@ -45,38 +45,46 @@ export default async function AccountPage({
               当前状态
             </Badge>
             <h2 className="text-xl font-semibold">
-              {current.anonymous ? "当前是匿名学习" : "当前账号已经接管学习进度"}
+              {current ? "已登录" : "未登录"}
             </h2>
             <p className="text-sm leading-6 text-muted-foreground">
-              当前 learner ID：
-              <span className="font-mono text-foreground">{current.learner.id}</span>
+              {current ? (
+                <>
+                  当前 learner ID：
+                  <span className="font-mono text-foreground">{current.learner.id}</span>
+                </>
+              ) : (
+                "登录后会创建对应的 learner 记录。"
+              )}
             </p>
           </div>
 
           <div className="grid gap-3">
             <StatusCard
-              icon={Cloud}
-              title="匿名起步"
-              description="第一次进入时，系统会先给当前设备分配匿名学习身份，不打断诊断和今日复习。"
+              icon={Mail}
+              title="邮箱登录"
+              description="使用 magic link 登录。"
             />
             <StatusCard
               icon={Database}
-              title="进度绑定"
-              description="登录成功后，当前设备上的 learner 会优先绑定到账户，后续 API 和页面统一读取这一条学习记录。"
+              title="训练记录"
+              description="诊断、复习和记忆钩子都会写到当前账号。"
             />
             <StatusCard
               icon={ShieldCheck}
-              title="后续扩展"
-              description="后面如果加 Google 登录、运营权限或跨端同步，都会落在 auth 层，不会把 review 业务逻辑搅乱。"
+              title="跨设备继续"
+              description="同一邮箱可在新设备继续。"
             />
           </div>
 
           <div className="flex flex-wrap gap-3">
-            <Link href={returnTo} className={buttonVariants({ variant: "outline" })}>
-              回到当前训练
-            </Link>
-            <Link href="/review" className={buttonVariants()}>
-              去今日复习
+            {current ? (
+              <Link href={returnTo} className={buttonVariants({ variant: "outline" })}>
+                回到当前训练
+              </Link>
+            ) : null}
+            <Link href={current ? "/review" : "/#login"} className={buttonVariants()}>
+              {current ? "去今日复习" : "回首页登录"}
               <ArrowRight data-icon="inline-end" />
             </Link>
           </div>
@@ -91,7 +99,7 @@ function StatusCard({
   title,
   description,
 }: {
-  icon: typeof Cloud;
+  icon: typeof Mail;
   title: string;
   description: string;
 }) {

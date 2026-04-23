@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { getCurrentLearner } from "@/server/auth/current-learner";
+import { withAuthenticatedApi } from "@/server/auth/current-learner";
 import { submitReview } from "@/server/services/review-service";
 import type { ReviewSubmitInput } from "@/types/review";
 
@@ -12,13 +12,15 @@ export async function POST(request: Request) {
     return NextResponse.json({ error }, { status: 400 });
   }
 
-  const current = await getCurrentLearner();
-  const result = await submitReview({
-    userId: current.learner.id,
-    input: payload as ReviewSubmitInput,
-  });
-  return NextResponse.json({
-    data: result,
+  return withAuthenticatedApi(async (current) => {
+    const result = await submitReview({
+      userId: current.learner.id,
+      input: payload as ReviewSubmitInput,
+    });
+
+    return NextResponse.json({
+      data: result,
+    });
   });
 }
 

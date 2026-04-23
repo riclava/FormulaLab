@@ -5,11 +5,13 @@ import { PhaseShell } from "@/components/app/phase-shell";
 import { ContentAssistWorkspace } from "@/components/content-assist/content-assist-workspace";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
+import { requireCurrentLearner } from "@/server/auth/current-learner";
 import { listContentAssistWorkspace } from "@/server/services/content-assist-service";
 
 export const dynamic = "force-dynamic";
 
 export default async function ContentAssistPage() {
+  await requireCurrentLearner();
   const items = await listContentAssistWorkspace();
   const approvedCount = items.filter((item) => item.draftStatus === "approved").length;
   const draftCount = items.filter((item) => item.draftStatus === "draft").length;
@@ -18,7 +20,7 @@ export default async function ContentAssistPage() {
     <PhaseShell
       activePath=""
       eyebrow="Phase 8 / Internal AI Content Assist"
-      title="这是内部内容辅助工作台，不是用户侧 AI 入口。"
+      title="内容辅助工作台"
     >
       <section className="grid gap-4 rounded-lg border bg-background p-6 shadow-sm md:grid-cols-[minmax(0,1fr)_auto]">
         <div className="grid gap-3">

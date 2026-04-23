@@ -4,13 +4,13 @@ import { ArrowRight, BookOpenCheck } from "lucide-react";
 import { PhaseShell } from "@/components/app/phase-shell";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
-import { getCurrentLearner } from "@/server/auth/current-learner";
+import { requireCurrentLearner } from "@/server/auth/current-learner";
 import { getFormulaCatalog } from "@/server/services/formula-service";
 
 export const dynamic = "force-dynamic";
 
 export default async function PathsPage() {
-  const current = await getCurrentLearner();
+  const current = await requireCurrentLearner();
   const catalog = await getFormulaCatalog({
     userId: current.learner.id,
   });
@@ -20,7 +20,7 @@ export default async function PathsPage() {
     <PhaseShell
       activePath="/paths"
       eyebrow="学习路径"
-      title="按一组内容推进，不把公式孤立地背。"
+      title="按知识域查看内容"
     >
       <div className="grid gap-5">
         {groups.map((group) => (
