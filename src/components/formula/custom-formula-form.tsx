@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import type { ComponentProps } from "react";
 import { useState, useTransition } from "react";
-import { ArrowRight, Loader2, Plus } from "lucide-react";
+import { ArrowRight, Loader2, Plus, Upload } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,6 +18,8 @@ export function CustomFormulaForm() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [createdSlug, setCreatedSlug] = useState<string | null>(null);
+  const [importText, setImportText] = useState("");
+  const [importMessage, setImportMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   return (
@@ -70,6 +72,9 @@ export function CustomFormulaForm() {
     >
       <div className="grid gap-2">
         <h2 className="text-xl font-semibold">新建公式</h2>
+        <p className="text-sm leading-6 text-muted-foreground">
+          单条创建适合先把一条公式纳入训练；批量导入适合从笔记或表格整理好的 JSON。
+        </p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
@@ -130,8 +135,156 @@ export function CustomFormulaForm() {
           去今日复习
         </Button>
       </div>
+
+      <details className="rounded-lg border bg-muted/20 p-4">
+        <summary className="cursor-pointer text-sm font-medium">
+          批量导入 JSON
+        </summary>
+        <div className="mt-4 grid gap-4">
+          <p className="text-sm leading-6 text-muted-foreground">
+            支持单个对象或数组。至少需要 title、expressionLatex、oneLineUse；其余字段可选。
+          </p>
+          <Textarea
+            value={importText}
+            onChange={(event) => setImportText(event.target.value)}
+            placeholder={`[
+  {
+    "title": "泊松分布概率质量函数",
+    "expressionLatex": "P(X=k)=\\\\frac{\\\\lambda^k e^{-\\\\lambda}}{k!}",
+    "domain": "概率统计",
+    "oneLineUse": "单位区间内稀有事件次数的概率。",
+    "memoryHook": "看到固定时间内发生几次，先想泊松。"
+  }
+]`}
+            className="min-h-56 font-mono text-sm"
+          />
+          {importMessage ? (
+            <p className="rounded-lg border border-emerald-200 bg-emerald-50/70 p-3 text-sm text-emerald-900">
+              {importMessage}
+            </p>
+          ) : null}
+          <div className="flex flex-wrap gap-3">
+            <Button
+              type="button"
+              variant="secondary"
+              disabled={isPending || !importText.trim()}
+              onClick={() => importFormulas(importText)}
+            >
+              {isPending ? (
+                <Loader2 data-icon="inline-start" className="animate-spin" />
+              ) : (
+                <Upload data-icon="inline-start" />
+              )}
+              导入公式
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => {
+                setImportText("");
+                setImportMessage(null);
+              }}
+            >
+              清空
+            </Button>
+          </div>
+        </div>
+      </details>
     </form>
   );
+
+  function importFormulas(rawText: string) {
+    setError(null);
+    setImportMessage(null);
+
+    let formulas: unknown[];
+    try {
+      const parsed = JSON.parse(rawText) as unknown;
+      formulas = Array.isArray(parsed) ? parsed : [parsed];
+    } catch {
+      setError("JSON 解析失败，请检查格式。");
+      return;
+    }
+
+    if (formulas.length === 0) {
+      setError("导入内容不能为空。");
+      return;
+    }
+
+    startTransition(async () => {
+      try {
+        let importedCount = 0;
+        for (const formula of formulas) {
+          const response = await fetch("/api/formulas", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(normalizeImportedFormula(formula)),
+          });
+          const payload = (await response.json()) as {
+            data?: CreatedFormula;
+            error?: string;
+          };
+
+          if (!response.ok || !payload.data) {
+            throw new Error(payload.error ?? "导入公式失败");
+          }
+
+          importedCount += 1;
+          setCreatedSlug(payload.data.slug);
+        }
+
+        setImportMessage(`已导入 ${importedCount} 条公式。`);
+        setImportText("");
+        router.refresh();
+      } catch (importError) {
+        setError(
+          importError instanceof Error ? importError.message : "导入公式失败",
+        );
+      }
+    });
+  }
+}
+
+function normalizeImportedFormula(value: unknown) {
+  if (!value || typeof value !== "object") {
+    throw new Error("每条公式必须是一个对象。");
+  }
+
+  const record = value as Record<string, unknown>;
+  return {
+    title: importedString(record.title),
+    expressionLatex: importedString(record.expressionLatex),
+    domain: importedString(record.domain),
+    subdomain: importedString(record.subdomain),
+    oneLineUse: importedString(record.oneLineUse),
+    meaning: importedString(record.meaning),
+    derivation: importedString(record.derivation),
+    difficulty: Number(importedString(record.difficulty) || 2),
+    tags: importedList(record.tags),
+    useConditions: importedList(record.useConditions),
+    nonUseConditions: importedList(record.nonUseConditions),
+    antiPatterns: importedList(record.antiPatterns),
+    typicalProblems: importedList(record.typicalProblems),
+    examples: importedList(record.examples),
+    memoryHook: importedString(record.memoryHook),
+  };
+}
+
+function importedString(value: unknown) {
+  return typeof value === "string" || typeof value === "number" ? String(value).trim() : "";
+}
+
+function importedList(value: unknown) {
+  if (Array.isArray(value)) {
+    return value.map((item) => importedString(item)).filter(Boolean);
+  }
+
+  return importedString(value)
+    .split(/[\n,]/)
+    .map((item) => item.trim())
+    .filter(Boolean);
 }
 
 function Field({

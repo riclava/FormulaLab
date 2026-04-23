@@ -68,7 +68,7 @@ export default async function AccountPage({
             <StatusCard
               icon={Database}
               title="训练记录"
-              description="诊断、复习和记忆钩子都会写到当前账号。"
+              description="诊断、复习和个人提示都会写到当前账号。"
             />
             <StatusCard
               icon={ShieldCheck}

@@ -17,7 +17,7 @@ export default async function ReviewPage({
 
   return (
     <PhaseShell
-      activePath="/review"
+      activePath={mode === "weak" ? "/review?mode=weak" : "/review"}
       eyebrow={mode === "weak" ? "错题重练" : "今日复习"}
       title={
         mode === "weak"

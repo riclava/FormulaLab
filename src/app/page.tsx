@@ -35,7 +35,7 @@ const loopSteps = [
     icon: Orbit,
   },
   {
-    title: "记忆钩子",
+    title: "恢复线索",
     description: "把提示写成自己的话。",
     icon: Lightbulb,
   },
@@ -108,7 +108,7 @@ export default async function Home() {
                   登录后开始今天的复习
                 </h1>
                 <p className="max-w-xl text-sm leading-6 text-slate-700 md:text-base">
-                  进入诊断、复习、补弱和记忆钩子。
+                  进入诊断、复习、补弱，并把提示逐步写成自己的话。
                 </p>
               </div>
               <div className="flex flex-wrap gap-3">

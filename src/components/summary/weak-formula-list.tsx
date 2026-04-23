@@ -124,7 +124,7 @@ function actionLabelForWeakPoint(weakPoint: WeakFormulaStat["weakPoint"]) {
     case "boundary":
       return "先看适用边界";
     case "concept":
-      return "先补一个提示";
+      return "补一句自己的提醒";
     case "retention":
       return "先恢复记忆线索";
     case "application":

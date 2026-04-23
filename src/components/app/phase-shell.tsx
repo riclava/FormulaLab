@@ -4,21 +4,24 @@ import {
   Brain,
   ChartNoAxesColumn,
   ClipboardCheck,
+  Compass,
   FlaskConical,
-  Lightbulb,
-  Route,
+  Orbit,
+  Target,
 } from "lucide-react";
 
 import { AccountEntry } from "@/components/app/account-entry";
+import { ToolsMenu } from "@/components/app/phase-tools-menu";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-type NavItem = {
+export type NavItem = {
   href: string;
   label: string;
+  description: string;
   icon: typeof Brain;
-  priority: "primary" | "secondary";
+  group: "primary" | "tool";
 };
 
 const navItems: NavItem[] = [
@@ -26,43 +29,50 @@ const navItems: NavItem[] = [
     href: "/review",
     label: "今日复习",
     icon: ClipboardCheck,
-    priority: "primary",
+    description: "直接开始今天该练的内容。",
+    group: "primary",
+  },
+  {
+    href: "/review?mode=weak",
+    label: "补弱",
+    icon: Target,
+    description: "把 Again 和 Hard 的公式拉回来。",
+    group: "primary",
+  },
+  {
+    href: "/formulas",
+    label: "公式库",
+    icon: BookOpen,
+    description: "查找、回看和按主题浏览公式。",
+    group: "primary",
   },
   {
     href: "/diagnostic",
-    label: "首次诊断",
+    label: "诊断校准",
     icon: Brain,
-    priority: "primary",
+    description: "重新判断薄弱点并更新起始队列。",
+    group: "tool",
   },
   {
     href: "/summary",
     label: "复习总结",
     icon: ChartNoAxesColumn,
-    priority: "primary",
-  },
-  {
-    href: "/formulas",
-    label: "公式列表",
-    icon: BookOpen,
-    priority: "primary",
-  },
-  {
-    href: "/memory-hooks",
-    label: "记忆钩子",
-    icon: Lightbulb,
-    priority: "secondary",
+    description: "查看最近一轮训练结果和下一步建议。",
+    group: "tool",
   },
   {
     href: "/paths",
     label: "学习路径",
-    icon: Route,
-    priority: "secondary",
+    icon: Compass,
+    description: "按知识域查看内容集和当前进度。",
+    group: "tool",
   },
   {
     href: "/derivation",
     label: "推导训练",
-    icon: Brain,
-    priority: "secondary",
+    icon: Orbit,
+    description: "在推导维度上强化公式理解。",
+    group: "tool",
   },
 ];
 
@@ -79,8 +89,10 @@ export function PhaseShell({
   description?: string;
   children: React.ReactNode;
 }) {
-  const primaryItems = navItems.filter((item) => item.priority === "primary");
-  const secondaryItems = navItems.filter((item) => item.priority === "secondary");
+  const primaryItems = navItems.filter((item) => item.group === "primary");
+  const toolItems = navItems.filter((item) => item.group === "tool");
+  const activeTool = toolItems.find((item) => item.href === activePath);
+  const ActiveToolIcon = activeTool?.icon;
 
   return (
     <main className="min-h-svh bg-background">
@@ -102,8 +114,8 @@ export function PhaseShell({
             </Link>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
-            <nav aria-label="核心页面" className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap items-center gap-2 md:justify-end">
+            <nav aria-label="主任务" className="flex flex-wrap gap-2">
               {primaryItems.map((item) => {
                 const Icon = item.icon;
 
@@ -124,6 +136,18 @@ export function PhaseShell({
               })}
             </nav>
 
+            <ToolsMenu active={Boolean(activeTool)}>
+              {toolItems.map((item) => (
+                <PhaseLink
+                  key={item.href}
+                  href={item.href}
+                  active={activeTool?.href === item.href}
+                  icon={item.icon}
+                  label={item.label}
+                  description={item.description}
+                />
+              ))}
+            </ToolsMenu>
             <AccountEntry returnTo={activePath} />
           </div>
         </div>
@@ -145,17 +169,17 @@ export function PhaseShell({
             ) : null}
           </div>
 
-          <nav aria-label="辅助页面" className="flex flex-wrap gap-2">
-            {secondaryItems.map((item) => (
-              <PhaseLink
-                key={item.href}
-                href={item.href}
-                active={activePath === item.href}
-                icon={item.icon}
-                label={item.label}
-              />
-            ))}
-          </nav>
+          {activeTool ? (
+            <div className="flex max-w-sm items-start gap-3 rounded-lg border bg-muted/20 px-4 py-3 text-sm">
+              <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-md bg-background text-muted-foreground">
+                {ActiveToolIcon ? <ActiveToolIcon data-icon="inline-start" /> : null}
+              </span>
+              <div className="min-w-0">
+                <p className="font-medium">{activeTool.label}</p>
+                <p className="mt-1 text-muted-foreground">{activeTool.description}</p>
+              </div>
+            </div>
+          ) : null}
         </div>
 
         <div className="flex min-w-0 flex-col gap-8">{children}</div>
@@ -169,23 +193,28 @@ function PhaseLink({
   active,
   icon: Icon,
   label,
+  description,
 }: {
   href: string;
   active: boolean;
   icon: typeof Brain;
   label: string;
+  description: string;
 }) {
   return (
     <Link
       href={href}
       aria-current={active ? "page" : undefined}
       className={cn(
-        "flex items-center gap-2 rounded-md px-2 py-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
-        active && "bg-muted text-foreground",
+        "grid gap-1 rounded-md px-3 py-2 text-left transition-colors hover:bg-muted/70 hover:text-foreground",
+        active ? "bg-muted text-foreground" : "text-muted-foreground",
       )}
     >
-      <Icon data-icon="inline-start" />
-      {label}
+      <span className="flex items-center gap-2 font-medium text-foreground">
+        <Icon data-icon="inline-start" />
+        {label}
+      </span>
+      <span className="text-xs leading-5 text-muted-foreground">{description}</span>
     </Link>
   );
 }

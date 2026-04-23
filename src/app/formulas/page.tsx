@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, Clock3, Filter, Search, Sparkles } from "lucide-react";
+import { ArrowRight, Clock3, Filter, Plus, Search, Sparkles } from "lucide-react";
 
 import { PhaseShell } from "@/components/app/phase-shell";
 import { LatexRenderer } from "@/components/formula/latex-renderer";
@@ -97,6 +97,13 @@ export default async function FormulasPage({
               <Link href="/review" className={buttonVariants({ size: "sm" })}>
                 回到今日复习
                 <ArrowRight data-icon="inline-end" />
+              </Link>
+              <Link
+                href="/formulas/new"
+                className={buttonVariants({ size: "sm", variant: "secondary" })}
+              >
+                <Plus data-icon="inline-start" />
+                添加/导入公式
               </Link>
               {resultSummary.weakCount > 0 ? (
                 <Link

@@ -398,8 +398,8 @@ function buildPrimaryAction(summary: SummaryStats, progress: ProgressStats) {
   if (summary.memoryHookActivity.some((activity) => activity.source === "created")) {
     return {
       href: "/memory-hooks",
-      label: "检查默认提示",
-      badge: "待确认",
+      label: "整理这轮写下的提示",
+      badge: "可整理",
       priority: "medium",
     } as const;
   }

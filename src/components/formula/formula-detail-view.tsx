@@ -374,13 +374,13 @@ const quickActionsByEntryPoint: Record<
   review: [
     { section: "anti-patterns", label: "先看常见误用" },
     { section: "use", label: "确认适用条件" },
-    { section: "hooks", label: "存一条记忆钩子" },
+    { section: "hooks", label: "补一句自己的提醒" },
     { section: "relations", label: "看关联公式" },
   ],
   summary: [
     { section: "anti-patterns", label: "先补最弱点" },
     { section: "use", label: "确认适用条件" },
-    { section: "hooks", label: "补一个提示" },
+    { section: "hooks", label: "恢复记忆线索" },
     { section: "examples", label: "回看例题" },
   ],
   paths: [
@@ -393,10 +393,10 @@ const quickActionsByEntryPoint: Record<
     { section: "derivation", label: "继续推导过程" },
     { section: "use", label: "确认适用条件" },
     { section: "relations", label: "看前后关联" },
-    { section: "hooks", label: "补一个提示" },
+    { section: "hooks", label: "补一句自己的提醒" },
   ],
   "memory-hooks": [
-    { section: "hooks", label: "管理记忆钩子" },
+    { section: "hooks", label: "整理这条公式的提示" },
     { section: "anti-patterns", label: "把误用变提醒" },
     { section: "examples", label: "绑定题面画面" },
     { section: "use", label: "再看适用条件" },
@@ -404,13 +404,13 @@ const quickActionsByEntryPoint: Record<
   custom: [
     { section: "use", label: "确认适用条件" },
     { section: "examples", label: "看例题" },
-    { section: "hooks", label: "设置默认提示" },
+    { section: "hooks", label: "先留一句提醒" },
     { section: "derivation", label: "补推导" },
   ],
   formulas: [
     { section: "use", label: "看适用条件" },
     { section: "anti-patterns", label: "看常见误用" },
-    { section: "hooks", label: "建立记忆钩子" },
+    { section: "hooks", label: "写一句自己的提醒" },
     { section: "relations", label: "看关联公式" },
   ],
 };
@@ -428,7 +428,7 @@ function entryPointLabel(
     case "derivation":
       return "你正在做推导强化";
     case "memory-hooks":
-      return "你正在整理提示与联想";
+      return "你正在集中整理本轮提示";
     case "custom":
       return "这是你自己加入训练的公式";
     case "formulas":

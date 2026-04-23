@@ -16,6 +16,7 @@ import { ReviewRemediationSheet } from "@/components/review/review-remediation-s
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import type {
   ReviewHint,
@@ -60,6 +61,10 @@ export function ReviewSession({ mode = "today" }: { mode?: ReviewMode }) {
     easy: 0,
   });
   const [helpfulHookIds, setHelpfulHookIds] = useState<string[]>([]);
+  const [hookDraftByFormulaId, setHookDraftByFormulaId] = useState<Record<string, string>>(
+    {},
+  );
+  const [savedHookFormulaIds, setSavedHookFormulaIds] = useState<string[]>([]);
   const [pendingRemediation, setPendingRemediation] = useState<{
     item: ReviewQueueItem;
     grade: Extract<ReviewGrade, "again" | "hard">;
@@ -203,35 +208,48 @@ export function ReviewSession({ mode = "today" }: { mode?: ReviewMode }) {
           </div>
 
           {cardState === "hint" && currentHint ? (
-            <div className="rounded-lg border bg-muted/40 p-4">
-              <div className="mb-2 flex items-center gap-2">
-                <Lightbulb data-icon="inline-start" />
-                <h3 className="font-medium">一点提示</h3>
-              </div>
-              <p className="text-sm leading-6">{currentHint.content}</p>
-              {currentHint.memoryHookUsedId ? (
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant={
-                      helpfulHookIds.includes(currentHint.memoryHookUsedId)
-                        ? "secondary"
-                        : "outline"
-                    }
-                    disabled={
-                      isPending ||
-                      helpfulHookIds.includes(currentHint.memoryHookUsedId)
-                    }
-                    onClick={() => markHintHelpful(currentHint.memoryHookUsedId!)}
-                  >
-                    {helpfulHookIds.includes(currentHint.memoryHookUsedId)
-                      ? "已记录有帮助"
-                      : "这个提示有帮助"}
-                  </Button>
+            <>
+              <div className="rounded-lg border bg-muted/40 p-4">
+                <div className="mb-2 flex items-center gap-2">
+                  <Lightbulb data-icon="inline-start" />
+                  <h3 className="font-medium">一点提示</h3>
                 </div>
-              ) : null}
-            </div>
+                <p className="text-sm leading-6">{currentHint.content}</p>
+                {currentHint.memoryHookUsedId ? (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant={
+                        helpfulHookIds.includes(currentHint.memoryHookUsedId)
+                          ? "secondary"
+                          : "outline"
+                      }
+                      disabled={
+                        isPending ||
+                        helpfulHookIds.includes(currentHint.memoryHookUsedId)
+                      }
+                      onClick={() => markHintHelpful(currentHint.memoryHookUsedId!)}
+                    >
+                      {helpfulHookIds.includes(currentHint.memoryHookUsedId)
+                        ? "已记录有帮助"
+                        : "这个提示有帮助"}
+                    </Button>
+                  </div>
+                ) : null}
+              </div>
+
+              <ReviewMemoryHookCapture
+                item={currentItem}
+                currentHint={currentHint}
+                draft={hookDraftByFormulaId[currentItem.formulaId] ?? ""}
+                saved={savedHookFormulaIds.includes(currentItem.formulaId)}
+                disabled={isPending}
+                context="hint"
+                onDraftChange={(value) => updateHookDraft(currentItem.formulaId, value)}
+                onSave={() => saveReviewMemoryHook(currentItem, "hint")}
+              />
+            </>
           ) : null}
 
           {cardState === "answer" ? (
@@ -293,37 +311,54 @@ export function ReviewSession({ mode = "today" }: { mode?: ReviewMode }) {
               </Button>
             </div>
           ) : activeRemediation ? (
-            <div className="flex flex-col gap-4 rounded-lg border border-amber-200 bg-amber-50/70 p-4">
-              <div className="space-y-1">
-                <p className="text-sm font-medium text-amber-950">
-                  已记录为
-                  {" "}
-                  {activeRemediation.grade === "again" ? "想不起来" : "有点吃力"}。
-                </p>
-                <p className="text-sm text-amber-900/90">先看一眼，再继续。</p>
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-4 rounded-lg border border-amber-200 bg-amber-50/70 p-4">
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-amber-950">
+                    已记录为
+                    {" "}
+                    {activeRemediation.grade === "again" ? "想不起来" : "有点吃力"}。
+                  </p>
+                  <p className="text-sm text-amber-900/90">
+                    先把这次卡住的点写成一句下次能用的提醒，再看详情或继续。
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-3">
+                  <Button type="button" onClick={() => setIsRemediationOpen(true)}>
+                    <BookOpen data-icon="inline-start" />
+                    先看这一条
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => deferAfterRemediation(currentItem)}
+                    disabled={isPending}
+                  >
+                    <RotateCcw data-icon="inline-start" />
+                    加入今日稍后再练
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={continueAfterRemediation}
+                  >
+                    继续下一题
+                  </Button>
+                </div>
               </div>
-              <div className="flex flex-wrap gap-3">
-                <Button type="button" onClick={() => setIsRemediationOpen(true)}>
-                  <BookOpen data-icon="inline-start" />
-                  先看这一条
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => deferAfterRemediation(currentItem)}
-                  disabled={isPending}
-                >
-                  <RotateCcw data-icon="inline-start" />
-                  加入今日稍后再练
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  onClick={continueAfterRemediation}
-                >
-                  继续下一题
-                </Button>
-              </div>
+
+              <ReviewMemoryHookCapture
+                item={currentItem}
+                currentHint={currentHint}
+                draft={hookDraftByFormulaId[currentItem.formulaId] ?? ""}
+                saved={savedHookFormulaIds.includes(currentItem.formulaId)}
+                disabled={isPending}
+                context={activeRemediation.grade}
+                onDraftChange={(value) => updateHookDraft(currentItem.formulaId, value)}
+                onSave={() =>
+                  saveReviewMemoryHook(currentItem, activeRemediation.grade)
+                }
+              />
             </div>
           ) : (
             <div className="grid gap-3 md:grid-cols-4">
@@ -455,6 +490,72 @@ export function ReviewSession({ mode = "today" }: { mode?: ReviewMode }) {
     });
   }
 
+  function updateHookDraft(formulaId: string, value: string) {
+    setHookDraftByFormulaId((previous) => ({
+      ...previous,
+      [formulaId]: value,
+    }));
+  }
+
+  function saveReviewMemoryHook(
+    item: ReviewQueueItem,
+    context: "hint" | "again" | "hard",
+  ) {
+    const content = hookDraftByFormulaId[item.formulaId]?.trim();
+
+    if (!content) {
+      setError("先写一句你下次能看懂的提醒。");
+      return;
+    }
+
+    startTransition(async () => {
+      try {
+        const response = await fetch(
+          `/api/formulas/${item.formula.slug}/memory-hooks`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              content,
+              prompt: memoryHookPromptForContext(context, item),
+              type: "personal",
+            }),
+          },
+        );
+        const payload = (await response.json()) as {
+          data?: { id: string };
+          error?: string;
+        };
+
+        if (!response.ok || !payload.data) {
+          throw new Error(payload.error ?? "提醒保存失败");
+        }
+
+        const selectResponse = await fetch(
+          `/api/formulas/${item.formula.slug}/memory-hooks/${payload.data.id}/select`,
+          {
+            method: "POST",
+          },
+        );
+        const selectPayload = (await selectResponse.json()) as { error?: string };
+
+        if (!selectResponse.ok) {
+          throw new Error(selectPayload.error ?? "默认提示设置失败");
+        }
+
+        setSavedHookFormulaIds((previous) =>
+          previous.includes(item.formulaId) ? previous : [...previous, item.formulaId],
+        );
+        setStatusMessage("已保存为这条公式的默认提示，下次卡住会优先出现。");
+        setError(null);
+      } catch (saveError) {
+        setError(saveError instanceof Error ? saveError.message : "提醒保存失败");
+      }
+    });
+  }
+
   function submitGrade(
     item: ReviewQueueItem,
     grade: "again" | "hard" | "good" | "easy",
@@ -546,6 +647,119 @@ export function ReviewSession({ mode = "today" }: { mode?: ReviewMode }) {
     setIsRemediationOpen(false);
     deferCurrentItem(item);
   }
+}
+
+function ReviewMemoryHookCapture({
+  item,
+  currentHint,
+  draft,
+  saved,
+  disabled,
+  context,
+  onDraftChange,
+  onSave,
+}: {
+  item: ReviewQueueItem;
+  currentHint?: ReviewHint;
+  draft: string;
+  saved: boolean;
+  disabled: boolean;
+  context: "hint" | "again" | "hard";
+  onDraftChange: (value: string) => void;
+  onSave: () => void;
+}) {
+  const fieldId = `review-memory-hook-${item.reviewItemId}-${context}`;
+  const title =
+    context === "hint" ? "把这个提示改成你自己的话" : "写给下次的提醒";
+  const description =
+    context === "hint"
+      ? "如果这条提示有帮助，顺手压成一句你下次卡住时想看到的话。"
+      : "这次卡住的原因最有价值，把它写下来，系统下次会优先拿它做提示。";
+
+  return (
+    <section
+      className={cn(
+        "rounded-lg border p-4",
+        context === "hint"
+          ? "border-emerald-200 bg-emerald-50/60"
+          : "border-amber-200 bg-amber-50/60",
+      )}
+    >
+      <div className="flex flex-col gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <Lightbulb data-icon="inline-start" />
+          <h3 className="font-medium">{title}</h3>
+          {saved ? <Badge variant="secondary">已设为默认提示</Badge> : null}
+        </div>
+        <p className="text-sm leading-6 text-muted-foreground">{description}</p>
+      </div>
+
+      {currentHint ? (
+        <div className="mt-3 rounded-md border bg-background/70 px-3 py-2 text-sm leading-6">
+          <span className="font-medium">刚才的提示：</span>
+          {currentHint.content}
+        </div>
+      ) : null}
+
+      <div className="mt-4 grid gap-2">
+        <label htmlFor={fieldId} className="text-sm font-medium">
+          下次看到这条公式前，先提醒我
+        </label>
+        <Textarea
+          id={fieldId}
+          value={draft}
+          onChange={(event) => onDraftChange(event.target.value)}
+          placeholder={memoryHookPlaceholderForContext(context, item)}
+          disabled={disabled || saved}
+          className="min-h-20 bg-background"
+        />
+      </div>
+
+      <div className="mt-3 flex flex-wrap items-center gap-3">
+        <Button
+          type="button"
+          size="sm"
+          onClick={onSave}
+          disabled={disabled || saved || !draft.trim()}
+        >
+          {saved ? "已保存" : "保存为下次提示"}
+        </Button>
+        <p className="text-xs leading-5 text-muted-foreground">
+          保存后会成为 {item.formula.title} 的默认提示。
+        </p>
+      </div>
+    </section>
+  );
+}
+
+function memoryHookPromptForContext(
+  context: "hint" | "again" | "hard",
+  item: ReviewQueueItem,
+) {
+  if (context === "again") {
+    return `复习时想不起来：${item.prompt}`;
+  }
+
+  if (context === "hard") {
+    return `复习时有点吃力：${item.prompt}`;
+  }
+
+  return `看提示后写下：${item.prompt}`;
+}
+
+function memoryHookPlaceholderForContext(
+  context: "hint" | "again" | "hard",
+  item: ReviewQueueItem,
+) {
+  if (context === "again") {
+    return `例如：看到“${item.formula.title}”先想它在解决什么条件下的问题。`;
+  }
+
+  if (context === "hard") {
+    return "例如：先检查适用条件，再代入变量，别急着套公式。";
+  }
+
+  return "例如：把刚才的提示改写成一句你自己会说的话。";
 }
 
 function EmptyReviewState({
