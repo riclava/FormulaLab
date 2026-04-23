@@ -358,12 +358,7 @@ export function FormulaMemoryHookPanel({
       {selectableHooks ? (
         <section className="rounded-lg border bg-muted/20 p-4">
           <div className="flex flex-wrap items-start justify-between gap-3">
-            <div className="grid gap-1">
-              <h4 className="font-medium">复习里的提示预览</h4>
-              <p className="text-sm leading-6 text-muted-foreground">
-                下次在复习里点击“给我一点提示”时，会优先出现这里设为默认的那条个人联想。
-              </p>
-            </div>
+            <h4 className="font-medium">复习里的提示预览</h4>
             <Badge variant={preferredHook ? "secondary" : "outline"}>
               {preferredHook ? "已设置默认提示" : "还没设置默认提示"}
             </Badge>
@@ -384,7 +379,7 @@ export function FormulaMemoryHookPanel({
               </div>
             ) : (
               <p className="text-sm leading-6 text-muted-foreground">
-                先从下面选一条最像你自己的个人联想，或者新写一条，再把它设为默认提示。
+                先选一条，再设为默认提示。
               </p>
             )}
           </div>
@@ -531,7 +526,7 @@ export function FormulaMemoryHookPanel({
               ))
             ) : (
               <div className="rounded-lg border border-dashed p-3 text-sm text-muted-foreground">
-                还没有个人联想。你可以从 AI 候选里保存一条，或直接写下自己的记忆钩子。
+                还没有个人联想。
               </div>
             )}
           </div>
@@ -575,7 +570,7 @@ export function FormulaMemoryHookPanel({
               ))
             ) : (
               <div className="rounded-lg border border-dashed p-3 text-sm text-muted-foreground">
-                当前没有可用候选。可以点“刷新候选”，或直接写下自己的个人联想。
+                当前没有可用候选。
               </div>
             )}
           </div>
@@ -589,9 +584,6 @@ export function FormulaMemoryHookPanel({
         </div>
 
         <div className="mb-4 grid gap-2">
-          <p className="text-sm text-muted-foreground">
-            不必写得很“正确”，只要能帮你下次更快回忆出来就行。
-          </p>
           <div className="flex flex-wrap gap-2">
             {GUIDED_MEMORY_PROMPTS.map((prompt) => (
               <button

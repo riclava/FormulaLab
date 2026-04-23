@@ -42,7 +42,6 @@ export default async function SummaryPage() {
       activePath="/summary"
       eyebrow="复习总结"
       title="先判断这一轮有没有收住，再决定下一步。"
-      description="上面只保留结果和动作。真正影响今天体验的内容优先放前面，长期统计和产品指标放到后面再看。"
     >
       <div className="grid gap-6">
         <section className="rounded-lg border bg-background p-6 shadow-sm">
@@ -55,9 +54,6 @@ export default async function SummaryPage() {
                 {primaryAction.badge}
               </Badge>
               <h2 className="text-2xl font-semibold">{completionMessage.title}</h2>
-              <p className="text-sm leading-6 text-muted-foreground">
-                {completionMessage.description}
-              </p>
             </div>
             <Link href={primaryAction.href} className={buttonVariants()}>
               {primaryAction.label}
@@ -115,9 +111,6 @@ export default async function SummaryPage() {
               ) : (
                 <div className="grid gap-3">
                   <h3 className="text-lg font-semibold">还没有可总结的复习记录</h3>
-                  <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-                    先完成一次首次诊断或今日复习，这里就会开始累积你的薄弱点、下一次计划和联想活动。
-                  </p>
                 </div>
               )}
             </div>
@@ -128,9 +121,6 @@ export default async function SummaryPage() {
                   <CheckCircle2 data-icon="inline-start" />
                   <h3 className="font-semibold">下一步只做这一件事</h3>
                 </div>
-                <p className="mt-3 text-sm leading-6 text-muted-foreground">
-                  {primaryAction.description}
-                </p>
                 <div className="mt-4 flex flex-wrap gap-2">
                   <Link href={primaryAction.href} className={buttonVariants({ size: "sm" })}>
                     {primaryAction.label}
@@ -371,10 +361,6 @@ function buildPrimaryAction(summary: SummaryStats, progress: ProgressStats) {
       return {
         href: progress.dueNowCount > 0 ? "/review" : "/formulas",
         label: progress.dueNowCount > 0 ? "回到今日复习" : "先浏览公式",
-        description:
-          progress.dueNowCount > 0
-            ? "你已经有训练状态了，先把今天到期的内容做掉。"
-            : "还没有完成一轮可总结的训练，可以先挑一条内容熟悉一下。",
         badge: progress.dueNowCount > 0 ? "回到主任务" : "先热启动一下",
         priority: progress.dueNowCount > 0 ? "high" : "medium",
       } as const;
@@ -383,7 +369,6 @@ function buildPrimaryAction(summary: SummaryStats, progress: ProgressStats) {
     return {
       href: "/diagnostic",
       label: "开始 1 分钟诊断",
-      description: "先生成你的第一份训练单，之后这里才会开始累积真正有意义的总结。",
       badge: "先完成冷启动",
       priority: "high",
     } as const;
@@ -396,7 +381,6 @@ function buildPrimaryAction(summary: SummaryStats, progress: ProgressStats) {
     return {
       href: "/review?mode=weak",
       label: "先补弱 1 条",
-      description: `这一轮里有 ${summary.immediateWeakFormulas.length} 条公式值得立刻回收，先补最卡的那条最划算。`,
       badge: "先把最弱点补回来",
       priority: "high",
     } as const;
@@ -406,7 +390,6 @@ function buildPrimaryAction(summary: SummaryStats, progress: ProgressStats) {
     return {
       href: "/review",
       label: "继续今日复习",
-      description: "这轮已经收住了，但今天还有到期内容，继续完成主队列会更连贯。",
       badge: "主任务还在继续",
       priority: "medium",
     } as const;
@@ -416,7 +399,6 @@ function buildPrimaryAction(summary: SummaryStats, progress: ProgressStats) {
     return {
       href: "/memory-hooks",
       label: "确认默认提示",
-      description: "你这轮刚创建过新的联想，花半分钟把最顺手的一条设成默认，下一次提示会更贴身。",
       badge: "顺手收一个尾",
       priority: "medium",
     } as const;
@@ -425,7 +407,6 @@ function buildPrimaryAction(summary: SummaryStats, progress: ProgressStats) {
   return {
     href: "/review",
     label: "回到今日复习",
-    description: "今天这轮已经可以算完成了。之后如果还想再练，可以直接回到主训练面板。",
     badge: "今天可以停在这里",
     priority: "low",
   } as const;
@@ -435,10 +416,6 @@ function buildCompletionMessage(summary: SummaryStats, progress: ProgressStats) 
   if (!summary.latestSession) {
     return {
       title: "这里先看结果，再安排下一步。",
-      description:
-        progress.latestDiagnosticAt
-          ? "你已经开始建立训练状态，但还没有一轮完整 session 可以复盘。先完成一次完整复习，这里会更有信息量。"
-          : "先完成冷启动诊断，系统才能知道今天该把哪些公式放到你面前。",
     };
   }
 
@@ -448,23 +425,17 @@ function buildCompletionMessage(summary: SummaryStats, progress: ProgressStats) 
   if (summary.immediateWeakFormulas.length > 0 && difficultCount > 0) {
     return {
       title: "这一轮主任务完成了，但还有几条值得立刻补弱。",
-      description:
-        "不用把总结页当报表看。先把最卡的公式拉回熟悉区，今天的训练体验会完整很多。",
     };
   }
 
   if (progress.dueNowCount > 0) {
     return {
       title: "这一轮收住了，还可以继续今天的主队列。",
-      description:
-        "如果你现在还有精力，顺着今日复习继续走最省心；如果没有，这里也已经是一个自然停点。",
     };
   }
 
   return {
     title: "今天这一轮已经收尾，可以安心停在这里。",
-    description:
-      "弱项没有堆在手里，当前也没有新的到期任务。之后回来时，系统会按下一次计划把内容重新排好。",
   };
 }
 

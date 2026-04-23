@@ -70,9 +70,6 @@ export function CustomFormulaForm() {
     >
       <div className="grid gap-2">
         <h2 className="text-xl font-semibold">创建自定义公式</h2>
-        <p className="text-sm leading-6 text-muted-foreground">
-          先把最小可练信息写完整就够了。提交后会自动生成 Recall、Recognition、Application 三类训练题，并进入训练队列。
-        </p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
@@ -112,7 +109,7 @@ export function CustomFormulaForm() {
       {error ? <p className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">{error}</p> : null}
       {createdSlug ? (
         <div className="flex flex-wrap items-center gap-3 rounded-lg border bg-muted/40 p-3 text-sm">
-          <span>已创建并加入训练队列。建议先看详情确认边界和提示，再决定是不是马上开练。</span>
+          <span>已创建并加入训练队列。</span>
           <Button
             type="button"
             size="sm"

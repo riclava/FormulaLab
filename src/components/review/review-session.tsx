@@ -199,13 +199,7 @@ export function ReviewSession({ mode = "today" }: { mode?: ReviewMode }) {
             <h2 className="max-w-3xl text-2xl font-semibold leading-tight">
               {currentItem.prompt}
             </h2>
-            <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-              {currentItem.formula.oneLineUse}
-            </p>
-            <div className="rounded-lg border bg-muted/20 px-4 py-3 text-sm text-muted-foreground">
-              <p className="font-medium text-foreground">为什么现在练这题</p>
-              <p className="mt-1">{currentItem.reviewReason.detail}</p>
-            </div>
+            <p className="text-sm text-muted-foreground">{currentItem.reviewReason.detail}</p>
           </div>
 
           {cardState === "hint" && currentHint ? (
@@ -306,9 +300,7 @@ export function ReviewSession({ mode = "today" }: { mode?: ReviewMode }) {
                   {" "}
                   {activeRemediation.grade === "again" ? "想不起来" : "有点吃力"}。
                 </p>
-                <p className="text-sm leading-6 text-amber-900/90">
-                  先做一个最小恢复动作就够了。看一眼误用、适用条件，或者存一条提示，然后回到训练节奏。
-                </p>
+                <p className="text-sm text-amber-900/90">先看一眼，再继续。</p>
               </div>
               <div className="flex flex-wrap gap-3">
                 <Button type="button" onClick={() => setIsRemediationOpen(true)}>
@@ -577,15 +569,6 @@ function EmptyReviewState({
             ? "当前没有需要立即补弱的公式。"
           : "当前没有到期的复习任务。"}
       </h2>
-      <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-        {emptyReason === "needs_diagnostic"
-          ? "诊断会快速标记薄弱公式，把需要优先复习的内容推到今日队列里。"
-          : emptyReason === "no_review_content"
-            ? "请先为这些公式补齐 Recall、Recognition 或 Application 题目。"
-          : mode === "weak"
-            ? "可以先回到今日复习，或者去公式列表挑一条想巩固的内容。"
-          : "今天没有强制任务。可以稍后回来，也可以主动重练薄弱公式。"}
-      </p>
       <div className="flex flex-wrap gap-3">
         {emptyReason === "needs_diagnostic" ? (
           <>
@@ -631,9 +614,6 @@ function CompletedReviewState({
       <div className="flex flex-col gap-2">
         <Badge className="w-fit">今日复习完成</Badge>
         <h2 className="text-2xl font-semibold">这一组练完了。</h2>
-        <p className="text-sm text-muted-foreground">
-          先看总结，把需要补弱的公式处理掉；不急着继续刷题。
-        </p>
       </div>
       <div className="grid gap-3 sm:grid-cols-4">
         {gradeButtons.map((grade) => (

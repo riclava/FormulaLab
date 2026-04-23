@@ -16,7 +16,6 @@ import { cn } from "@/lib/utils";
 type NavItem = {
   href: string;
   label: string;
-  description: string;
   icon: typeof Brain;
   priority: "primary" | "secondary";
 };
@@ -25,49 +24,42 @@ const navItems: NavItem[] = [
   {
     href: "/review",
     label: "今日复习",
-    description: "打开就开始练",
     icon: ClipboardCheck,
     priority: "primary",
   },
   {
     href: "/diagnostic",
     label: "首次诊断",
-    description: "快速找到薄弱点",
     icon: Brain,
     priority: "primary",
   },
   {
     href: "/summary",
     label: "复习总结",
-    description: "看结果和下一步",
     icon: ChartNoAxesColumn,
     priority: "primary",
   },
   {
     href: "/formulas",
     label: "公式列表",
-    description: "查找与回看",
     icon: BookOpen,
     priority: "primary",
   },
   {
     href: "/memory-hooks",
     label: "记忆钩子",
-    description: "整理个人联想",
     icon: Lightbulb,
     priority: "secondary",
   },
   {
     href: "/paths",
     label: "学习路径",
-    description: "阶段性安排",
     icon: Route,
     priority: "secondary",
   },
   {
     href: "/derivation",
     label: "推导训练",
-    description: "理解公式来源",
     icon: Brain,
     priority: "secondary",
   },
@@ -83,12 +75,11 @@ export function PhaseShell({
   activePath: string;
   eyebrow: string;
   title: string;
-  description: string;
+  description?: string;
   children: React.ReactNode;
 }) {
   const primaryItems = navItems.filter((item) => item.priority === "primary");
   const secondaryItems = navItems.filter((item) => item.priority === "secondary");
-  const activeItem = navItems.find((item) => item.href === activePath);
 
   return (
     <main className="min-h-svh bg-background">
@@ -108,11 +99,6 @@ export function PhaseShell({
                 </span>
               </span>
             </Link>
-            {activeItem ? (
-              <Badge variant="secondary" className="hidden sm:inline-flex">
-                {activeItem.description}
-              </Badge>
-            ) : null}
           </div>
 
           <nav aria-label="核心页面" className="flex flex-wrap gap-2">
@@ -147,9 +133,11 @@ export function PhaseShell({
             <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">
               {title}
             </h1>
-            <p className="text-base leading-7 text-muted-foreground">
-              {description}
-            </p>
+            {description ? (
+              <p className="text-base leading-7 text-muted-foreground">
+                {description}
+              </p>
+            ) : null}
           </div>
 
           <nav aria-label="辅助页面" className="flex flex-wrap gap-2">

@@ -51,9 +51,6 @@ export function WeakFormulaList({
             {formula.latestResult ? <Badge variant="outline">{formula.latestResult}</Badge> : null}
             <Badge variant="outline">{weakPointLabel(formula.weakPoint)}</Badge>
           </div>
-          <p className="mt-2 text-sm leading-6 text-muted-foreground">
-            {formula.reason}
-          </p>
           <p className="mt-2 text-sm leading-6">
             {formula.recommendedAction}
           </p>

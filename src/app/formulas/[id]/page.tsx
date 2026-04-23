@@ -127,7 +127,6 @@ export default async function FormulaDetailPage({
       activePath="/formulas"
       eyebrow="公式详情"
       title="先确认边界，再决定回到哪条训练链路。"
-      description="这里不是百科页。它优先帮你判断什么时候用、哪里容易错、哪条提示最能帮你回忆，然后再回到刚才的任务里。"
     >
       <FormulaDetailView
         formulaIdOrSlug={id}

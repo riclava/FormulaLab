@@ -46,7 +46,6 @@ export function DerivationTrainer({
 
       <div className="grid gap-3">
         <h2 className="text-2xl font-semibold">{formula.title}</h2>
-        <p className="text-sm leading-6 text-muted-foreground">{formula.oneLineUse}</p>
         <LatexRenderer block expression={formula.expressionLatex} />
       </div>
 
@@ -55,9 +54,6 @@ export function DerivationTrainer({
           <BookOpen data-icon="inline-start" />
           <h3 className="font-medium">先自己说出推导线索</h3>
         </div>
-        <p className="text-sm leading-6 text-muted-foreground">
-          先回忆这条公式来自哪个定义、等价变形或前置公式，再点击显示推导。这里练的是“为什么能用”，不是重新背一遍答案。
-        </p>
       </div>
 
       {revealed ? (

@@ -21,7 +21,6 @@ export default async function PathsPage() {
       activePath="/paths"
       eyebrow="学习路径"
       title="按一组内容推进，不把公式孤立地背。"
-      description="这里按知识域收拢当前训练状态，方便你判断这组内容该先学、先练还是先补弱。真正记忆巩固，仍然回到复习链路里完成。"
     >
       <div className="grid gap-5">
         {groups.map((group) => (

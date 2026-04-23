@@ -32,13 +32,13 @@ const remediationMeta: Record<
   again: {
     label: "Again 补弱",
     title: "这题先别急着翻篇，我们把误区补上。",
-    description: "优先看常见误用和记忆联想，顺手把它放回今日稍后再练也可以。",
+    description: "先看常见误用和记忆联想。",
     focusSection: "anti-patterns",
   },
   hard: {
     label: "Hard 补弱",
     title: "已经有印象了，再把适用边界和关系理清一下。",
-    description: "先看什么时候用，再看容易混淆的点，下一次会更稳。",
+    description: "先看适用边界。",
     focusSection: "use",
   },
 };
@@ -100,9 +100,8 @@ export function ReviewRemediationSheet({
           <div className="mb-6 rounded-lg border border-amber-200 bg-amber-50/70 p-4">
             <div className="flex items-start gap-3">
               <TriangleAlert className="mt-0.5 size-4 text-amber-700" />
-              <div className="space-y-1 text-sm text-amber-950">
-                <p className="font-medium">这一轮补弱建议做一件最小动作就够了。</p>
-                <p>看适用条件、确认误用点，或者选一条最顺手的记忆钩子，然后继续下一题。</p>
+              <div className="text-sm text-amber-950">
+                <p className="font-medium">先做一个最小动作就够了。</p>
               </div>
             </div>
           </div>

@@ -153,9 +153,6 @@ export function FormulaDetailView({
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-muted/20 px-4 py-3 text-sm">
           <div className="min-w-0">
             <p className="font-medium">{entryPointLabel(entryPoint)}</p>
-            <p className="text-muted-foreground">
-              {entryPointDescription(entryPoint)}
-            </p>
           </div>
           <Link
             href={returnLink.href}
@@ -170,7 +167,6 @@ export function FormulaDetailView({
         <div className="flex flex-wrap items-center gap-2">
           <Badge>{formula.domain}</Badge>
           {formula.subdomain ? <Badge variant="secondary">{formula.subdomain}</Badge> : null}
-          <Badge variant="outline">补弱详情</Badge>
         </div>
 
         <div className="mt-4 flex flex-col gap-3">
@@ -438,28 +434,6 @@ function entryPointLabel(
     case "formulas":
     default:
       return "你正在查看公式详情";
-  }
-}
-
-function entryPointDescription(
-  entryPoint: NonNullable<Parameters<typeof QuickActions>[0]["entryPoint"]>,
-) {
-  switch (entryPoint) {
-    case "review":
-      return "优先看误用、边界和最顺手的一条提示，然后尽快回到训练。";
-    case "summary":
-      return "这里适合做一个最小补弱动作，再决定要不要继续练。";
-    case "paths":
-      return "先理解这条公式的位置，再决定是先学、先练还是先补弱。";
-    case "derivation":
-      return "把公式来源和使用边界重新连起来，会比单纯背答案更稳。";
-    case "memory-hooks":
-      return "挑一条最像你自己的提示，下次复习时它会先出来。";
-    case "custom":
-      return "确认你写的解释、题面和提示真的适合进入训练闭环。";
-    case "formulas":
-    default:
-      return "先看什么时候用、什么时候别用，再决定要不要回到训练。";
   }
 }
 

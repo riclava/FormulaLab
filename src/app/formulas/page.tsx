@@ -61,7 +61,6 @@ export default async function FormulasPage({
       activePath="/formulas"
       eyebrow="公式列表"
       title="先快速定位，再回到训练。"
-      description="这里不是让你慢慢逛目录的地方。更适合快速确认某条公式什么时候用、哪里容易错，然后回到刚才的训练链路。"
     >
       <section className="grid gap-5 rounded-lg border bg-background p-6 shadow-sm">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
@@ -92,12 +91,7 @@ export default async function FormulasPage({
 
           <div className="grid gap-2 text-sm text-muted-foreground">
             <p>
-              共找到 <span className="font-medium text-foreground">{catalog.formulas.length}</span>{" "}
-              条公式，当前重点是{" "}
-              <span className="font-medium text-foreground">
-                {resultSummary.weakCount + resultSummary.dueCount}
-              </span>{" "}
-              条需要尽快处理的内容。
+              共找到 <span className="font-medium text-foreground">{catalog.formulas.length}</span> 条公式
             </p>
             <div className="flex flex-wrap gap-2">
               <Link href="/review" className={buttonVariants({ size: "sm" })}>

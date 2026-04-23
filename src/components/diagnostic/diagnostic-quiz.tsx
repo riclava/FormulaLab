@@ -227,9 +227,6 @@ export function DiagnosticQuiz() {
           <h2 className="max-w-3xl text-2xl font-semibold leading-tight">
             {currentQuestion.prompt}
           </h2>
-          <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-            {currentQuestion.formula.oneLineUse}
-          </p>
         </div>
 
         {showAnswer ? <DiagnosticAnswer question={currentQuestion} /> : null}
@@ -303,9 +300,6 @@ function DiagnosticResultView({ result }: { result: DiagnosticResult }) {
             ? `发现 ${weakCount} 个优先补弱公式`
             : "这组诊断表现不错"}
         </h2>
-        <p className="text-sm text-muted-foreground">
-          已经为你生成初始复习队列。薄弱公式会优先出现在今日复习里。
-        </p>
       </div>
 
       {weakCount > 0 ? (
@@ -316,9 +310,6 @@ function DiagnosticResultView({ result }: { result: DiagnosticResult }) {
                 <h3 className="font-medium">{formula.title}</h3>
                 <Badge variant="secondary">{formula.domain}</Badge>
               </div>
-              <p className="text-sm leading-6 text-muted-foreground">
-                {formula.oneLineUse}
-              </p>
             </div>
           ))}
         </div>
