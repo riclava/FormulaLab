@@ -2,8 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import type { ComponentProps } from "react";
-import { useState, useTransition } from "react";
-import { ArrowRight, Loader2, Plus, Upload } from "lucide-react";
+import { useRef, useState, useTransition } from "react";
+import { ArrowRight, Loader2, Plus, Sparkles, Upload } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,16 +14,39 @@ type CreatedFormula = {
   slug: string;
 };
 
+type FormulaDraft = {
+  title: string;
+  expressionLatex: string;
+  domain: string;
+  subdomain: string;
+  oneLineUse: string;
+  meaning: string;
+  derivation: string;
+  difficulty: number;
+  tags: string[];
+  useConditions: string[];
+  nonUseConditions: string[];
+  antiPatterns: string[];
+  typicalProblems: string[];
+  examples: string[];
+  memoryHook: string;
+};
+
 export function CustomFormulaForm() {
   const router = useRouter();
+  const formRef = useRef<HTMLFormElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [createdSlug, setCreatedSlug] = useState<string | null>(null);
+  const [draftPrompt, setDraftPrompt] = useState("");
+  const [draftMessage, setDraftMessage] = useState<string | null>(null);
+  const [isDraftPending, setIsDraftPending] = useState(false);
   const [importText, setImportText] = useState("");
   const [importMessage, setImportMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   return (
     <form
+      ref={formRef}
       className="grid gap-5 rounded-lg border bg-background p-6 shadow-sm"
       onSubmit={(event) => {
         event.preventDefault();
@@ -75,6 +98,42 @@ export function CustomFormulaForm() {
         <p className="text-sm leading-6 text-muted-foreground">
           单条创建适合先把一条公式纳入训练；批量导入适合从笔记或表格整理好的 JSON。
         </p>
+      </div>
+
+      <div className="grid gap-3 rounded-lg border bg-muted/20 p-4">
+        <div className="grid gap-1">
+          <Label htmlFor="formula-draft-prompt">AI 填充草稿</Label>
+          <p className="text-sm leading-6 text-muted-foreground">
+            输入公式名、题面、课堂笔记或一段说明，AI 会整理成下面的字段，保存前仍可人工修改。
+          </p>
+        </div>
+        <Textarea
+          id="formula-draft-prompt"
+          value={draftPrompt}
+          onChange={(event) => setDraftPrompt(event.target.value)}
+          placeholder="例如：二项分布，n 次独立伯努利试验中成功 k 次的概率，想补充适用条件和常见误用。"
+          className="min-h-28"
+        />
+        {draftMessage ? (
+          <p className="rounded-lg border border-emerald-200 bg-emerald-50/70 p-3 text-sm text-emerald-900">
+            {draftMessage}
+          </p>
+        ) : null}
+        <div>
+          <Button
+            type="button"
+            variant="secondary"
+            disabled={isPending || isDraftPending || !draftPrompt.trim()}
+            onClick={generateFormulaDraft}
+          >
+            {isDraftPending ? (
+              <Loader2 data-icon="inline-start" className="animate-spin" />
+            ) : (
+              <Sparkles data-icon="inline-start" />
+            )}
+            用 AI 填充
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
@@ -192,6 +251,75 @@ export function CustomFormulaForm() {
       </details>
     </form>
   );
+
+  async function generateFormulaDraft() {
+    const prompt = draftPrompt.trim();
+
+    if (!prompt) {
+      setError("请先输入要整理的公式或笔记。");
+      return;
+    }
+
+    setError(null);
+    setDraftMessage(null);
+    setIsDraftPending(true);
+
+    try {
+      const response = await fetch("/api/formulas/draft", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          prompt,
+        }),
+      });
+      const payload = (await response.json()) as {
+        data?: FormulaDraft;
+        error?: string;
+      };
+
+      if (!response.ok || !payload.data) {
+        throw new Error(payload.error ?? "AI 草稿生成失败");
+      }
+
+      fillFormWithDraft(payload.data);
+      setDraftMessage("已填充草稿，请检查后再创建公式。");
+    } catch (draftError) {
+      setError(draftError instanceof Error ? draftError.message : "AI 草稿生成失败");
+    } finally {
+      setIsDraftPending(false);
+    }
+  }
+
+  function fillFormWithDraft(draft: FormulaDraft) {
+    setFormValue("title", draft.title);
+    setFormValue("expressionLatex", draft.expressionLatex);
+    setFormValue("domain", draft.domain);
+    setFormValue("subdomain", draft.subdomain);
+    setFormValue("oneLineUse", draft.oneLineUse);
+    setFormValue("meaning", draft.meaning);
+    setFormValue("derivation", draft.derivation);
+    setFormValue("difficulty", String(draft.difficulty));
+    setFormValue("tags", draft.tags.join("\n"));
+    setFormValue("useConditions", draft.useConditions.join("\n"));
+    setFormValue("nonUseConditions", draft.nonUseConditions.join("\n"));
+    setFormValue("antiPatterns", draft.antiPatterns.join("\n"));
+    setFormValue("typicalProblems", draft.typicalProblems.join("\n"));
+    setFormValue("examples", draft.examples.join("\n"));
+    setFormValue("memoryHook", draft.memoryHook);
+  }
+
+  function setFormValue(name: string, value: string) {
+    const field = formRef.current?.elements.namedItem(name);
+
+    if (
+      field instanceof HTMLInputElement ||
+      field instanceof HTMLTextAreaElement
+    ) {
+      field.value = value;
+    }
+  }
 
   function importFormulas(rawText: string) {
     setError(null);
