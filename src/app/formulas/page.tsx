@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, Clock3, Filter, Plus, Search, Sparkles } from "lucide-react";
+import { Clock3, Filter, Plus, Search, Sparkles } from "lucide-react";
 
 import { PhaseShell } from "@/components/app/phase-shell";
 import { LatexRenderer } from "@/components/formula/latex-renderer";
@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
 import { requireCurrentLearner } from "@/server/auth/current-learner";
 import { getFormulaCatalog } from "@/server/services/formula-service";
 import type { FormulaSummary } from "@/types/formula";
@@ -49,6 +50,12 @@ export default async function FormulasPage({
     userId: current.learner.id,
   });
   const resultSummary = buildResultSummary(catalog.formulas);
+  const activeFilterCount = countActiveFilters({
+    q: query || undefined,
+    domain,
+    tag,
+    difficulty,
+  });
   const buildHref = createFormulaCatalogHrefBuilder({
     q: query || null,
     domain: domain ?? null,
@@ -61,74 +68,80 @@ export default async function FormulasPage({
       activePath="/formulas"
       eyebrow="公式列表"
       title="查找与浏览公式"
+      density="compact"
     >
-      <section className="grid gap-5 rounded-lg border bg-background p-6 shadow-sm">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <form action="/formulas" className="grid w-full gap-3 lg:max-w-2xl">
-            <div className="grid gap-2">
-              <Label htmlFor="formula-search">搜索公式</Label>
-              <div className="flex flex-col gap-2 sm:flex-row">
-                <Input
-                  id="formula-search"
-                  name="q"
-                  type="search"
-                  defaultValue={query}
-                  placeholder="搜索标题、变量、关键词"
-                  className="h-9"
-                />
-                {domain ? <input type="hidden" name="domain" value={domain} /> : null}
-                {tag ? <input type="hidden" name="tag" value={tag} /> : null}
-                {difficulty !== undefined ? (
-                  <input type="hidden" name="difficulty" value={difficulty} />
-                ) : null}
-                <button type="submit" className={buttonVariants({ size: "lg" })}>
-                  <Search data-icon="inline-start" />
-                  搜索
-                </button>
-              </div>
+      <section className="grid gap-4 rounded-xl border bg-background p-4 shadow-sm md:gap-4 md:p-5">
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge variant="secondary">公式库</Badge>
+          <Badge variant="outline">{catalog.formulas.length} 条结果</Badge>
+          <Badge variant="destructive">补弱 {resultSummary.weakCount}</Badge>
+          <Badge variant="secondary">到期 {resultSummary.dueCount}</Badge>
+          <Badge variant="outline">提示 {resultSummary.hookedCount}</Badge>
+          <Badge variant="outline">稳定 {resultSummary.stableCount}</Badge>
+          {activeFilterCount > 0 ? (
+            <Badge variant="outline">筛选中 {activeFilterCount}</Badge>
+          ) : null}
+        </div>
+
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+          <form action="/formulas" className="grid flex-1 gap-2">
+            <Label htmlFor="formula-search">搜索公式</Label>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <Input
+                id="formula-search"
+                name="q"
+                type="search"
+                defaultValue={query}
+                placeholder="搜索标题、变量、关键词"
+                className="h-9 flex-1"
+              />
+              {domain ? <input type="hidden" name="domain" value={domain} /> : null}
+              {tag ? <input type="hidden" name="tag" value={tag} /> : null}
+              {difficulty !== undefined ? (
+                <input type="hidden" name="difficulty" value={difficulty} />
+              ) : null}
+              <button
+                type="submit"
+                className={cn(buttonVariants({ size: "lg" }), "min-w-24 justify-center")}
+              >
+                <Search data-icon="inline-start" />
+                搜索
+              </button>
             </div>
           </form>
 
-          <div className="grid gap-2 text-sm text-muted-foreground">
-            <p>
-              共找到 <span className="font-medium text-foreground">{catalog.formulas.length}</span> 条公式
-            </p>
-            <div className="flex flex-wrap gap-2">
-              <Link href="/review" className={buttonVariants({ size: "sm" })}>
-                回到今日复习
-                <ArrowRight data-icon="inline-end" />
-              </Link>
-              <Link
-                href="/formulas/new"
-                className={buttonVariants({ size: "sm", variant: "secondary" })}
-              >
-                <Plus data-icon="inline-start" />
-                添加/导入公式
-              </Link>
-              {resultSummary.weakCount > 0 ? (
-                <Link
-                  href="/review?mode=weak"
-                  className={buttonVariants({ size: "sm", variant: "secondary" })}
-                >
-                  先补弱项
-                </Link>
-              ) : null}
-              <Link
-                href={buildHref({
-                  q: null,
-                  domain: null,
-                  tag: null,
-                  difficulty: null,
-                })}
-                className={buttonVariants({ size: "sm", variant: "outline" })}
-              >
-                清空筛选
-              </Link>
-            </div>
+          <div className="flex flex-wrap gap-2 lg:max-w-xl lg:justify-end">
+            <Link
+              href="/formulas/new"
+              className={buttonVariants({ size: "lg", variant: "secondary" })}
+            >
+              <Plus data-icon="inline-start" />
+              添加/导入
+            </Link>
+            <Link
+              href={buildHref({
+                q: null,
+                domain: null,
+                tag: null,
+                difficulty: null,
+              })}
+              className={buttonVariants({ size: "lg", variant: "outline" })}
+            >
+              清空筛选
+            </Link>
           </div>
         </div>
 
-        <div className="grid gap-4 border-t pt-5">
+        <div className="grid gap-3 border-t pt-4">
+          {activeFilterCount > 0 ? (
+            <div className="flex flex-wrap gap-2">
+              {query ? <Badge variant="outline">关键词：{query}</Badge> : null}
+              {domain ? <Badge variant="outline">知识域：{domain}</Badge> : null}
+              {difficulty !== undefined ? <Badge variant="outline">难度：{difficulty}</Badge> : null}
+              {tag ? <Badge variant="outline">标签：{tag}</Badge> : null}
+            </div>
+          ) : null}
+
           <div className="flex items-center gap-2 text-sm font-medium">
             <Filter data-icon="inline-start" />
             <span>筛选条件</span>
@@ -182,13 +195,6 @@ export default async function FormulasPage({
             ]}
           />
         </div>
-      </section>
-
-      <section className="grid gap-4 md:grid-cols-4">
-        <StatCard label="需要补弱" value={resultSummary.weakCount} tone="destructive" />
-        <StatCard label="今天到期" value={resultSummary.dueCount} tone="secondary" />
-        <StatCard label="已有下次提示" value={resultSummary.hookedCount} />
-        <StatCard label="稳定中" value={resultSummary.stableCount} />
       </section>
 
       <section className="grid gap-4">
@@ -297,7 +303,7 @@ function FilterRow({
   }>;
 }) {
   return (
-    <div className="grid gap-2">
+    <div className="grid gap-1.5">
       <p className="text-sm font-medium">{label}</p>
       <div className="flex flex-wrap gap-2">
         {items.map((item) => (
@@ -317,21 +323,18 @@ function FilterRow({
   );
 }
 
-function StatCard({
-  label,
-  value,
-  tone = "outline",
-}: {
-  label: string;
-  value: number;
-  tone?: "outline" | "secondary" | "destructive";
+function countActiveFilters(filters: {
+  q?: string;
+  domain?: string;
+  tag?: string;
+  difficulty?: number;
 }) {
-  return (
-    <div className="rounded-lg border bg-background p-4 shadow-sm">
-      <Badge variant={tone}>{label}</Badge>
-      <p className="mt-3 text-2xl font-semibold">{value}</p>
-    </div>
-  );
+  return [
+    Boolean(filters.q),
+    Boolean(filters.domain),
+    Boolean(filters.tag),
+    filters.difficulty !== undefined,
+  ].filter(Boolean).length;
 }
 
 function parseDifficulty(value?: string) {

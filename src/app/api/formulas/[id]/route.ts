@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { normalizeRouteParam } from "@/lib/route-params";
 import { withAuthenticatedApi } from "@/server/auth/current-learner";
 import { getFormulaDetail } from "@/server/services/formula-service";
 
@@ -7,7 +8,8 @@ export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const { id } = await params;
+  const { id: rawId } = await params;
+  const id = normalizeRouteParam(rawId);
   return withAuthenticatedApi(async () => {
     const formula = await getFormulaDetail(id);
 

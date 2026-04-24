@@ -99,6 +99,7 @@ export function PhaseShell({
   const toolItems = navItems.filter((item) => item.group === "tool");
   const activeTool = toolItems.find((item) => item.href === activePath);
   const ActiveToolIcon = activeTool?.icon;
+  const hasHeaderAside = Boolean(activeTool);
   const homeHref = addLearningDomainToHref("/review", learningDomain?.currentDomain);
   const returnTo = addLearningDomainToHref(activePath || "/review", learningDomain?.currentDomain);
 
@@ -183,13 +184,17 @@ export function PhaseShell({
       >
         <div
           className={cn(
-            "flex flex-col border-b lg:flex-row lg:items-end lg:justify-between",
+            "border-b",
+            hasHeaderAside
+              ? "flex flex-col lg:flex-row lg:items-end lg:justify-between"
+              : "grid",
             density === "compact" ? "gap-3 pb-4" : "gap-5 pb-6",
           )}
         >
           <div
             className={cn(
-              "flex min-w-0 max-w-3xl flex-col",
+              "flex min-w-0 flex-col",
+              hasHeaderAside ? "max-w-3xl" : "max-w-4xl",
               density === "compact" ? "gap-2" : "gap-3",
             )}
           >

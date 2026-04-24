@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { normalizeRouteParam } from "@/lib/route-params";
 import { withAuthenticatedApi } from "@/server/auth/current-learner";
 import {
   getFormulaMemoryHooks,
@@ -10,7 +11,8 @@ export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const { id } = await params;
+  const { id: rawId } = await params;
+  const id = normalizeRouteParam(rawId);
   return withAuthenticatedApi(async (current) => {
     const hooks = await getFormulaMemoryHooks({
       formulaIdOrSlug: id,
@@ -36,7 +38,8 @@ export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const { id } = await params;
+  const { id: rawId } = await params;
+  const id = normalizeRouteParam(rawId);
   const payload = (await request.json()) as {
     content?: string;
   };

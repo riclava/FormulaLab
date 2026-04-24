@@ -5,6 +5,7 @@ import {
   FormulaDetailView,
   type FocusSection,
 } from "@/components/formula/formula-detail-view";
+import { normalizeRouteParam } from "@/lib/route-params";
 import { requireCurrentLearner } from "@/server/auth/current-learner";
 import {
   getFormulaDetail,
@@ -98,8 +99,9 @@ export default async function FormulaDetailPage({
   params: Promise<{ id: string }>;
   searchParams: Promise<{ focus?: string; from?: string; mode?: string }>;
 }) {
-  const { id } = await params;
+  const { id: rawId } = await params;
   const { focus, from, mode } = await searchParams;
+  const id = normalizeRouteParam(rawId);
   const current = await requireCurrentLearner();
   const [formula, relations, hooks] = await Promise.all([
     getFormulaDetail(id),
