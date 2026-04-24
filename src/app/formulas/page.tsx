@@ -1,7 +1,17 @@
 import Link from "next/link";
-import { Clock3, Filter, Plus, Search, Sparkles } from "lucide-react";
+import {
+  BookOpen,
+  Clock3,
+  Compass,
+  Filter,
+  Orbit,
+  Plus,
+  Search,
+  Sparkles,
+} from "lucide-react";
 
 import { PhaseShell } from "@/components/app/phase-shell";
+import { SectionNav } from "@/components/app/section-nav";
 import { LatexRenderer } from "@/components/formula/latex-renderer";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
@@ -9,6 +19,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { requireCurrentLearner } from "@/server/auth/current-learner";
+import { resolveLearningDomain } from "@/server/learning-domain";
 import { getFormulaCatalog } from "@/server/services/formula-service";
 import type { FormulaSummary } from "@/types/formula";
 
@@ -38,10 +49,11 @@ export default async function FormulasPage({
 }) {
   const params = await searchParams;
   const query = params.q?.trim() ?? "";
-  const domain = params.domain?.trim() || undefined;
   const tag = params.tag?.trim() || undefined;
   const difficulty = parseDifficulty(params.difficulty);
   const current = await requireCurrentLearner();
+  const learningDomain = await resolveLearningDomain(params.domain);
+  const domain = learningDomain.currentDomain;
   const catalog = await getFormulaCatalog({
     query: query || undefined,
     domain,
@@ -52,7 +64,6 @@ export default async function FormulasPage({
   const resultSummary = buildResultSummary(catalog.formulas);
   const activeFilterCount = countActiveFilters({
     q: query || undefined,
-    domain,
     tag,
     difficulty,
   });
@@ -62,14 +73,43 @@ export default async function FormulasPage({
     tag: tag ?? null,
     difficulty: difficulty ?? null,
   });
+  const domainQuery = `?domain=${encodeURIComponent(domain)}`;
 
   return (
     <PhaseShell
       activePath="/formulas"
-      eyebrow="公式列表"
-      title="查找与浏览公式"
+      eyebrow="公式库"
+      title="理解、查找与训练公式"
       density="compact"
+      learningDomain={learningDomain}
     >
+      <SectionNav
+        label="公式库入口"
+        items={[
+          {
+            href: `/formulas${domainQuery}`,
+            label: "全部公式",
+            description: "查找、筛选和回看公式。",
+            icon: BookOpen,
+            active: true,
+          },
+          {
+            href: `/paths${domainQuery}`,
+            label: "学习路径",
+            description: "按主题结构推进。",
+            icon: Compass,
+            active: false,
+          },
+          {
+            href: `/derivation${domainQuery}`,
+            label: "推导训练",
+            description: "强化公式来龙去脉。",
+            icon: Orbit,
+            active: false,
+          },
+        ]}
+      />
+
       <section className="grid gap-4 rounded-xl border bg-background p-4 shadow-sm md:gap-4 md:p-5">
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant="secondary">公式库</Badge>
@@ -121,7 +161,7 @@ export default async function FormulasPage({
             <Link
               href={buildHref({
                 q: null,
-                domain: null,
+                domain,
                 tag: null,
                 difficulty: null,
               })}
@@ -132,69 +172,64 @@ export default async function FormulasPage({
           </div>
         </div>
 
-        <div className="grid gap-3 border-t pt-4">
-          {activeFilterCount > 0 ? (
-            <div className="flex flex-wrap gap-2">
-              {query ? <Badge variant="outline">关键词：{query}</Badge> : null}
-              {domain ? <Badge variant="outline">知识域：{domain}</Badge> : null}
-              {difficulty !== undefined ? <Badge variant="outline">难度：{difficulty}</Badge> : null}
-              {tag ? <Badge variant="outline">标签：{tag}</Badge> : null}
-            </div>
-          ) : null}
+        <details className="border-t pt-4" open={activeFilterCount > 0}>
+          <summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-3 text-sm font-medium">
+            <span className="flex items-center gap-2">
+              <Filter data-icon="inline-start" />
+              高级筛选
+            </span>
+            {activeFilterCount > 0 ? (
+              <span className="text-muted-foreground">
+                已应用 {activeFilterCount} 个条件
+              </span>
+            ) : (
+              <span className="text-muted-foreground">按难度和标签缩小范围</span>
+            )}
+          </summary>
 
-          <div className="flex items-center gap-2 text-sm font-medium">
-            <Filter data-icon="inline-start" />
-            <span>筛选条件</span>
+          <div className="mt-4 grid gap-3">
+            {activeFilterCount > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {query ? <Badge variant="outline">关键词：{query}</Badge> : null}
+                {domain ? <Badge variant="outline">知识域：{domain}</Badge> : null}
+                {difficulty !== undefined ? <Badge variant="outline">难度：{difficulty}</Badge> : null}
+                {tag ? <Badge variant="outline">标签：{tag}</Badge> : null}
+              </div>
+            ) : null}
+
+            <FilterRow
+              label="难度"
+              items={[
+                {
+                  label: "全部",
+                  href: buildHref({ difficulty: null }),
+                  active: difficulty === undefined,
+                },
+                ...catalog.filters.difficulties.map((item) => ({
+                  label: `难度 ${item}`,
+                  href: buildHref({ difficulty: item }),
+                  active: difficulty === item,
+                })),
+              ]}
+            />
+
+            <FilterRow
+              label="标签"
+              items={[
+                {
+                  label: "全部",
+                  href: buildHref({ tag: null }),
+                  active: !tag,
+                },
+                ...catalog.filters.tags.slice(0, 10).map((item) => ({
+                  label: item,
+                  href: buildHref({ tag: item }),
+                  active: tag === item,
+                })),
+              ]}
+            />
           </div>
-
-          <FilterRow
-            label="知识域"
-            items={[
-              {
-                label: "全部",
-                href: buildHref({ domain: null }),
-                active: !domain,
-              },
-              ...catalog.filters.domains.map((item) => ({
-                label: item,
-                href: buildHref({ domain: item }),
-                active: domain === item,
-              })),
-            ]}
-          />
-
-          <FilterRow
-            label="难度"
-            items={[
-              {
-                label: "全部",
-                href: buildHref({ difficulty: null }),
-                active: difficulty === undefined,
-              },
-              ...catalog.filters.difficulties.map((item) => ({
-                label: `难度 ${item}`,
-                href: buildHref({ difficulty: item }),
-                active: difficulty === item,
-              })),
-            ]}
-          />
-
-          <FilterRow
-            label="标签"
-            items={[
-              {
-                label: "全部",
-                href: buildHref({ tag: null }),
-                active: !tag,
-              },
-              ...catalog.filters.tags.slice(0, 10).map((item) => ({
-                label: item,
-                href: buildHref({ tag: item }),
-                active: tag === item,
-              })),
-            ]}
-          />
-        </div>
+        </details>
       </section>
 
       <section className="grid gap-4">
@@ -267,14 +302,14 @@ export default async function FormulasPage({
                     href={`/formulas/${formula.slug}?from=formulas`}
                     className={buttonVariants({ size: "sm", variant: "outline" })}
                   >
-                    查看详情
+                    打开公式
                   </Link>
                   {formula.isWeak ? (
                     <Link
                       href={`/formulas/${formula.slug}?from=formulas&focus=anti-patterns`}
                       className={buttonVariants({ size: "sm" })}
                     >
-                      继续补弱
+                      修复这条
                     </Link>
                   ) : null}
                 </div>

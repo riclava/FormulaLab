@@ -186,10 +186,10 @@ export function ReviewSession({
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <Link
-                href={`/formulas/${currentItem.formula.slug}?from=review&mode=${mode}`}
+                href={`/formulas/${currentItem.formula.slug}?from=review&mode=${mode}&domain=${encodeURIComponent(domain)}`}
                 className={buttonVariants({ variant: "ghost", size: "sm" })}
               >
-                查看公式
+                看完整解释
                 <ArrowRight data-icon="inline-end" />
               </Link>
             </div>
@@ -251,10 +251,10 @@ export function ReviewSession({
                   <h3 className="font-medium">参考答案</h3>
                 </div>
                 <Link
-                  href={`/formulas/${currentItem.formula.slug}?from=review&mode=${mode}`}
+                  href={`/formulas/${currentItem.formula.slug}?from=review&mode=${mode}&domain=${encodeURIComponent(domain)}`}
                   className={buttonVariants({ variant: "outline", size: "sm" })}
                 >
-                  查看详情
+                  看完整解释
                 </Link>
               </div>
               {currentItem.type === "recall" ? (
@@ -276,20 +276,20 @@ export function ReviewSession({
             <div className="flex flex-wrap gap-3">
               <Button
                 type="button"
+                onClick={() => setCardState("answer")}
+                disabled={isPending}
+              >
+                <Clock3 data-icon="inline-start" />
+                显示答案
+              </Button>
+              <Button
+                type="button"
                 variant="secondary"
                 onClick={() => handleHintRequest(currentItem)}
                 disabled={isPending}
               >
                 <Lightbulb data-icon="inline-start" />
                 给我一点提示
-              </Button>
-              <Button
-                type="button"
-                onClick={() => setCardState("answer")}
-                disabled={isPending}
-              >
-                <Clock3 data-icon="inline-start" />
-                显示答案
               </Button>
               <Button
                 type="button"
@@ -350,7 +350,7 @@ export function ReviewSession({
               />
             </div>
           ) : (
-            <div className="grid gap-3 md:grid-cols-4">
+            <div className="grid overflow-hidden rounded-lg border md:grid-cols-4">
               {gradeButtons.map((grade) => (
                 <button
                   key={grade.value}
@@ -358,7 +358,7 @@ export function ReviewSession({
                   disabled={isPending}
                   onClick={() => submitGrade(currentItem, grade.value)}
                   className={cn(
-                    "rounded-lg border p-4 text-left transition-colors hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-60",
+                    "min-h-24 border-b p-4 text-left transition-colors hover:bg-muted focus-visible:z-10 focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-60 md:border-b-0 md:border-r last:border-b-0 md:last:border-r-0",
                     gradeToneClassName(grade.value),
                   )}
                 >
@@ -377,6 +377,7 @@ export function ReviewSession({
         item={activeRemediation?.item ?? null}
         grade={activeRemediation?.grade ?? null}
         mode={mode}
+        domain={domain}
         currentIndex={currentIndex + 1}
         totalItems={items.length}
         open={isRemediationOpen}
@@ -711,22 +712,27 @@ function EmptyReviewState({
       </Badge>
       <h2 className="text-2xl font-semibold">
         {emptyReason === "needs_diagnostic"
-          ? "先做一次首次诊断，生成你的初始复习队列。"
+          ? "你还没有当前知识域的训练队列。"
           : emptyReason === "no_review_content"
             ? "当前有到期公式，但还没有可用的 Review 题目。"
           : mode === "weak"
             ? "当前没有需要立即补弱的公式。"
           : "当前没有到期的复习任务。"}
       </h2>
+      {emptyReason === "needs_diagnostic" ? (
+        <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
+          先用 5 题诊断生成今日复习，之后系统会按你的掌握情况安排训练。
+        </p>
+      ) : null}
       <div className="flex flex-wrap gap-3">
         {emptyReason === "needs_diagnostic" ? (
           <>
             <Link href={`/diagnostic?${domainQuery}`} className={buttonVariants()}>
-              开始 1 分钟诊断
+              开始 5 题诊断
               <ArrowRight data-icon="inline-end" />
             </Link>
             <Link
-              href="/formulas"
+              href={`/formulas?${domainQuery}`}
               className={buttonVariants({ variant: "outline" })}
             >
               先浏览公式
@@ -745,7 +751,7 @@ function EmptyReviewState({
               {mode === "weak" ? "回到今日复习" : "去弱项重练"}
             </Link>
             <Link
-              href="/formulas"
+              href={`/formulas?${domainQuery}`}
               className={buttonVariants({ variant: "outline" })}
             >
               浏览公式
@@ -764,11 +770,16 @@ function CompletedReviewState({
   domain: string;
   summary: ReviewSummary;
 }) {
+  const weakCount = summary.again + summary.hard;
+  const domainQuery = `domain=${encodeURIComponent(domain)}`;
+
   return (
     <section className="flex flex-col gap-6 rounded-lg border bg-background p-6 shadow-sm">
       <div className="flex flex-col gap-2">
         <Badge className="w-fit">今日复习完成</Badge>
-        <h2 className="text-2xl font-semibold">这一组练完了。</h2>
+        <h2 className="text-2xl font-semibold">
+          {weakCount > 0 ? "这一组练完了，先修复卡住的题。" : "这一组练完了，可以看总结。"}
+        </h2>
       </div>
       <div className="grid gap-3 sm:grid-cols-4">
         {gradeButtons.map((grade) => (
@@ -779,14 +790,27 @@ function CompletedReviewState({
         ))}
       </div>
       <div className="flex flex-wrap gap-3">
-        <Link
-          href={`/summary?domain=${encodeURIComponent(domain)}`}
-          className={buttonVariants()}
-        >
-          查看总结
-        </Link>
-        <Link href="/formulas" className={buttonVariants({ variant: "outline" })}>
-          继续浏览公式
+        {weakCount > 0 ? (
+          <Link href={`/review?mode=weak&${domainQuery}`} className={buttonVariants()}>
+            立即补弱
+            <ArrowRight data-icon="inline-end" />
+          </Link>
+        ) : (
+          <Link href={`/summary?${domainQuery}`} className={buttonVariants()}>
+            查看总结
+            <ArrowRight data-icon="inline-end" />
+          </Link>
+        )}
+        {weakCount > 0 ? (
+          <Link
+            href={`/summary?${domainQuery}`}
+            className={buttonVariants({ variant: "outline" })}
+          >
+            查看总结
+          </Link>
+        ) : null}
+        <Link href={`/formulas?${domainQuery}`} className={buttonVariants({ variant: "outline" })}>
+          浏览公式
         </Link>
       </div>
     </section>

@@ -18,7 +18,7 @@ export async function AccountEntry({ returnTo }: { returnTo: string }) {
             size: "sm",
             variant: "outline",
           }),
-          "max-w-56 justify-start",
+          "max-w-56 shrink-0 justify-start",
         )}
       >
         <UserRound data-icon="inline-start" />
@@ -33,6 +33,7 @@ export async function AccountEntry({ returnTo }: { returnTo: string }) {
       className={buttonVariants({
         size: "sm",
         variant: "outline",
+        className: "shrink-0",
       })}
     >
       <LogIn data-icon="inline-start" />

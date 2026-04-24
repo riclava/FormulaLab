@@ -1,9 +1,8 @@
-import Link from "next/link";
+import { Brain, ClipboardCheck, Target } from "lucide-react";
 
 import { PhaseShell } from "@/components/app/phase-shell";
+import { SectionNav } from "@/components/app/section-nav";
 import { ReviewSession } from "@/components/review/review-session";
-import { buttonVariants } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 import { requireCurrentLearner } from "@/server/auth/current-learner";
 import { resolveLearningDomain } from "@/server/learning-domain";
 
@@ -24,7 +23,7 @@ export default async function ReviewPage({
   return (
     <PhaseShell
       activePath={mode === "weak" ? "/review?mode=weak" : "/review"}
-      eyebrow={mode === "weak" ? "错题重练" : "今日复习"}
+      eyebrow="训练"
       title={
         mode === "weak"
           ? "重练薄弱公式"
@@ -32,38 +31,34 @@ export default async function ReviewPage({
       }
       learningDomain={learningDomain}
     >
-      <section className="flex flex-col gap-4 rounded-lg border bg-background p-4 shadow-sm md:flex-row md:items-center md:justify-between">
-        <p className="text-sm font-medium">训练模式</p>
-        <div className="flex flex-wrap gap-2">
-          {[
-            {
-              href: todayHref,
-              label: "今日复习",
-              active: mode === "today",
-            },
-            {
-              href: weakHref,
-              label: "弱项重练",
-              active: mode === "weak",
-            },
-          ].map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              aria-current={item.active ? "page" : undefined}
-              className={cn(
-                buttonVariants({
-                  size: "sm",
-                  variant: item.active ? "default" : "outline",
-                }),
-                "min-w-28 justify-center",
-              )}
-            >
-              {item.label}
-            </Link>
-          ))}
-        </div>
-      </section>
+      <SectionNav
+        label="训练入口"
+        items={[
+          {
+            href: todayHref,
+            label: "今日复习",
+            description: "完成当前到期队列。",
+            icon: ClipboardCheck,
+            active: mode === "today",
+          },
+          {
+            href: weakHref,
+            label: "弱项重练",
+            description: "优先修复 Again 和 Hard。",
+            icon: Target,
+            active: mode === "weak",
+          },
+          {
+            href: `/diagnostic?domain=${encodeURIComponent(
+              learningDomain.currentDomain,
+            )}`,
+            label: "诊断校准",
+            description: "重新校准当前知识域。",
+            icon: Brain,
+            active: false,
+          },
+        ]}
+      />
 
       <ReviewSession
         key={`${mode}:${learningDomain.currentDomain}`}

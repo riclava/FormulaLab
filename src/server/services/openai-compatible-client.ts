@@ -137,9 +137,9 @@ function resolveProvider(): OpenAiCompatibleProvider {
 
 function resolveApiKey(provider: OpenAiCompatibleProvider) {
   return (
-    process.env.LLM_API_KEY ??
+    readEnvValue("LLM_API_KEY") ??
     resolveEnvValue(provider, "API_KEY") ??
-    process.env.MOONSHOT_API_KEY
+    readEnvValue("MOONSHOT_API_KEY")
   );
 }
 
@@ -148,7 +148,13 @@ function resolveEnvValue(
   name: "API_KEY" | "API_BASE_URL" | "API_TIMEOUT_MS" | "MODEL",
 ) {
   const prefix = provider === "kimi" ? "KIMI" : provider.toUpperCase();
-  return process.env[`LLM_${name}`] ?? process.env[`${prefix}_${name}`];
+  return readEnvValue(`LLM_${name}`) ?? readEnvValue(`${prefix}_${name}`);
+}
+
+function readEnvValue(name: string) {
+  const value = process.env[name]?.trim();
+
+  return value ? value : undefined;
 }
 
 function normalizeBaseUrl(value: string) {

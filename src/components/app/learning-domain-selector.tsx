@@ -4,6 +4,13 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { BookMarked } from "lucide-react";
 
 import { LEARNING_DOMAIN_COOKIE } from "@/lib/learning-domain";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export function LearningDomainSelector({
   currentDomain,
@@ -19,7 +26,11 @@ export function LearningDomainSelector({
     ? domains
     : [currentDomain, ...domains];
 
-  function handleChange(nextDomain: string) {
+  function handleChange(nextDomain: string | null) {
+    if (!nextDomain) {
+      return;
+    }
+
     const params = new URLSearchParams(searchParams);
     params.set("domain", nextDomain);
     document.cookie = `${LEARNING_DOMAIN_COOKIE}=${encodeURIComponent(
@@ -29,21 +40,27 @@ export function LearningDomainSelector({
   }
 
   return (
-    <label className="flex min-h-9 items-center gap-2 rounded-md border bg-background px-3 text-sm">
-      <BookMarked data-icon="inline-start" className="text-muted-foreground" />
-      <span className="whitespace-nowrap text-muted-foreground">知识域</span>
-      <select
+    <Select value={currentDomain} onValueChange={handleChange}>
+      <SelectTrigger
         aria-label="当前知识域"
-        className="min-w-28 bg-transparent font-medium outline-none"
-        value={currentDomain}
-        onChange={(event) => handleChange(event.target.value)}
+        className="h-9 min-w-44 shrink-0 gap-2 border-border bg-background px-3"
+      >
+        <BookMarked data-icon="inline-start" className="text-muted-foreground" />
+        <span className="whitespace-nowrap text-muted-foreground">知识域</span>
+        <SelectValue className="min-w-0 font-medium" />
+      </SelectTrigger>
+      <SelectContent
+        align="start"
+        alignItemWithTrigger={false}
+        className="min-w-44"
+        sideOffset={6}
       >
         {options.map((domain) => (
-          <option key={domain} value={domain}>
+          <SelectItem key={domain} value={domain}>
             {domain}
-          </option>
+          </SelectItem>
         ))}
-      </select>
-    </label>
+      </SelectContent>
+    </Select>
   );
 }

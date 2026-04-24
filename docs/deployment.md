@@ -11,9 +11,12 @@ FormulaLab V1 Alpha 推荐部署到 Vercel，数据库使用任意兼容 Postgre
 
 ## 可选环境变量
 
-- `RESEND_API_KEY`：如果要发送 magic link 邮件，配置 Resend API Key。
-- `AUTH_FROM_EMAIL`：magic link 发件邮箱。
-- `AUTH_FROM_NAME`：magic link 发件人名称，默认 `FormulaLab`。
+- `E2E_BASE_URL`：端到端测试访问的应用地址；为空时相关测试会跳过。
+- `LLM_PROVIDER`：内容辅助工具使用的 OpenAI-compatible LLM 提供商，支持 `kimi`、`deepseek`、`custom`。
+- `LLM_API_KEY`：内容辅助工具使用的 LLM API key。
+- `LLM_API_BASE_URL`：LLM 接口地址覆盖项；为空时使用 provider 默认值。
+- `LLM_MODEL`：LLM 模型名覆盖项；为空时使用 provider 默认值。
+- `LLM_API_TIMEOUT_MS`：LLM 请求超时时间，单位毫秒。
 
 ## Vercel 配置
 
@@ -29,12 +32,6 @@ FormulaLab V1 Alpha 推荐部署到 Vercel，数据库使用任意兼容 Postgre
 - `NEXT_PUBLIC_APP_URL`
 - `BETTER_AUTH_SECRET`
 - `BETTER_AUTH_URL`
-
-如果要在生产环境启用邮箱 magic link，还需要补充：
-
-- `RESEND_API_KEY`
-- `AUTH_FROM_EMAIL`
-- `AUTH_FROM_NAME`
 
 ## 数据库上线步骤
 
@@ -71,8 +68,8 @@ E2E_BASE_URL=http://localhost:3000 npm run test:e2e
 
 ## 账号系统说明
 
-- 开发环境下如果没有配置邮件发送服务，magic link 会输出到服务端日志，便于本地联调。
-- 生产环境下未配置 `RESEND_API_KEY` 与 `AUTH_FROM_EMAIL` 时，magic link 发送会失败。
+- 账号系统使用邮箱和密码，用户可以直接注册。
+- 当前没有启用邮箱验证、magic link 或密码重置邮件，因此不需要配置邮件服务。
 
 ## 开发期数据库工作流
 

@@ -9,7 +9,7 @@ import {
   Orbit,
 } from "lucide-react";
 
-import { MagicLinkSignInForm } from "@/components/account/magic-link-sign-in-form";
+import { EmailPasswordAuthForm } from "@/components/account/email-password-auth-form";
 import { LatexRenderer } from "@/components/formula/latex-renderer";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
@@ -56,166 +56,165 @@ const sampleFormulas = [
   },
 ];
 
-export default async function Home() {
+function sanitizeReturnTo(value?: string) {
+  if (!value || !value.startsWith("/") || value.startsWith("//")) {
+    return "/review";
+  }
+
+  return value;
+}
+
+export default async function Home({
+  searchParams,
+}: {
+  searchParams: Promise<{ returnTo?: string }>;
+}) {
+  const params = await searchParams;
+  const returnTo = sanitizeReturnTo(params.returnTo);
   const current = await getCurrentLearner();
 
   if (current) {
-    redirect("/review");
+    redirect(returnTo);
   }
 
   return (
-    <main className="min-h-svh overflow-hidden bg-[radial-gradient(circle_at_top,rgba(189,221,202,0.35),transparent_32%),linear-gradient(180deg,#f7f5ef_0%,#f2efe6_44%,#ebe7db_100%)] text-slate-950">
-      <div className="relative isolate">
-        <div className="absolute inset-x-0 top-0 -z-10 h-[36rem] bg-[linear-gradient(120deg,rgba(22,61,44,0.12),rgba(123,92,39,0.08)_42%,transparent_75%)]" />
-        <div className="absolute right-[-8rem] top-20 -z-10 h-72 w-72 rounded-full bg-amber-200/30 blur-3xl" />
-        <div className="absolute left-[-10rem] top-40 -z-10 h-80 w-80 rounded-full bg-emerald-200/30 blur-3xl" />
-
-        <header className="mx-auto flex w-full max-w-6xl items-center justify-between px-5 py-4 md:px-8">
-          <Link href="/" className="flex items-center gap-3">
-            <span className="flex size-10 items-center justify-center rounded-2xl bg-slate-950 text-slate-50 shadow-[0_12px_30px_rgba(15,23,42,0.16)]">
+    <main className="min-h-svh bg-[#f6f7f2] text-slate-950">
+      <header className="border-b border-slate-200/80 bg-white/85">
+        <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-5 py-4 md:px-8">
+          <Link href="/" className="flex min-w-0 items-center gap-3">
+            <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-slate-950 text-slate-50">
               <FlaskConical data-icon="inline-start" />
             </span>
-            <span>
-              <span className="block text-base font-semibold tracking-tight">FormulaLab</span>
+            <span className="min-w-0">
+              <span className="block text-base font-semibold">FormulaLab</span>
               <span className="block text-xs text-slate-600">
-                登录后进入训练页
+                今日复习优先
               </span>
             </span>
           </Link>
 
           <Link
-            href="/account"
-            className={cn(
-              buttonVariants({
-                size: "sm",
-                variant: "outline",
-              }),
-              "border-slate-300/80 bg-white/70 backdrop-blur-sm",
-            )}
+            href="#login"
+            className={buttonVariants({
+              size: "sm",
+              variant: "outline",
+            })}
           >
-            账号中心
+            登录
           </Link>
-        </header>
+        </div>
+      </header>
 
-        <section className="mx-auto grid min-h-[calc(100svh-5rem)] w-full max-w-6xl gap-8 px-5 pb-10 pt-2 md:px-8 lg:grid-cols-[minmax(0,1.1fr)_minmax(20rem,0.9fr)] lg:items-center lg:pb-16">
-          <div className="grid gap-6">
-            <div className="grid gap-4">
-              <Badge className="w-fit rounded-full border border-slate-900/10 bg-white/70 px-3 py-1 text-slate-700 shadow-sm">
-                Review-first
-              </Badge>
-              <div className="grid max-w-3xl gap-3">
-                <h1 className="text-4xl font-semibold tracking-[-0.05em] text-balance md:text-6xl">
-                  登录后开始今天的复习
-                </h1>
-                <p className="max-w-xl text-sm leading-6 text-slate-700 md:text-base">
-                  进入诊断、复习、补弱，并把提示逐步写成自己的话。
-                </p>
-              </div>
-              <div className="flex flex-wrap gap-3">
-                <Link
-                  href="#login"
-                  className={cn(
-                    buttonVariants({
-                      size: "lg",
-                    }),
-                    "h-11 rounded-full bg-slate-950 px-5 text-sm shadow-[0_18px_40px_rgba(15,23,42,0.18)] hover:bg-slate-800",
-                  )}
-                >
-                  登录开始训练
-                  <ArrowRight data-icon="inline-end" />
-                </Link>
-                <Link
-                  href="#loop"
-                  className={cn(
-                    buttonVariants({
-                      size: "lg",
-                      variant: "outline",
-                    }),
-                    "h-11 rounded-full border-slate-300/80 bg-white/60 px-5 text-sm backdrop-blur-sm",
-                  )}
-                >
-                  看训练流程
-                </Link>
-              </div>
-            </div>
+      <section className="mx-auto grid w-full max-w-6xl gap-6 px-5 py-6 md:px-8 md:py-10 lg:grid-cols-[minmax(0,0.95fr)_minmax(20rem,0.72fr)] lg:items-start">
+        <div className="grid gap-5 lg:pt-8">
+          <Badge className="w-fit rounded-md border border-emerald-200 bg-emerald-50 px-3 py-1 text-emerald-950 shadow-none">
+            Review-first
+          </Badge>
 
-            <div className="grid gap-3 md:grid-cols-2">
-              {sampleFormulas.map((item) => (
-                <article
-                  key={item.title}
-                  className="rounded-[1.5rem] border border-white/70 bg-white/70 p-4 shadow-[0_18px_40px_rgba(54,57,42,0.07)] backdrop-blur-sm transition-transform duration-300 hover:-translate-y-1"
-                >
-                  <p className="text-xs font-medium uppercase tracking-[0.22em] text-slate-500">
-                    {item.eyebrow}
-                  </p>
-                  <h2 className="mt-2 text-lg font-semibold tracking-tight">{item.title}</h2>
-                  <LatexRenderer
-                    block
-                    expression={item.expression}
-                    className="mt-3 border-slate-200/80 bg-[#fcfbf7] px-3 py-4 text-sm shadow-none"
-                  />
-                  <p className="mt-3 text-sm leading-5 text-slate-600">{item.description}</p>
-                </article>
-              ))}
-            </div>
+          <div className="grid max-w-2xl gap-3">
+            <h1 className="text-3xl font-semibold leading-tight md:text-5xl">
+              登录后开始今天的复习
+            </h1>
+            <p className="max-w-xl text-base leading-7 text-slate-700">
+              先诊断，再复习和补弱。FormulaLab 会把每条公式的下次提示，慢慢变成你自己的回忆线索。
+            </p>
           </div>
 
-          <aside
-            id="login"
-            className="relative overflow-hidden rounded-[1.75rem] border border-slate-900/10 bg-slate-950 px-5 py-5 text-slate-50 shadow-[0_26px_60px_rgba(15,23,42,0.22)] md:px-6 md:py-6"
-          >
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.12),transparent_35%),linear-gradient(180deg,rgba(255,255,255,0.04),transparent_55%)]" />
-            <div className="relative grid gap-5">
-              <div className="grid gap-2">
-                <Badge className="w-fit rounded-full bg-white/12 px-3 py-1 text-slate-100">
-                  Magic link 登录
-                </Badge>
-                <div className="grid gap-1.5">
-                  <h2 className="text-xl font-semibold tracking-tight">输入邮箱继续</h2>
-                  <p className="text-sm leading-5 text-slate-300">
-                    使用 magic link 登录。训练记录会保存在账号下。
-                  </p>
-                </div>
-              </div>
+          <div className="flex flex-wrap gap-3">
+            <Link
+              href="#login"
+              className={cn(buttonVariants({ size: "lg" }), "h-11 px-5")}
+            >
+              输入邮箱登录
+              <ArrowRight data-icon="inline-end" />
+            </Link>
+            <Link
+              href="#loop"
+              className={cn(
+                buttonVariants({
+                  size: "lg",
+                  variant: "outline",
+                }),
+                "h-11 px-5 bg-white",
+              )}
+            >
+              看训练流程
+            </Link>
+          </div>
 
-              <MagicLinkSignInForm
-                callbackURL="/review"
-                fieldClassName="gap-3"
-                inputClassName="h-11 border-white/15 bg-white/8 text-slate-50 placeholder:text-slate-400"
-                buttonClassName="h-11 rounded-full bg-[#d5b36f] text-slate-950 hover:bg-[#ddb96e]"
-                submitLabel="发送登录链接"
-                successMessage="登录链接已发送。开发环境未配置邮件服务时，可以在服务端日志里查看 magic link。"
-              />
+          <div className="hidden grid-cols-2 gap-3 md:grid">
+            {sampleFormulas.map((item) => (
+              <article
+                key={item.title}
+                className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm"
+              >
+                <p className="text-xs font-medium text-slate-500">
+                  {item.eyebrow}
+                </p>
+                <h2 className="mt-2 text-lg font-semibold">{item.title}</h2>
+                <LatexRenderer
+                  block
+                  expression={item.expression}
+                  className="mt-3 border-slate-200 bg-slate-50 px-3 py-4 text-sm shadow-none"
+                />
+                <p className="mt-3 text-sm leading-5 text-slate-600">{item.description}</p>
+              </article>
+            ))}
+          </div>
+        </div>
 
-              <div className="grid gap-2 border-t border-white/10 pt-4 text-sm text-slate-300">
-                <div className="flex items-start gap-3">
-                  <span className="mt-1 h-2 w-2 rounded-full bg-emerald-300" />
-                  <p>登录后进入训练页。</p>
-                </div>
-                <div className="flex items-start gap-3">
-                  <span className="mt-1 h-2 w-2 rounded-full bg-amber-300" />
-                  <p>开发环境可在服务端日志查看 magic link。</p>
-                </div>
+        <aside
+          id="login"
+          className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm md:p-6 lg:sticky lg:top-6"
+        >
+          <div className="grid gap-5">
+            <div className="grid gap-2">
+              <Badge variant="secondary" className="w-fit rounded-md px-3 py-1">
+                账号登录
+              </Badge>
+              <div className="grid gap-1.5">
+                <h2 className="text-xl font-semibold">登录或注册</h2>
+                <p className="text-sm leading-6 text-slate-600">
+                  登录后直接进入训练页，复习记录会保存在账号下。
+                </p>
               </div>
             </div>
-          </aside>
-        </section>
-      </div>
+
+            <EmailPasswordAuthForm
+              callbackURL={returnTo}
+              fieldClassName="gap-3"
+              inputClassName="h-11 bg-white"
+              buttonClassName="h-11"
+            />
+
+            <div className="grid gap-2 border-t border-slate-200 pt-4 text-sm text-slate-600">
+              <div className="flex items-start gap-3">
+                <span className="mt-1.5 h-2 w-2 rounded-full bg-emerald-500" />
+                <p>登录后进入今日复习。</p>
+              </div>
+              <div className="flex items-start gap-3">
+                <span className="mt-1.5 h-2 w-2 rounded-full bg-sky-500" />
+                <p>没有训练队列时，会先引导做 5 题诊断。</p>
+              </div>
+            </div>
+          </div>
+        </aside>
+      </section>
 
       <section
         id="loop"
-        className="border-y border-slate-900/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.62),rgba(255,255,255,0.3))]"
+        className="border-y border-slate-200 bg-white"
       >
-        <div className="mx-auto grid w-full max-w-6xl gap-6 px-5 py-10 md:px-8 lg:grid-cols-[minmax(0,0.78fr)_minmax(0,1.22fr)]">
-          <div className="grid gap-3">
-            <Badge variant="secondary" className="w-fit rounded-full px-3 py-1">
+        <div className="mx-auto grid w-full max-w-6xl gap-6 px-5 py-8 md:px-8 lg:grid-cols-[minmax(0,0.72fr)_minmax(0,1.28fr)]">
+          <div className="grid content-start gap-3">
+            <Badge variant="secondary" className="w-fit rounded-md px-3 py-1">
               流程
             </Badge>
-            <h2 className="text-2xl font-semibold tracking-tight text-balance md:text-3xl">
-              登录后先做训练。
+            <h2 className="text-2xl font-semibold md:text-3xl">
+              登录后只做下一步。
             </h2>
-            <p className="max-w-md text-sm leading-6 text-slate-700">
-              首页只保留登录和流程说明。
+            <p className="max-w-md text-sm leading-6 text-slate-600">
+              页面会根据当前状态，把入口收敛到训练、公式库或进展。
             </p>
           </div>
 
@@ -226,47 +225,26 @@ export default async function Home() {
               return (
                 <article
                   key={step.title}
-                  className="grid gap-2 rounded-[1.4rem] border border-slate-900/8 bg-white/70 p-4 shadow-[0_16px_36px_rgba(54,57,42,0.06)] backdrop-blur-sm transition-colors duration-300 hover:border-slate-900/18"
+                  className="grid gap-2 rounded-lg border border-slate-200 bg-[#fafbf8] p-4"
                 >
                   <div className="flex items-center gap-3">
-                    <span className="flex size-10 items-center justify-center rounded-2xl bg-slate-950 text-slate-50">
+                    <span className="flex size-9 items-center justify-center rounded-lg bg-slate-950 text-slate-50">
                       <Icon data-icon="inline-start" />
                     </span>
                     <div>
-                      <p className="text-xs uppercase tracking-[0.22em] text-slate-500">
+                      <p className="text-xs text-slate-500">
                         Step {index + 1}
                       </p>
                       <h3 className="text-base font-semibold">{step.title}</h3>
                     </div>
                   </div>
-                  <p className="max-w-2xl text-sm leading-5 text-slate-600">
+                  <p className="text-sm leading-5 text-slate-600">
                     {step.description}
                   </p>
                 </article>
               );
             })}
           </div>
-        </div>
-      </section>
-
-      <section className="border-t border-slate-900/8 bg-slate-950 text-slate-50">
-        <div className="mx-auto grid w-full max-w-6xl gap-4 px-5 py-8 md:px-8 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
-          <div className="grid gap-2">
-            <p className="text-sm text-slate-300">准备好了就登录。</p>
-          </div>
-
-          <Link
-            href="#login"
-            className={cn(
-              buttonVariants({
-                size: "lg",
-              }),
-              "h-10 rounded-full bg-[#d5b36f] px-5 text-slate-950 hover:bg-[#ddb96e]",
-            )}
-          >
-            去登录
-            <ArrowRight data-icon="inline-end" />
-          </Link>
         </div>
       </section>
     </main>

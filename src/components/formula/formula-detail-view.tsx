@@ -416,11 +416,11 @@ function entryPointLabel(
 ) {
   switch (entryPoint) {
     case "review":
-      return "你是从复习题里跳进来的";
+      return "看完后回到当前复习";
     case "summary":
-      return "你是从总结页的弱项入口进来的";
+      return "正在修复总结里的薄弱项";
     case "paths":
-      return "你正在按内容集推进";
+      return "正在按学习路径推进";
     case "derivation":
       return "你正在做推导强化";
     case "memory-hooks":

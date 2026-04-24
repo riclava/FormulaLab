@@ -48,34 +48,38 @@ function parseEntryPoint(value?: string) {
 function buildReturnLink({
   entryPoint,
   mode,
+  domain,
 }: {
   entryPoint: ReturnType<typeof parseEntryPoint>;
   mode?: string;
+  domain?: string;
 }) {
+  const domainQuery = domain ? `domain=${encodeURIComponent(domain)}` : "";
+
   switch (entryPoint) {
     case "review":
       return {
-        href: mode === "weak" ? "/review?mode=weak" : "/review",
-        label: mode === "weak" ? "回到弱项重练" : "回到今日复习",
+        href: withQuery(mode === "weak" ? "/review?mode=weak" : "/review", domainQuery),
+        label: mode === "weak" ? "继续补弱" : "回到当前复习",
       };
     case "summary":
       return {
-        href: "/summary",
-        label: "回到复习总结",
+        href: withQuery("/summary", domainQuery),
+        label: "回到进展",
       };
     case "paths":
       return {
-        href: "/paths",
-        label: "回到学习路径",
+        href: withQuery("/paths", domainQuery),
+        label: "继续学习路径",
       };
     case "derivation":
       return {
-        href: "/derivation",
+        href: withQuery("/derivation", domainQuery),
         label: "回到推导训练",
       };
     case "memory-hooks":
       return {
-        href: "/memory-hooks",
+        href: withQuery("/memory-hooks", domainQuery),
         label: "回到提示整理",
       };
     case "custom":
@@ -86,10 +90,18 @@ function buildReturnLink({
     case "formulas":
     default:
       return {
-        href: "/formulas",
+        href: withQuery("/formulas", domainQuery),
         label: "回到公式列表",
       };
   }
+}
+
+function withQuery(href: string, query: string) {
+  if (!query) {
+    return href;
+  }
+
+  return href.includes("?") ? `${href}&${query}` : `${href}?${query}`;
 }
 
 export default async function FormulaDetailPage({
@@ -97,10 +109,10 @@ export default async function FormulaDetailPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ focus?: string; from?: string; mode?: string }>;
+  searchParams: Promise<{ focus?: string; from?: string; mode?: string; domain?: string }>;
 }) {
   const { id: rawId } = await params;
-  const { focus, from, mode } = await searchParams;
+  const { focus, from, mode, domain } = await searchParams;
   const id = normalizeRouteParam(rawId);
   const current = await requireCurrentLearner();
   const [formula, relations, hooks] = await Promise.all([
@@ -132,6 +144,7 @@ export default async function FormulaDetailPage({
         returnLink={buildReturnLink({
           entryPoint: parseEntryPoint(from),
           mode,
+          domain,
         })}
       />
     </PhaseShell>

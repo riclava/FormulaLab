@@ -80,7 +80,7 @@ export function WeakFormulaList({
                 });
               }}
             >
-              {actionLabelForWeakPoint(formula.weakPoint)}
+              修复这条
               <ArrowRight data-icon="inline-end" />
             </Link>
           </div>
@@ -116,19 +116,5 @@ function focusSectionForWeakPoint(
     case "application":
     default:
       return "anti-patterns";
-  }
-}
-
-function actionLabelForWeakPoint(weakPoint: WeakFormulaStat["weakPoint"]) {
-  switch (weakPoint) {
-    case "boundary":
-      return "先看适用边界";
-    case "concept":
-      return "补一句自己的提醒";
-    case "retention":
-      return "先恢复记忆线索";
-    case "application":
-    default:
-      return "先看常见误用";
   }
 }

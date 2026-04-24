@@ -1,13 +1,12 @@
 import Link from "next/link";
 import {
+  Bot,
   BookOpen,
   Brain,
   ChartNoAxesColumn,
   ClipboardCheck,
-  Compass,
   FlaskConical,
-  Orbit,
-  Target,
+  Variable,
 } from "lucide-react";
 
 import { AccountEntry } from "@/components/app/account-entry";
@@ -29,51 +28,37 @@ export type NavItem = {
 const navItems: NavItem[] = [
   {
     href: "/review",
-    label: "今日复习",
+    label: "训练",
     icon: ClipboardCheck,
-    description: "直接开始今天该练的内容。",
-    group: "primary",
-  },
-  {
-    href: "/review?mode=weak",
-    label: "补弱",
-    icon: Target,
-    description: "把 Again 和 Hard 的公式拉回来。",
+    description: "完成今日复习、弱项重练和诊断校准。",
     group: "primary",
   },
   {
     href: "/formulas",
     label: "公式库",
     icon: BookOpen,
-    description: "查找、回看和按主题浏览公式。",
+    description: "查找公式、学习路径和推导训练。",
     group: "primary",
   },
   {
-    href: "/diagnostic",
-    label: "诊断校准",
-    icon: Brain,
-    description: "重新判断薄弱点并更新起始队列。",
-    group: "tool",
-  },
-  {
     href: "/summary",
-    label: "复习总结",
+    label: "进展",
     icon: ChartNoAxesColumn,
-    description: "查看最近一轮训练结果和下一步建议。",
+    description: "查看训练结果、薄弱点和下一步建议。",
+    group: "primary",
+  },
+  {
+    href: "/math-symbols",
+    label: "数学符号",
+    icon: Variable,
+    description: "按类别速查数学符号、读音和用法。",
     group: "tool",
   },
   {
-    href: "/paths",
-    label: "学习路径",
-    icon: Compass,
-    description: "按知识域查看内容集和当前进度。",
-    group: "tool",
-  },
-  {
-    href: "/derivation",
-    label: "推导训练",
-    icon: Orbit,
-    description: "在推导维度上强化公式理解。",
+    href: "/content-assist",
+    label: "内容辅助",
+    icon: Bot,
+    description: "维护公式解释、复习题和关系草稿。",
     group: "tool",
   },
 ];
@@ -104,12 +89,12 @@ export function PhaseShell({
   const returnTo = addLearningDomainToHref(activePath || "/review", learningDomain?.currentDomain);
 
   return (
-    <main className="min-h-svh bg-background">
-      <header className="border-b bg-background/95">
+    <main className="min-h-svh bg-[#f6f7f2]">
+      <header className="border-b border-slate-200/80 bg-white/85">
         <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-5 py-4 md:px-8 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex flex-wrap items-center gap-4">
             <Link href={homeHref} className="flex w-fit items-center gap-3">
-              <span className="flex size-9 items-center justify-center rounded-md bg-primary text-primary-foreground">
+              <span className="flex size-10 items-center justify-center rounded-lg bg-primary text-primary-foreground">
                 <FlaskConical data-icon="inline-start" />
               </span>
               <span>
@@ -143,10 +128,12 @@ export function PhaseShell({
                   <Link
                     key={item.href}
                     href={href}
-                    aria-current={activePath === item.href ? "page" : undefined}
+                    aria-current={isPrimaryItemActive(item.href, activePath) ? "page" : undefined}
                     className={buttonVariants({
                       size: "sm",
-                      variant: activePath === item.href ? "default" : "ghost",
+                      variant: isPrimaryItemActive(item.href, activePath)
+                        ? "default"
+                        : "ghost",
                     })}
                   >
                     <Icon data-icon="inline-start" />
@@ -179,12 +166,12 @@ export function PhaseShell({
       <div
         className={cn(
           "mx-auto flex w-full max-w-6xl flex-col px-5 md:px-8",
-          density === "compact" ? "gap-5 py-5 md:py-6" : "gap-8 py-8 md:py-10",
+          density === "compact" ? "gap-5 py-5 md:py-6" : "gap-7 py-7 md:py-9",
         )}
       >
         <div
           className={cn(
-            "border-b",
+            "border-b border-slate-200",
             hasHeaderAside
               ? "flex flex-col lg:flex-row lg:items-end lg:justify-between"
               : "grid",
@@ -217,8 +204,8 @@ export function PhaseShell({
           </div>
 
           {activeTool ? (
-            <div className="flex max-w-sm items-start gap-3 rounded-lg border bg-muted/20 px-4 py-3 text-sm">
-              <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-md bg-background text-muted-foreground">
+            <div className="flex max-w-sm items-start gap-3 rounded-lg border bg-white px-4 py-3 text-sm shadow-sm">
+              <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-md bg-slate-100 text-muted-foreground">
                 {ActiveToolIcon ? <ActiveToolIcon data-icon="inline-start" /> : null}
               </span>
               <div className="min-w-0">
@@ -243,7 +230,7 @@ export function PhaseShell({
 }
 
 function addLearningDomainToHref(href: string, domain?: string) {
-  if (!domain || href.startsWith("/formulas") || href.startsWith("/account")) {
+  if (!domain || href.startsWith("/account")) {
     return href;
   }
 
@@ -253,6 +240,22 @@ function addLearningDomainToHref(href: string, domain?: string) {
   const query = params.toString();
 
   return query ? `${pathname}?${query}` : pathname;
+}
+
+function isPrimaryItemActive(href: string, activePath: string) {
+  if (href === "/review") {
+    return activePath.startsWith("/review") || activePath === "/diagnostic";
+  }
+
+  if (href === "/formulas") {
+    return ["/formulas", "/paths", "/derivation"].includes(activePath);
+  }
+
+  if (href === "/summary") {
+    return activePath === "/summary" || activePath === "/memory-hooks";
+  }
+
+  return activePath === href;
 }
 
 function PhaseLink({

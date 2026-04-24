@@ -6,7 +6,7 @@ import { Loader2, LogOut, ShieldCheck } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { MagicLinkSignInForm } from "@/components/account/magic-link-sign-in-form";
+import { EmailPasswordAuthForm } from "@/components/account/email-password-auth-form";
 import { authClient } from "@/lib/auth-client";
 
 export function AccountPanel({
@@ -88,7 +88,7 @@ export function AccountPanel({
             </Badge>
             <h2 className="text-xl font-semibold">输入邮箱继续</h2>
             <p className="text-sm leading-6 text-muted-foreground">
-              使用 magic link 登录。登录后进入训练页。
+              使用邮箱和密码登录，也可以直接注册新账号。
             </p>
           </div>
 
@@ -98,7 +98,7 @@ export function AccountPanel({
             </div>
           ) : null}
 
-          <MagicLinkSignInForm callbackURL={returnTo} />
+          <EmailPasswordAuthForm callbackURL={returnTo} />
         </div>
       )}
     </section>

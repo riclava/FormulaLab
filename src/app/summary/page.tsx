@@ -3,6 +3,7 @@ import {
   ArrowRight,
   BarChart3,
   CalendarClock,
+  ChartNoAxesColumn,
   CheckCircle2,
   Lightbulb,
   Route,
@@ -11,6 +12,7 @@ import {
 } from "lucide-react";
 
 import { PhaseShell } from "@/components/app/phase-shell";
+import { SectionNav } from "@/components/app/section-nav";
 import { WeakFormulaList } from "@/components/summary/weak-formula-list";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
@@ -52,11 +54,44 @@ export default async function SummaryPage({
   return (
     <PhaseShell
       activePath="/summary"
-      eyebrow="复习总结"
-      title="结果与下一步"
+      eyebrow="进展"
+      title="结果、薄弱点与下一步"
       learningDomain={learningDomain}
     >
       <div className="grid gap-6">
+        <SectionNav
+          label="进展入口"
+          items={[
+            {
+              href: `/summary?domain=${encodeURIComponent(
+                learningDomain.currentDomain,
+              )}`,
+              label: "训练进展",
+              description: "查看结果和下一步。",
+              icon: ChartNoAxesColumn,
+              active: true,
+            },
+            {
+              href: `/memory-hooks?domain=${encodeURIComponent(
+                learningDomain.currentDomain,
+              )}`,
+              label: "提示整理",
+              description: "维护自己的回忆线索。",
+              icon: Lightbulb,
+              active: false,
+            },
+            {
+              href: `/review?domain=${encodeURIComponent(
+                learningDomain.currentDomain,
+              )}`,
+              label: "回到训练",
+              description: "继续今日复习队列。",
+              icon: CheckCircle2,
+              active: false,
+            },
+          ]}
+        />
+
         <section className="rounded-lg border bg-background p-6 shadow-sm">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div className="grid max-w-3xl gap-3">
@@ -140,14 +175,14 @@ export default async function SummaryPage({
                   </Link>
                   {summary.immediateWeakFormulas[0] ? (
                     <Link
-                      href={`/formulas/${summary.immediateWeakFormulas[0].slug}?from=summary&focus=anti-patterns`}
+                      href={`/formulas/${summary.immediateWeakFormulas[0].slug}?from=summary&focus=anti-patterns&domain=${encodeURIComponent(learningDomain.currentDomain)}`}
                       className={buttonVariants({ size: "sm", variant: "outline" })}
                     >
-                      打开最弱一条
+                      修复最弱一条
                     </Link>
                   ) : null}
                   <Link
-                    href="/formulas"
+                    href={`/formulas?domain=${encodeURIComponent(learningDomain.currentDomain)}`}
                     className={buttonVariants({ size: "sm", variant: "outline" })}
                   >
                     浏览公式
