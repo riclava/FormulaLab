@@ -14,9 +14,15 @@ const CONTENT_ASSIST_ROOT = path.join(process.cwd(), "content-assist");
 const DRAFTS_DIR = path.join(CONTENT_ASSIST_ROOT, "drafts");
 const APPROVED_DIR = path.join(CONTENT_ASSIST_ROOT, "approved");
 
-export async function listContentAssistWorkspace(): Promise<ContentAssistWorkspaceItem[]> {
+export async function listContentAssistWorkspace({
+  domain,
+}: {
+  domain: string;
+}): Promise<ContentAssistWorkspaceItem[]> {
   const [formulas, drafts] = await Promise.all([
-    getFormulaSummaries(),
+    getFormulaSummaries({
+      domain,
+    }),
     readAllDrafts(),
   ]);
   const draftsBySlug = new Map(drafts.map((draft) => [draft.formulaSlug, draft]));

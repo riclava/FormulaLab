@@ -10,8 +10,10 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import type { FormulaDetail } from "@/types/formula";
 
 export function DerivationTrainer({
+  domain,
   formulas,
 }: {
+  domain: string;
   formulas: FormulaDetail[];
 }) {
   const [index, setIndex] = useState(0);
@@ -79,7 +81,10 @@ export function DerivationTrainer({
           <RotateCcw data-icon="inline-start" />
           下一条待补推导
         </Button>
-        <Link href="/review?mode=weak" className={buttonVariants({ variant: "secondary" })}>
+        <Link
+          href={`/review?mode=weak&domain=${encodeURIComponent(domain)}`}
+          className={buttonVariants({ variant: "secondary" })}
+        >
           去错题重练
         </Link>
       </div>

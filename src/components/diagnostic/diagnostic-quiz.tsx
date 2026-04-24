@@ -38,7 +38,7 @@ const assessmentOptions: Array<{
   },
 ];
 
-export function DiagnosticQuiz() {
+export function DiagnosticQuiz({ domain }: { domain: string }) {
   const [diagnostic, setDiagnostic] = useState<DiagnosticStart | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<
@@ -55,7 +55,7 @@ export function DiagnosticQuiz() {
     async function loadDiagnostic() {
       try {
         const response = await fetch(
-          "/api/diagnostic/start?domain=%E6%A6%82%E7%8E%87%E7%BB%9F%E8%AE%A1",
+          `/api/diagnostic/start?domain=${encodeURIComponent(domain)}`,
         );
         const payload = (await response.json()) as {
           data?: DiagnosticStart;
@@ -83,7 +83,7 @@ export function DiagnosticQuiz() {
     return () => {
       ignore = true;
     };
-  }, []);
+  }, [domain]);
 
   const questions = diagnostic?.questions ?? [];
   const currentQuestion = questions[currentIndex];
@@ -315,7 +315,10 @@ function DiagnosticResultView({ result }: { result: DiagnosticResult }) {
         </div>
       ) : null}
 
-      <Link href="/review" className={buttonVariants({ className: "w-fit" })}>
+      <Link
+        href={`/review?domain=${encodeURIComponent(result.domain)}`}
+        className={buttonVariants({ className: "w-fit" })}
+      >
         进入今日复习
         <ArrowRight data-icon="inline-end" />
       </Link>

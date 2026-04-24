@@ -5,15 +5,21 @@ import { ReviewSession } from "@/components/review/review-session";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { requireCurrentLearner } from "@/server/auth/current-learner";
+import { resolveLearningDomain } from "@/server/learning-domain";
 
 export default async function ReviewPage({
   searchParams,
 }: {
-  searchParams: Promise<{ mode?: string }>;
+  searchParams: Promise<{ mode?: string; domain?: string }>;
 }) {
   await requireCurrentLearner();
   const params = await searchParams;
   const mode = params.mode === "weak" ? "weak" : "today";
+  const learningDomain = await resolveLearningDomain(params.domain);
+  const todayHref = `/review?domain=${encodeURIComponent(learningDomain.currentDomain)}`;
+  const weakHref = `/review?mode=weak&domain=${encodeURIComponent(
+    learningDomain.currentDomain,
+  )}`;
 
   return (
     <PhaseShell
@@ -24,18 +30,19 @@ export default async function ReviewPage({
           ? "重练薄弱公式"
           : "开始今日复习"
       }
+      learningDomain={learningDomain}
     >
       <section className="flex flex-col gap-4 rounded-lg border bg-background p-4 shadow-sm md:flex-row md:items-center md:justify-between">
         <p className="text-sm font-medium">训练模式</p>
         <div className="flex flex-wrap gap-2">
           {[
             {
-              href: "/review",
+              href: todayHref,
               label: "今日复习",
               active: mode === "today",
             },
             {
-              href: "/review?mode=weak",
+              href: weakHref,
               label: "弱项重练",
               active: mode === "weak",
             },
@@ -58,7 +65,11 @@ export default async function ReviewPage({
         </div>
       </section>
 
-      <ReviewSession key={mode} mode={mode} />
+      <ReviewSession
+        key={`${mode}:${learningDomain.currentDomain}`}
+        mode={mode}
+        domain={learningDomain.currentDomain}
+      />
     </PhaseShell>
   );
 }

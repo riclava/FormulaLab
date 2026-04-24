@@ -31,20 +31,27 @@ const REVIEW_QUEUE_LIMIT = 8;
 
 export async function getTodayReviewSession({
   userId,
+  domain,
   mode = "today",
 }: {
   userId: string;
+  domain: string;
   mode?: ReviewMode;
 }): Promise<ReviewSessionPayload> {
   const [formulaStateCount, states] = await Promise.all([
-    countUserFormulaStates(userId),
+    countUserFormulaStates({
+      userId,
+      domain,
+    }),
     mode === "weak"
       ? listWeakFormulaStatesForReview({
           userId,
+          domain,
           take: REVIEW_QUEUE_LIMIT,
         })
       : listDueFormulaStates({
           userId,
+          domain,
           now: new Date(),
           take: REVIEW_QUEUE_LIMIT,
         }),
@@ -84,7 +91,7 @@ export async function getTodayReviewSession({
   );
   const session = await createStudySession({
     userId,
-    domain: items[0]?.formula.domain ?? eligibleStates[0].formula.domain,
+    domain,
   });
 
   return {

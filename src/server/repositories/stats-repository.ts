@@ -1,9 +1,16 @@
 import { prisma } from "@/lib/db/prisma";
 
-export async function getLatestCompletedStudySessionSummary(userId: string) {
+export async function getLatestCompletedStudySessionSummary({
+  userId,
+  domain,
+}: {
+  userId: string;
+  domain: string;
+}) {
   return prisma.studySession.findFirst({
     where: {
       userId,
+      domain,
       status: "completed",
     },
     orderBy: {
@@ -33,10 +40,19 @@ export async function getLatestCompletedStudySessionSummary(userId: string) {
   });
 }
 
-export async function listRecentStudySessions(userId: string, take = 60) {
+export async function listRecentStudySessions({
+  userId,
+  domain,
+  take = 60,
+}: {
+  userId: string;
+  domain: string;
+  take?: number;
+}) {
   return prisma.studySession.findMany({
     where: {
       userId,
+      domain,
     },
     orderBy: {
       startedAt: "desc",
@@ -45,10 +61,21 @@ export async function listRecentStudySessions(userId: string, take = 60) {
   });
 }
 
-export async function listReviewLogsForUser(userId: string, take = 500) {
+export async function listReviewLogsForUser({
+  userId,
+  domain,
+  take = 500,
+}: {
+  userId: string;
+  domain: string;
+  take?: number;
+}) {
   return prisma.reviewLog.findMany({
     where: {
       userId,
+      formula: {
+        domain,
+      },
     },
     orderBy: {
       reviewedAt: "asc",
@@ -64,10 +91,21 @@ export async function listReviewLogsForUser(userId: string, take = 500) {
   });
 }
 
-export async function listWeakFormulaStates(userId: string, take = 8) {
+export async function listWeakFormulaStates({
+  userId,
+  domain,
+  take = 8,
+}: {
+  userId: string;
+  domain: string;
+  take?: number;
+}) {
   return prisma.userFormulaState.findMany({
     where: {
       userId,
+      formula: {
+        domain,
+      },
     },
     include: {
       formula: {
@@ -90,8 +128,19 @@ export async function listWeakFormulaStates(userId: string, take = 8) {
   });
 }
 
-export async function countProgressBuckets(userId: string) {
+export async function countProgressBuckets({
+  userId,
+  domain,
+}: {
+  userId: string;
+  domain: string;
+}) {
   const now = new Date();
+  const domainWhere = {
+    formula: {
+      domain,
+    },
+  };
 
   const [
     trackedFormulaCount,
@@ -103,11 +152,15 @@ export async function countProgressBuckets(userId: string) {
     latestDiagnostic,
   ] = await Promise.all([
     prisma.userFormulaState.count({
-      where: { userId },
+      where: {
+        userId,
+        ...domainWhere,
+      },
     }),
     prisma.userFormulaState.count({
       where: {
         userId,
+        ...domainWhere,
         nextReviewAt: {
           lte: now,
         },
@@ -116,6 +169,7 @@ export async function countProgressBuckets(userId: string) {
     prisma.userFormulaState.count({
       where: {
         userId,
+        ...domainWhere,
         nextReviewAt: {
           gt: now,
         },
@@ -124,6 +178,7 @@ export async function countProgressBuckets(userId: string) {
     prisma.userFormulaState.count({
       where: {
         userId,
+        ...domainWhere,
         memoryStrength: {
           gte: 0.7,
         },
@@ -135,6 +190,7 @@ export async function countProgressBuckets(userId: string) {
     prisma.userFormulaState.count({
       where: {
         userId,
+        ...domainWhere,
         OR: [
           {
             memoryStrength: {
@@ -152,6 +208,9 @@ export async function countProgressBuckets(userId: string) {
     prisma.formulaMemoryHook.findMany({
       where: {
         userId,
+        formula: {
+          domain,
+        },
       },
       distinct: ["formulaId"],
       select: {
@@ -161,6 +220,7 @@ export async function countProgressBuckets(userId: string) {
     prisma.diagnosticAttempt.findFirst({
       where: {
         userId,
+        domain,
       },
       orderBy: {
         completedAt: "desc",
@@ -184,10 +244,12 @@ export async function countProgressBuckets(userId: string) {
 
 export async function listRecentMemoryHookActivity({
   userId,
+  domain,
   from,
   formulaIds,
 }: {
   userId: string;
+  domain: string;
   from: Date;
   formulaIds: string[];
 }) {
@@ -195,6 +257,9 @@ export async function listRecentMemoryHookActivity({
     prisma.formulaMemoryHook.findMany({
       where: {
         userId,
+        formula: {
+          domain,
+        },
         createdAt: {
           gte: from,
         },
@@ -252,10 +317,19 @@ export async function listRecentMemoryHookActivity({
   };
 }
 
-export async function listAccessibleMemoryHooks(userId: string) {
+export async function listAccessibleMemoryHooks({
+  userId,
+  domain,
+}: {
+  userId: string;
+  domain: string;
+}) {
   return prisma.formulaMemoryHook.findMany({
     where: {
       userId,
+      formula: {
+        domain,
+      },
     },
     select: {
       id: true,
@@ -263,10 +337,28 @@ export async function listAccessibleMemoryHooks(userId: string) {
   });
 }
 
-export async function listProductEvents(userId: string) {
+export async function listProductEvents({
+  userId,
+  domain,
+}: {
+  userId: string;
+  domain: string;
+}) {
   return prisma.productEvent.findMany({
     where: {
       userId,
+      OR: [
+        {
+          formula: {
+            domain,
+          },
+        },
+        {
+          studySession: {
+            domain,
+          },
+        },
+      ],
     },
     orderBy: {
       createdAt: "desc",

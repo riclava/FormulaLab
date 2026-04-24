@@ -15,6 +15,7 @@ import { WeakFormulaList } from "@/components/summary/weak-formula-list";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { requireCurrentLearner } from "@/server/auth/current-learner";
+import { resolveLearningDomain } from "@/server/learning-domain";
 import {
   getProgressStats,
   getSummaryStats,
@@ -23,18 +24,29 @@ import type { ProgressStats, SummaryStats } from "@/types/stats";
 
 export const dynamic = "force-dynamic";
 
-export default async function SummaryPage() {
+export default async function SummaryPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ domain?: string }>;
+}) {
   const current = await requireCurrentLearner();
+  const params = await searchParams;
+  const learningDomain = await resolveLearningDomain(params.domain);
   const [summary, progress] = await Promise.all([
     getSummaryStats({
       userId: current.learner.id,
+      domain: learningDomain.currentDomain,
     }),
     getProgressStats({
       userId: current.learner.id,
+      domain: learningDomain.currentDomain,
     }),
   ]);
   const latestSession = summary.latestSession;
-  const primaryAction = buildPrimaryAction(summary, progress);
+  const primaryAction = addDomainToAction(
+    buildPrimaryAction(summary, progress),
+    learningDomain.currentDomain,
+  );
   const completionMessage = buildCompletionMessage(summary, progress);
 
   return (
@@ -42,6 +54,7 @@ export default async function SummaryPage() {
       activePath="/summary"
       eyebrow="复习总结"
       title="结果与下一步"
+      learningDomain={learningDomain}
     >
       <div className="grid gap-6">
         <section className="rounded-lg border bg-background p-6 shadow-sm">
@@ -410,6 +423,21 @@ function buildPrimaryAction(summary: SummaryStats, progress: ProgressStats) {
     badge: "已完成",
     priority: "low",
   } as const;
+}
+
+function addDomainToAction<T extends { href: string }>(action: T, domain: string): T {
+  if (action.href.startsWith("/formulas")) {
+    return action;
+  }
+
+  const [pathname, search = ""] = action.href.split("?");
+  const params = new URLSearchParams(search);
+  params.set("domain", domain);
+
+  return {
+    ...action,
+    href: `${pathname}?${params.toString()}`,
+  };
 }
 
 function buildCompletionMessage(summary: SummaryStats, progress: ProgressStats) {

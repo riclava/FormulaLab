@@ -53,7 +53,10 @@ export async function submitDiagnostic({
   submission: DiagnosticSubmission;
 }): Promise<DiagnosticResult> {
   const reviewItemIds = submission.answers.map((answer) => answer.reviewItemId);
-  const reviewItems = await listReviewItemsByIds(reviewItemIds);
+  const reviewItems = await listReviewItemsByIds({
+    domain: submission.domain,
+    reviewItemIds,
+  });
   const formulaIds = Array.from(
     new Set(reviewItems.map((item) => item.formulaId)),
   );
@@ -95,10 +98,15 @@ export async function submitDiagnostic({
 
 export async function getLatestDiagnosticResult({
   userId,
+  domain,
 }: {
   userId: string;
+  domain: string;
 }): Promise<DiagnosticResult | null> {
-  const attempt = await getLatestDiagnosticAttempt(userId);
+  const attempt = await getLatestDiagnosticAttempt({
+    userId,
+    domain,
+  });
 
   if (!attempt) {
     return null;

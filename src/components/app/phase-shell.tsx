@@ -11,10 +11,12 @@ import {
 } from "lucide-react";
 
 import { AccountEntry } from "@/components/app/account-entry";
+import { LearningDomainSelector } from "@/components/app/learning-domain-selector";
 import { ToolsMenu } from "@/components/app/phase-tools-menu";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import type { LearningDomainContext } from "@/server/learning-domain";
 
 export type NavItem = {
   href: string;
@@ -81,25 +83,31 @@ export function PhaseShell({
   eyebrow,
   title,
   description,
+  density = "default",
+  learningDomain,
   children,
 }: {
   activePath: string;
   eyebrow: string;
   title: string;
   description?: string;
+  density?: "default" | "compact";
+  learningDomain?: LearningDomainContext;
   children: React.ReactNode;
 }) {
   const primaryItems = navItems.filter((item) => item.group === "primary");
   const toolItems = navItems.filter((item) => item.group === "tool");
   const activeTool = toolItems.find((item) => item.href === activePath);
   const ActiveToolIcon = activeTool?.icon;
+  const homeHref = addLearningDomainToHref("/review", learningDomain?.currentDomain);
+  const returnTo = addLearningDomainToHref(activePath || "/review", learningDomain?.currentDomain);
 
   return (
     <main className="min-h-svh bg-background">
       <header className="border-b bg-background/95">
         <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-5 py-4 md:px-8 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex flex-wrap items-center gap-4">
-            <Link href="/review" className="flex w-fit items-center gap-3">
+            <Link href={homeHref} className="flex w-fit items-center gap-3">
               <span className="flex size-9 items-center justify-center rounded-md bg-primary text-primary-foreground">
                 <FlaskConical data-icon="inline-start" />
               </span>
@@ -115,14 +123,25 @@ export function PhaseShell({
           </div>
 
           <div className="flex flex-wrap items-center gap-2 md:justify-end">
+            {learningDomain ? (
+              <LearningDomainSelector
+                currentDomain={learningDomain.currentDomain}
+                domains={learningDomain.domains}
+              />
+            ) : null}
+
             <nav aria-label="主任务" className="flex flex-wrap gap-2">
               {primaryItems.map((item) => {
                 const Icon = item.icon;
+                const href = addLearningDomainToHref(
+                  item.href,
+                  learningDomain?.currentDomain,
+                );
 
                 return (
                   <Link
                     key={item.href}
-                    href={item.href}
+                    href={href}
                     aria-current={activePath === item.href ? "page" : undefined}
                     className={buttonVariants({
                       size: "sm",
@@ -140,7 +159,10 @@ export function PhaseShell({
               {toolItems.map((item) => (
                 <PhaseLink
                   key={item.href}
-                  href={item.href}
+                  href={addLearningDomainToHref(
+                    item.href,
+                    learningDomain?.currentDomain,
+                  )}
                   active={activeTool?.href === item.href}
                   icon={item.icon}
                   label={item.label}
@@ -148,18 +170,38 @@ export function PhaseShell({
                 />
               ))}
             </ToolsMenu>
-            <AccountEntry returnTo={activePath} />
+            <AccountEntry returnTo={returnTo} />
           </div>
         </div>
       </header>
 
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-5 py-8 md:px-8 md:py-10">
-        <div className="flex flex-col gap-5 border-b pb-6 lg:flex-row lg:items-end lg:justify-between">
-          <div className="flex min-w-0 max-w-3xl flex-col gap-3">
+      <div
+        className={cn(
+          "mx-auto flex w-full max-w-6xl flex-col px-5 md:px-8",
+          density === "compact" ? "gap-5 py-5 md:py-6" : "gap-8 py-8 md:py-10",
+        )}
+      >
+        <div
+          className={cn(
+            "flex flex-col border-b lg:flex-row lg:items-end lg:justify-between",
+            density === "compact" ? "gap-3 pb-4" : "gap-5 pb-6",
+          )}
+        >
+          <div
+            className={cn(
+              "flex min-w-0 max-w-3xl flex-col",
+              density === "compact" ? "gap-2" : "gap-3",
+            )}
+          >
             <Badge variant="secondary" className="w-fit">
               {eyebrow}
             </Badge>
-            <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">
+            <h1
+              className={cn(
+                "font-semibold tracking-tight",
+                density === "compact" ? "text-2xl md:text-3xl" : "text-3xl md:text-4xl",
+              )}
+            >
               {title}
             </h1>
             {description ? (
@@ -182,10 +224,30 @@ export function PhaseShell({
           ) : null}
         </div>
 
-        <div className="flex min-w-0 flex-col gap-8">{children}</div>
+        <div
+          className={cn(
+            "flex min-w-0 flex-col",
+            density === "compact" ? "gap-5" : "gap-8",
+          )}
+        >
+          {children}
+        </div>
       </div>
     </main>
   );
+}
+
+function addLearningDomainToHref(href: string, domain?: string) {
+  if (!domain || href.startsWith("/formulas") || href.startsWith("/account")) {
+    return href;
+  }
+
+  const [pathname, search = ""] = href.split("?");
+  const params = new URLSearchParams(search);
+  params.set("domain", domain);
+  const query = params.toString();
+
+  return query ? `${pathname}?${query}` : pathname;
 }
 
 function PhaseLink({

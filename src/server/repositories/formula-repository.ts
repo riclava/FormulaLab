@@ -167,6 +167,20 @@ export async function listFormulaCatalogFacets() {
   });
 }
 
+export async function listFormulaDomains() {
+  const rows = await prisma.formula.findMany({
+    distinct: ["domain"],
+    select: {
+      domain: true,
+    },
+    orderBy: {
+      domain: "asc",
+    },
+  });
+
+  return rows.map((row) => row.domain);
+}
+
 export async function createCustomFormula({
   userId,
   input,

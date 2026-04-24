@@ -47,7 +47,7 @@ export function CustomFormulaForm() {
   return (
     <form
       ref={formRef}
-      className="grid gap-5 rounded-lg border bg-background p-6 shadow-sm"
+      className="grid gap-4 rounded-lg border bg-background p-4 shadow-sm md:p-5"
       onSubmit={(event) => {
         event.preventDefault();
         const form = event.currentTarget;
@@ -93,33 +93,21 @@ export function CustomFormulaForm() {
         });
       }}
     >
-      <div className="grid gap-2">
-        <h2 className="text-xl font-semibold">新建公式</h2>
-        <p className="text-sm leading-6 text-muted-foreground">
+      <div className="grid gap-1">
+        <h2 className="text-lg font-semibold">新建公式</h2>
+        <p className="text-sm leading-5 text-muted-foreground">
           单条创建适合先把一条公式纳入训练；批量导入适合从笔记或表格整理好的 JSON。
         </p>
       </div>
 
-      <div className="grid gap-3 rounded-lg border bg-muted/20 p-4">
-        <div className="grid gap-1">
-          <Label htmlFor="formula-draft-prompt">AI 填充草稿</Label>
-          <p className="text-sm leading-6 text-muted-foreground">
-            输入公式名、题面、课堂笔记或一段说明，AI 会整理成下面的字段，保存前仍可人工修改。
-          </p>
-        </div>
-        <Textarea
-          id="formula-draft-prompt"
-          value={draftPrompt}
-          onChange={(event) => setDraftPrompt(event.target.value)}
-          placeholder="例如：二项分布，n 次独立伯努利试验中成功 k 次的概率，想补充适用条件和常见误用。"
-          className="min-h-28"
-        />
-        {draftMessage ? (
-          <p className="rounded-lg border border-emerald-200 bg-emerald-50/70 p-3 text-sm text-emerald-900">
-            {draftMessage}
-          </p>
-        ) : null}
-        <div>
+      <div className="grid gap-3 rounded-lg border bg-muted/20 p-3">
+        <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-start">
+          <div className="grid gap-1">
+            <Label htmlFor="formula-draft-prompt">AI 填充草稿</Label>
+            <p className="text-sm leading-5 text-muted-foreground">
+              输入公式名、题面、课堂笔记或一段说明，AI 会整理成下面的字段，保存前仍可人工修改。
+            </p>
+          </div>
           <Button
             type="button"
             variant="secondary"
@@ -134,45 +122,86 @@ export function CustomFormulaForm() {
             用 AI 填充
           </Button>
         </div>
+        <Textarea
+          id="formula-draft-prompt"
+          value={draftPrompt}
+          onChange={(event) => setDraftPrompt(event.target.value)}
+          placeholder="例如：二项分布，n 次独立伯努利试验中成功 k 次的概率，想补充适用条件和常见误用。"
+          className="min-h-20"
+        />
+        {draftMessage ? (
+          <p className="rounded-lg border border-emerald-200 bg-emerald-50/70 px-3 py-2 text-sm text-emerald-900">
+            {draftMessage}
+          </p>
+        ) : null}
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <Field label="公式标题" name="title" placeholder="例如：泊松分布概率质量函数" required />
+      <div className="grid gap-3 md:grid-cols-5">
+        <Field
+          label="公式标题"
+          name="title"
+          placeholder="例如：泊松分布概率质量函数"
+          required
+          containerClassName="md:col-span-2"
+        />
         <Field label="知识域" name="domain" placeholder="例如：概率统计" defaultValue="自定义公式" />
         <Field label="子领域" name="subdomain" placeholder="例如：随机变量" />
-        <Field label="难度" name="difficulty" type="number" min="1" max="5" defaultValue="2" />
+        <Field label="难度" name="difficulty" type="number" min="1" max="5" defaultValue="2" containerClassName="md:col-span-1" />
       </div>
 
-      <Field
-        label="LaTeX 表达式"
-        name="expressionLatex"
-        placeholder="P(X=k)=\\frac{\\lambda^k e^{-\\lambda}}{k!}"
-        required
-      />
-      <Field
-        label="一句话用途"
-        name="oneLineUse"
-        placeholder="描述什么时候想到这条公式"
-        required
-      />
-
-      <TextAreaField label="公式含义" name="meaning" placeholder="用自己的话解释这条公式在算什么。" />
-      <TextAreaField label="推导过程" name="derivation" placeholder="可选：写下关键推导步骤。" />
-
-      <div className="grid gap-4 md:grid-cols-2">
-        <TextAreaField label="什么时候用" name="useConditions" placeholder="每行一条" />
-        <TextAreaField label="什么时候不能用" name="nonUseConditions" placeholder="每行一条" />
-        <TextAreaField label="常见误用" name="antiPatterns" placeholder="每行一条" />
-        <TextAreaField label="典型题型" name="typicalProblems" placeholder="每行一条" />
+      <div className="grid gap-3 md:grid-cols-2">
+        <Field
+          label="LaTeX 表达式"
+          name="expressionLatex"
+          placeholder="P(X=k)=\\frac{\\lambda^k e^{-\\lambda}}{k!}"
+          required
+        />
+        <Field
+          label="一句话用途"
+          name="oneLineUse"
+          placeholder="描述什么时候想到这条公式"
+          required
+        />
       </div>
 
-      <TextAreaField label="例题" name="examples" placeholder="每行一题，第一题会用于 Application 训练。" />
-      <Field label="标签" name="tags" placeholder="逗号或换行分隔，例如 custom, distribution" />
-      <Field label="下次提示" name="memoryHook" placeholder="可选：一句你下次卡住时想看到的提醒" />
+      <div className="grid gap-3 md:grid-cols-2">
+        <TextAreaField
+          label="公式含义"
+          name="meaning"
+          placeholder="用自己的话解释这条公式在算什么。"
+          className="min-h-24"
+        />
+        <TextAreaField
+          label="推导过程"
+          name="derivation"
+          placeholder="可选：写下关键推导步骤。"
+          className="min-h-24"
+        />
+      </div>
 
-      {error ? <p className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">{error}</p> : null}
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <TextAreaField label="什么时候用" name="useConditions" placeholder="每行一条" className="min-h-24" />
+        <TextAreaField label="什么时候不能用" name="nonUseConditions" placeholder="每行一条" className="min-h-24" />
+        <TextAreaField label="常见误用" name="antiPatterns" placeholder="每行一条" className="min-h-24" />
+        <TextAreaField label="典型题型" name="typicalProblems" placeholder="每行一条" className="min-h-24" />
+      </div>
+
+      <div className="grid gap-3 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
+        <TextAreaField
+          label="例题"
+          name="examples"
+          placeholder="每行一题，第一题会用于 Application 训练。"
+          className="min-h-24"
+        />
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
+          <Field label="标签" name="tags" placeholder="逗号或换行分隔，例如 custom, distribution" />
+          <Field label="下次提示" name="memoryHook" placeholder="可选：一句你下次卡住时想看到的提醒" />
+        </div>
+      </div>
+
+      {error ? <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p> : null}
       {createdSlug ? (
-        <div className="flex flex-wrap items-center gap-3 rounded-lg border bg-muted/40 p-3 text-sm">
+        <div className="flex flex-wrap items-center gap-3 rounded-lg border bg-muted/40 px-3 py-2 text-sm">
           <span>已创建。</span>
           <Button
             type="button"
@@ -195,12 +224,12 @@ export function CustomFormulaForm() {
         </Button>
       </div>
 
-      <details className="rounded-lg border bg-muted/20 p-4">
+      <details className="rounded-lg border bg-muted/20 p-3">
         <summary className="cursor-pointer text-sm font-medium">
           批量导入 JSON
         </summary>
-        <div className="mt-4 grid gap-4">
-          <p className="text-sm leading-6 text-muted-foreground">
+        <div className="mt-3 grid gap-3">
+          <p className="text-sm leading-5 text-muted-foreground">
             支持单个对象或数组。至少需要 title、expressionLatex、oneLineUse；其余字段可选。
           </p>
           <Textarea
@@ -215,10 +244,10 @@ export function CustomFormulaForm() {
     "memoryHook": "看到固定时间内发生几次，先想泊松。"
   }
 ]`}
-            className="min-h-56 font-mono text-sm"
+            className="min-h-40 font-mono text-sm"
           />
           {importMessage ? (
-            <p className="rounded-lg border border-emerald-200 bg-emerald-50/70 p-3 text-sm text-emerald-900">
+            <p className="rounded-lg border border-emerald-200 bg-emerald-50/70 px-3 py-2 text-sm text-emerald-900">
               {importMessage}
             </p>
           ) : null}
@@ -416,15 +445,17 @@ function importedList(value: unknown) {
 }
 
 function Field({
+  containerClassName,
   label,
   name,
   ...props
 }: ComponentProps<typeof Input> & {
+  containerClassName?: string;
   label: string;
   name: string;
 }) {
   return (
-    <div className="grid gap-2">
+    <div className={`grid gap-1.5 ${containerClassName ?? ""}`}>
       <Label htmlFor={name}>{label}</Label>
       <Input id={name} name={name} {...props} />
     </div>
@@ -432,15 +463,17 @@ function Field({
 }
 
 function TextAreaField({
+  containerClassName,
   label,
   name,
   ...props
 }: ComponentProps<typeof Textarea> & {
+  containerClassName?: string;
   label: string;
   name: string;
 }) {
   return (
-    <div className="grid gap-2">
+    <div className={`grid gap-1.5 ${containerClassName ?? ""}`}>
       <Label htmlFor={name}>{label}</Label>
       <Textarea id={name} name={name} {...props} />
     </div>

@@ -40,11 +40,20 @@ export async function listDiagnosticReviewItems({
   });
 }
 
-export async function listReviewItemsByIds(reviewItemIds: string[]) {
+export async function listReviewItemsByIds({
+  domain,
+  reviewItemIds,
+}: {
+  domain: string;
+  reviewItemIds: string[];
+}) {
   return prisma.reviewItem.findMany({
     where: {
       id: {
         in: reviewItemIds,
+      },
+      formula: {
+        domain,
       },
     },
     include: {
@@ -74,10 +83,17 @@ export async function createDiagnosticAttempt({
   });
 }
 
-export async function getLatestDiagnosticAttempt(userId: string) {
+export async function getLatestDiagnosticAttempt({
+  userId,
+  domain,
+}: {
+  userId: string;
+  domain: string;
+}) {
   return prisma.diagnosticAttempt.findFirst({
     where: {
       userId,
+      domain,
     },
     orderBy: {
       completedAt: "desc",

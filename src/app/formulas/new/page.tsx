@@ -10,6 +10,7 @@ export default async function NewFormulaPage() {
       activePath="/formulas"
       eyebrow="自定义公式"
       title="添加自定义公式"
+      density="compact"
     >
       <CustomFormulaForm />
     </PhaseShell>

@@ -47,7 +47,13 @@ const gradeButtons: Array<{
   { value: "easy", label: "很轻松", description: "7 天后复习" },
 ];
 
-export function ReviewSession({ mode = "today" }: { mode?: ReviewMode }) {
+export function ReviewSession({
+  mode = "today",
+  domain,
+}: {
+  mode?: ReviewMode;
+  domain: string;
+}) {
   const [session, setSession] = useState<ReviewSessionPayload | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [cardState, setCardState] = useState<CardState>("prompt");
@@ -79,7 +85,9 @@ export function ReviewSession({ mode = "today" }: { mode?: ReviewMode }) {
 
     async function loadSession() {
       try {
-        const response = await fetch(`/api/review/today?mode=${mode}`);
+        const response = await fetch(
+          `/api/review/today?mode=${mode}&domain=${encodeURIComponent(domain)}`,
+        );
         const payload = (await response.json()) as {
           data?: ReviewSessionPayload;
           error?: string;
@@ -107,7 +115,7 @@ export function ReviewSession({ mode = "today" }: { mode?: ReviewMode }) {
     return () => {
       ignore = true;
     };
-  }, [mode]);
+  }, [domain, mode]);
 
   const items = session?.items ?? [];
   const currentItem = items[currentIndex];
@@ -142,11 +150,17 @@ export function ReviewSession({ mode = "today" }: { mode?: ReviewMode }) {
   }
 
   if (items.length === 0) {
-    return <EmptyReviewState emptyReason={session.emptyReason} mode={mode} />;
+    return (
+      <EmptyReviewState
+        domain={domain}
+        emptyReason={session.emptyReason}
+        mode={mode}
+      />
+    );
   }
 
   if (completedSessionId) {
-    return <CompletedReviewState summary={summary} />;
+    return <CompletedReviewState domain={domain} summary={summary} />;
   }
 
   return (
@@ -680,12 +694,16 @@ function memoryHookPlaceholderForContext(
 }
 
 function EmptyReviewState({
+  domain,
   emptyReason,
   mode,
 }: {
+  domain: string;
   emptyReason: ReviewSessionPayload["emptyReason"];
   mode: ReviewMode;
 }) {
+  const domainQuery = `domain=${encodeURIComponent(domain)}`;
+
   return (
     <section className="flex flex-col gap-4 rounded-lg border bg-background p-6 shadow-sm">
       <Badge variant="secondary" className="w-fit">
@@ -703,7 +721,7 @@ function EmptyReviewState({
       <div className="flex flex-wrap gap-3">
         {emptyReason === "needs_diagnostic" ? (
           <>
-            <Link href="/diagnostic" className={buttonVariants()}>
+            <Link href={`/diagnostic?${domainQuery}`} className={buttonVariants()}>
               开始 1 分钟诊断
               <ArrowRight data-icon="inline-end" />
             </Link>
@@ -717,7 +735,11 @@ function EmptyReviewState({
         ) : (
           <>
             <Link
-              href={mode === "weak" ? "/review" : "/review?mode=weak"}
+              href={
+                mode === "weak"
+                  ? `/review?${domainQuery}`
+                  : `/review?mode=weak&${domainQuery}`
+              }
               className={buttonVariants()}
             >
               {mode === "weak" ? "回到今日复习" : "去弱项重练"}
@@ -736,8 +758,10 @@ function EmptyReviewState({
 }
 
 function CompletedReviewState({
+  domain,
   summary,
 }: {
+  domain: string;
   summary: ReviewSummary;
 }) {
   return (
@@ -755,7 +779,10 @@ function CompletedReviewState({
         ))}
       </div>
       <div className="flex flex-wrap gap-3">
-        <Link href="/summary" className={buttonVariants()}>
+        <Link
+          href={`/summary?domain=${encodeURIComponent(domain)}`}
+          className={buttonVariants()}
+        >
           查看总结
         </Link>
         <Link href="/formulas" className={buttonVariants({ variant: "outline" })}>

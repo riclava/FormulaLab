@@ -13,16 +13,39 @@ import type { ProgressStats, SummaryStats, WeakFormulaStat } from "@/types/stats
 
 export async function getSummaryStats({
   userId,
+  domain,
 }: {
   userId: string;
+  domain: string;
 }): Promise<SummaryStats> {
   const [latestSession, weakStates, sessions, logs, hooks, events] = await Promise.all([
-    getLatestCompletedStudySessionSummary(userId),
-    listWeakFormulaStates(userId, 6),
-    listRecentStudySessions(userId, 90),
-    listReviewLogsForUser(userId, 1000),
-    listAccessibleMemoryHooks(userId),
-    listProductEvents(userId),
+    getLatestCompletedStudySessionSummary({
+      userId,
+      domain,
+    }),
+    listWeakFormulaStates({
+      userId,
+      domain,
+      take: 6,
+    }),
+    listRecentStudySessions({
+      userId,
+      domain,
+      take: 90,
+    }),
+    listReviewLogsForUser({
+      userId,
+      domain,
+      take: 1000,
+    }),
+    listAccessibleMemoryHooks({
+      userId,
+      domain,
+    }),
+    listProductEvents({
+      userId,
+      domain,
+    }),
   ]);
 
   if (!latestSession) {
@@ -75,6 +98,7 @@ export async function getSummaryStats({
   );
   const hookActivity = await listRecentMemoryHookActivity({
     userId,
+    domain,
     from: latestSession.startedAt,
     formulaIds,
   });
@@ -143,10 +167,15 @@ export async function getSummaryStats({
 
 export async function getProgressStats({
   userId,
+  domain,
 }: {
   userId: string;
+  domain: string;
 }): Promise<ProgressStats> {
-  const progress = await countProgressBuckets(userId);
+  const progress = await countProgressBuckets({
+    userId,
+    domain,
+  });
 
   return {
     trackedFormulaCount: progress.trackedFormulaCount,
@@ -161,10 +190,16 @@ export async function getProgressStats({
 
 export async function getWeakFormulas({
   userId,
+  domain,
 }: {
   userId: string;
+  domain: string;
 }) {
-  const weakStates = await listWeakFormulaStates(userId, 8);
+  const weakStates = await listWeakFormulaStates({
+    userId,
+    domain,
+    take: 8,
+  });
   return weakStates.map(toWeakFormulaStat);
 }
 

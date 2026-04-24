@@ -13,10 +13,12 @@ export async function getUserFormulaState(userId: string, formulaId: string) {
 
 export async function listDueFormulaStates({
   userId,
+  domain,
   now,
   take,
 }: {
   userId: string;
+  domain: string;
   now: Date;
   take: number;
 }) {
@@ -25,6 +27,9 @@ export async function listDueFormulaStates({
       userId,
       nextReviewAt: {
         lte: now,
+      },
+      formula: {
+        domain,
       },
     },
     include: {
@@ -50,14 +55,19 @@ export async function listDueFormulaStates({
 
 export async function listWeakFormulaStatesForReview({
   userId,
+  domain,
   take,
 }: {
   userId: string;
+  domain: string;
   take: number;
 }) {
   return prisma.userFormulaState.findMany({
     where: {
       userId,
+      formula: {
+        domain,
+      },
       OR: [
         {
           memoryStrength: {
@@ -102,10 +112,19 @@ export async function listWeakFormulaStatesForReview({
   });
 }
 
-export async function countUserFormulaStates(userId: string) {
+export async function countUserFormulaStates({
+  userId,
+  domain,
+}: {
+  userId: string;
+  domain: string;
+}) {
   return prisma.userFormulaState.count({
     where: {
       userId,
+      formula: {
+        domain,
+      },
     },
   });
 }

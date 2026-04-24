@@ -5,13 +5,21 @@ import { PhaseShell } from "@/components/app/phase-shell";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { requireCurrentLearner } from "@/server/auth/current-learner";
+import { resolveLearningDomain } from "@/server/learning-domain";
 import { getFormulaCatalog } from "@/server/services/formula-service";
 
 export const dynamic = "force-dynamic";
 
-export default async function PathsPage() {
+export default async function PathsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ domain?: string }>;
+}) {
   const current = await requireCurrentLearner();
+  const params = await searchParams;
+  const learningDomain = await resolveLearningDomain(params.domain);
   const catalog = await getFormulaCatalog({
+    domain: learningDomain.currentDomain,
     userId: current.learner.id,
   });
   const groups = groupByDomain(catalog.formulas);
@@ -20,7 +28,8 @@ export default async function PathsPage() {
     <PhaseShell
       activePath="/paths"
       eyebrow="学习路径"
-      title="按知识域查看内容"
+      title="当前知识域路径"
+      learningDomain={learningDomain}
     >
       <div className="grid gap-5">
         {groups.map((group) => (
@@ -78,7 +87,9 @@ export default async function PathsPage() {
                 <ArrowRight data-icon="inline-end" />
               </Link>
               <Link
-                href="/review?mode=weak"
+                href={`/review?mode=weak&domain=${encodeURIComponent(
+                  learningDomain.currentDomain,
+                )}`}
                 className={buttonVariants({ size: "sm", variant: "secondary" })}
               >
                 只练这组里的薄弱项

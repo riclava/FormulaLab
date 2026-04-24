@@ -4,6 +4,7 @@ import {
   getFormulaByIdOrSlug,
   listFormulaRelations,
   listFormulaCatalogFacets,
+  listFormulaDomains,
   listFormulaMemoryHooks,
   listFormulas,
   saveUserFormulaMemoryHook,
@@ -91,6 +92,10 @@ export async function getFormulaCatalog(params?: {
         .map(([tag]) => tag),
     },
   };
+}
+
+export async function getFormulaDomains() {
+  return listFormulaDomains();
 }
 
 export async function addCustomFormula({
