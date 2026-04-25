@@ -16,12 +16,15 @@ const APPROVED_DIR = path.join(CONTENT_ASSIST_ROOT, "approved");
 
 export async function listContentAssistWorkspace({
   domain,
+  userId,
 }: {
   domain: string;
+  userId?: string;
 }): Promise<ContentAssistWorkspaceItem[]> {
   const [formulas, drafts] = await Promise.all([
     getFormulaSummaries({
       domain,
+      userId,
     }),
     readAllDrafts(),
   ]);
@@ -46,10 +49,15 @@ export async function listContentAssistWorkspace({
 
 export async function getContentAssistDraft({
   formulaIdOrSlug,
+  userId,
 }: {
   formulaIdOrSlug: string;
+  userId?: string;
 }) {
-  const formula = await getFormulaDetail(formulaIdOrSlug);
+  const formula = await getFormulaDetail({
+    idOrSlug: formulaIdOrSlug,
+    userId,
+  });
 
   if (!formula) {
     return null;
@@ -66,6 +74,7 @@ export async function getContentAssistDraft({
 
   const draft = await generateContentAssistDraft({
     formula,
+    userId,
   });
 
   return {
@@ -76,10 +85,15 @@ export async function getContentAssistDraft({
 
 export async function regenerateContentAssistDraft({
   formulaIdOrSlug,
+  userId,
 }: {
   formulaIdOrSlug: string;
+  userId?: string;
 }) {
-  const formula = await getFormulaDetail(formulaIdOrSlug);
+  const formula = await getFormulaDetail({
+    idOrSlug: formulaIdOrSlug,
+    userId,
+  });
 
   if (!formula) {
     return null;
@@ -87,6 +101,7 @@ export async function regenerateContentAssistDraft({
 
   const draft = await generateContentAssistDraft({
     formula,
+    userId,
   });
 
   return {
@@ -97,12 +112,17 @@ export async function regenerateContentAssistDraft({
 
 export async function updateContentAssistDraft({
   formulaSlug,
+  userId,
   input,
 }: {
   formulaSlug: string;
+  userId?: string;
   input: ContentAssistDraft;
 }) {
-  const formula = await getFormulaDetail(formulaSlug);
+  const formula = await getFormulaDetail({
+    idOrSlug: formulaSlug,
+    userId,
+  });
 
   if (!formula) {
     return null;
@@ -123,7 +143,22 @@ export async function updateContentAssistDraft({
   return nextDraft;
 }
 
-export async function approveContentAssistDraft(formulaSlug: string) {
+export async function approveContentAssistDraft({
+  formulaSlug,
+  userId,
+}: {
+  formulaSlug: string;
+  userId?: string;
+}) {
+  const formula = await getFormulaDetail({
+    idOrSlug: formulaSlug,
+    userId,
+  });
+
+  if (!formula) {
+    return null;
+  }
+
   const existingDraft = await readDraft(formulaSlug);
 
   if (!existingDraft) {
@@ -165,14 +200,16 @@ export async function readApprovedContentAssistDrafts() {
 
 async function generateContentAssistDraft({
   formula,
+  userId,
 }: {
   formula: FormulaDetail;
+  userId?: string;
 }) {
-  const relations = (await getFormulaRelationDetails(formula.slug)) ?? [];
+  const relations = (await getFormulaRelationDetails(formula.slug, userId)) ?? [];
   const relationCandidates =
     relations.length > 0
       ? relations.map(toRelationCandidate)
-      : await buildDerivedRelationCandidates(formula);
+      : await buildDerivedRelationCandidates(formula, userId);
   const draft: ContentAssistDraft = {
     schemaVersion: 1,
     formulaId: formula.id,
@@ -225,9 +262,10 @@ async function generateContentAssistDraft({
   return draft;
 }
 
-async function buildDerivedRelationCandidates(formula: FormulaDetail) {
+async function buildDerivedRelationCandidates(formula: FormulaDetail, userId?: string) {
   const peers = await getFormulaSummaries({
     domain: formula.domain,
+    userId,
   });
 
   return peers

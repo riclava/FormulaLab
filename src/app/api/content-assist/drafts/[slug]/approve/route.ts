@@ -8,8 +8,11 @@ export async function POST(
   context: { params: Promise<{ slug: string }> },
 ) {
   const { slug } = await context.params;
-  return withAuthenticatedApi(async () => {
-    const draft = await approveContentAssistDraft(slug);
+  return withAuthenticatedApi(async (current) => {
+    const draft = await approveContentAssistDraft({
+      formulaSlug: slug,
+      userId: current.learner.id,
+    });
 
     if (!draft) {
       return NextResponse.json(

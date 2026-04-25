@@ -10,8 +10,11 @@ export async function GET(
 ) {
   const { id: rawId } = await params;
   const id = normalizeRouteParam(rawId);
-  return withAuthenticatedApi(async () => {
-    const formula = await getFormulaDetail(id);
+  return withAuthenticatedApi(async (current) => {
+    const formula = await getFormulaDetail({
+      idOrSlug: id,
+      userId: current.learner.id,
+    });
 
     if (!formula) {
       return NextResponse.json(

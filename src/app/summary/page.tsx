@@ -33,7 +33,7 @@ export default async function SummaryPage({
 }) {
   const current = await requireCurrentLearner();
   const params = await searchParams;
-  const learningDomain = await resolveLearningDomain(params.domain);
+  const learningDomain = await resolveLearningDomain(params.domain, current.learner.id);
   const [summary, progress] = await Promise.all([
     getSummaryStats({
       userId: current.learner.id,

@@ -110,9 +110,12 @@ export async function listWeakFormulaStates({
     include: {
       formula: {
         include: {
-          _count: {
+          memoryHooks: {
+            where: {
+              userId,
+            },
             select: {
-              memoryHooks: true,
+              id: true,
             },
           },
         },

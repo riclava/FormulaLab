@@ -18,7 +18,7 @@ export default async function PathsPage({
 }) {
   const current = await requireCurrentLearner();
   const params = await searchParams;
-  const learningDomain = await resolveLearningDomain(params.domain);
+  const learningDomain = await resolveLearningDomain(params.domain, current.learner.id);
   const catalog = await getFormulaCatalog({
     domain: learningDomain.currentDomain,
     userId: current.learner.id,

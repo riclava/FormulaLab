@@ -8,7 +8,10 @@ export async function GET(request: Request) {
   const url = new URL(request.url);
 
   return withAuthenticatedApi(async (current) => {
-    const learningDomain = await resolveLearningDomain(url.searchParams.get("domain"));
+    const learningDomain = await resolveLearningDomain(
+      url.searchParams.get("domain"),
+      current.learner.id,
+    );
     const progress = await getProgressStats({
       userId: current.learner.id,
       domain: learningDomain.currentDomain,

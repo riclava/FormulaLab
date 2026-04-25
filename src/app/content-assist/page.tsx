@@ -16,11 +16,12 @@ export default async function ContentAssistPage({
 }: {
   searchParams: Promise<{ domain?: string }>;
 }) {
-  await requireCurrentLearner();
+  const current = await requireCurrentLearner();
   const params = await searchParams;
-  const learningDomain = await resolveLearningDomain(params.domain);
+  const learningDomain = await resolveLearningDomain(params.domain, current.learner.id);
   const items = await listContentAssistWorkspace({
     domain: learningDomain.currentDomain,
+    userId: current.learner.id,
   });
   const approvedCount = items.filter((item) => item.draftStatus === "approved").length;
   const draftCount = items.filter((item) => item.draftStatus === "draft").length;

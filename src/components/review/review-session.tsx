@@ -721,14 +721,14 @@ function EmptyReviewState({
       </h2>
       {emptyReason === "needs_diagnostic" ? (
         <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-          先用 5 题诊断生成今日复习，之后系统会按你的掌握情况安排训练。
+          先做一次诊断生成今日复习，之后系统会按你的掌握情况安排训练。
         </p>
       ) : null}
       <div className="flex flex-wrap gap-3">
         {emptyReason === "needs_diagnostic" ? (
           <>
             <Link href={`/diagnostic?${domainQuery}`} className={buttonVariants()}>
-              开始 5 题诊断
+              开始诊断
               <ArrowRight data-icon="inline-end" />
             </Link>
             <Link

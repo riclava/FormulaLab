@@ -21,12 +21,15 @@ const DEFAULT_DIAGNOSTIC_DOMAIN = "概率统计";
 const DIAGNOSTIC_QUESTION_COUNT = 5;
 
 export async function startDiagnostic({
+  userId,
   domain = DEFAULT_DIAGNOSTIC_DOMAIN,
 }: {
+  userId: string;
   domain?: string;
-} = {}): Promise<DiagnosticStart> {
+}): Promise<DiagnosticStart> {
   const reviewItems = await listDiagnosticReviewItems({
     domain,
+    userId,
     take: DIAGNOSTIC_QUESTION_COUNT,
   });
 
@@ -55,6 +58,7 @@ export async function submitDiagnostic({
   const reviewItemIds = submission.answers.map((answer) => answer.reviewItemId);
   const reviewItems = await listReviewItemsByIds({
     domain: submission.domain,
+    userId,
     reviewItemIds,
   });
   const formulaIds = Array.from(
@@ -83,7 +87,10 @@ export async function submitDiagnostic({
     weakFormulaIds,
   });
 
-  const weakFormulas = await getWeakFormulaSummaries(weakFormulaIds);
+  const weakFormulas = await getWeakFormulaSummaries({
+    formulaIds: weakFormulaIds,
+    userId,
+  });
 
   return {
     id: attempt.id,
@@ -112,7 +119,10 @@ export async function getLatestDiagnosticResult({
     return null;
   }
 
-  const weakFormulas = await getWeakFormulaSummaries(attempt.weakFormulaIds);
+  const weakFormulas = await getWeakFormulaSummaries({
+    formulaIds: attempt.weakFormulaIds,
+    userId,
+  });
 
   return {
     id: attempt.id,
@@ -125,12 +135,18 @@ export async function getLatestDiagnosticResult({
   };
 }
 
-async function getWeakFormulaSummaries(formulaIds: string[]) {
+async function getWeakFormulaSummaries({
+  formulaIds,
+  userId,
+}: {
+  formulaIds: string[];
+  userId: string;
+}) {
   if (formulaIds.length === 0) {
     return [];
   }
 
-  const summaries = await getFormulaSummaries();
+  const summaries = await getFormulaSummaries({ userId });
   const formulaIdSet = new Set(formulaIds);
 
   return summaries.filter((formula) => formulaIdSet.has(formula.id));
@@ -139,6 +155,7 @@ async function getWeakFormulaSummaries(formulaIds: string[]) {
 function toFormulaSummary(formula: {
   id: string;
   slug: string;
+  ownerUserId: string | null;
   title: string;
   expressionLatex: string;
   domain: string;
@@ -150,14 +167,17 @@ function toFormulaSummary(formula: {
     symbol: string;
     name: string;
   }>;
+  memoryHooks?: Array<{
+    id: string;
+  }>;
   _count: {
     reviewItems: number;
-    memoryHooks: number;
   };
 }): FormulaSummary {
   return {
     id: formula.id,
     slug: formula.slug,
+    ownership: formula.ownerUserId ? "personal" : "official",
     title: formula.title,
     expressionLatex: formula.expressionLatex,
     domain: formula.domain,
@@ -167,7 +187,7 @@ function toFormulaSummary(formula: {
     tags: formula.tags,
     variablePreview: formula.variables ?? [],
     reviewItemCount: formula._count.reviewItems,
-    memoryHookCount: formula._count.memoryHooks,
+    memoryHookCount: formula.memoryHooks?.length ?? 0,
     trainingStatus: "not_started",
     trainingStatusLabel: "尚未进入训练",
     nextReviewAt: null,

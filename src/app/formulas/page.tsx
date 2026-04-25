@@ -45,20 +45,23 @@ export default async function FormulasPage({
     domain?: string;
     tag?: string;
     difficulty?: string;
+    source?: string;
   }>;
 }) {
   const params = await searchParams;
   const query = params.q?.trim() ?? "";
   const tag = params.tag?.trim() || undefined;
   const difficulty = parseDifficulty(params.difficulty);
+  const ownership = parseOwnership(params.source);
   const current = await requireCurrentLearner();
-  const learningDomain = await resolveLearningDomain(params.domain);
+  const learningDomain = await resolveLearningDomain(params.domain, current.learner.id);
   const domain = learningDomain.currentDomain;
   const catalog = await getFormulaCatalog({
     query: query || undefined,
     domain,
     tag,
     difficulty,
+    ownership,
     userId: current.learner.id,
   });
   const resultSummary = buildResultSummary(catalog.formulas);
@@ -66,12 +69,14 @@ export default async function FormulasPage({
     q: query || undefined,
     tag,
     difficulty,
+    ownership,
   });
   const buildHref = createFormulaCatalogHrefBuilder({
     q: query || null,
     domain: domain ?? null,
     tag: tag ?? null,
     difficulty: difficulty ?? null,
+    source: ownership ?? null,
   });
   const domainQuery = `?domain=${encodeURIComponent(domain)}`;
 
@@ -114,6 +119,7 @@ export default async function FormulasPage({
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant="secondary">公式库</Badge>
           <Badge variant="outline">{catalog.formulas.length} 条结果</Badge>
+          <Badge variant="outline">我的 {resultSummary.personalCount}</Badge>
           <Badge variant="destructive">补弱 {resultSummary.weakCount}</Badge>
           <Badge variant="secondary">到期 {resultSummary.dueCount}</Badge>
           <Badge variant="outline">提示 {resultSummary.hookedCount}</Badge>
@@ -140,6 +146,7 @@ export default async function FormulasPage({
               {difficulty !== undefined ? (
                 <input type="hidden" name="difficulty" value={difficulty} />
               ) : null}
+              {ownership ? <input type="hidden" name="source" value={ownership} /> : null}
               <button
                 type="submit"
                 className={cn(buttonVariants({ size: "lg" }), "min-w-24 justify-center")}
@@ -164,6 +171,7 @@ export default async function FormulasPage({
                 domain,
                 tag: null,
                 difficulty: null,
+                source: null,
               })}
               className={buttonVariants({ size: "lg", variant: "outline" })}
             >
@@ -194,8 +202,34 @@ export default async function FormulasPage({
                 {domain ? <Badge variant="outline">知识域：{domain}</Badge> : null}
                 {difficulty !== undefined ? <Badge variant="outline">难度：{difficulty}</Badge> : null}
                 {tag ? <Badge variant="outline">标签：{tag}</Badge> : null}
+                {ownership ? (
+                  <Badge variant="outline">
+                    来源：{ownership === "personal" ? "我的公式" : "官方公式"}
+                  </Badge>
+                ) : null}
               </div>
             ) : null}
+
+            <FilterRow
+              label="来源"
+              items={[
+                {
+                  label: "全部",
+                  href: buildHref({ source: null }),
+                  active: !ownership,
+                },
+                {
+                  label: "官方公式",
+                  href: buildHref({ source: "official" }),
+                  active: ownership === "official",
+                },
+                {
+                  label: "我的公式",
+                  href: buildHref({ source: "personal" }),
+                  active: ownership === "personal",
+                },
+              ]}
+            />
 
             <FilterRow
               label="难度"
@@ -245,6 +279,9 @@ export default async function FormulasPage({
                     <h2 className="text-xl font-semibold">{formula.title}</h2>
                     <Badge variant={STATUS_BADGE_VARIANTS[formula.trainingStatus]}>
                       {formula.trainingStatusLabel}
+                    </Badge>
+                    <Badge variant={formula.ownership === "personal" ? "secondary" : "outline"}>
+                      {formula.ownership === "personal" ? "我的公式" : "官方"}
                     </Badge>
                     <Badge variant="outline">{formula.domain}</Badge>
                     {formula.hasPersonalMemoryHook ? (
@@ -363,12 +400,14 @@ function countActiveFilters(filters: {
   domain?: string;
   tag?: string;
   difficulty?: number;
+  ownership?: "official" | "personal";
 }) {
   return [
     Boolean(filters.q),
     Boolean(filters.domain),
     Boolean(filters.tag),
     filters.difficulty !== undefined,
+    Boolean(filters.ownership),
   ].filter(Boolean).length;
 }
 
@@ -380,6 +419,10 @@ function parseDifficulty(value?: string) {
   const difficulty = Number(value);
 
   return Number.isFinite(difficulty) ? difficulty : undefined;
+}
+
+function parseOwnership(value?: string) {
+  return value === "official" || value === "personal" ? value : undefined;
 }
 
 function buildResultSummary(formulas: FormulaSummary[]) {
@@ -401,6 +444,10 @@ function buildResultSummary(formulas: FormulaSummary[]) {
         summary.hookedCount += 1;
       }
 
+      if (formula.ownership === "personal") {
+        summary.personalCount += 1;
+      }
+
       return summary;
     },
     {
@@ -408,6 +455,7 @@ function buildResultSummary(formulas: FormulaSummary[]) {
       dueCount: 0,
       stableCount: 0,
       hookedCount: 0,
+      personalCount: 0,
     },
   );
 }
@@ -442,6 +490,7 @@ function createFormulaCatalogHrefBuilder(
     domain: string | null;
     tag: string | null;
     difficulty: number | null;
+    source: "official" | "personal" | null;
   }>,
 ) {
   return (
@@ -450,6 +499,7 @@ function createFormulaCatalogHrefBuilder(
       domain: string | null;
       tag: string | null;
       difficulty: number | null;
+      source: "official" | "personal" | null;
     }>,
   ) => {
     const next = {
@@ -476,6 +526,10 @@ function createFormulaCatalogHrefBuilder(
       Number.isFinite(next.difficulty)
     ) {
       searchParams.set("difficulty", String(next.difficulty));
+    }
+
+    if (next.source !== null && next.source !== undefined) {
+      searchParams.set("source", next.source);
     }
 
     const queryString = searchParams.toString();

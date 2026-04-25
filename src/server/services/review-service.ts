@@ -290,10 +290,11 @@ function selectReviewQueueItem({
       mode,
       state,
     }),
-    formula: {
-      id: state.formula.id,
-      slug: state.formula.slug,
-      title: state.formula.title,
+	    formula: {
+	      id: state.formula.id,
+	      slug: state.formula.slug,
+	      ownership: state.formula.ownerUserId ? "personal" : "official",
+	      title: state.formula.title,
       expressionLatex: state.formula.expressionLatex,
       domain: state.formula.domain,
       subdomain: state.formula.subdomain,
@@ -313,9 +314,7 @@ function selectReviewQueueItem({
       nextReviewAt: state.nextReviewAt?.toISOString() ?? null,
       isWeak,
       isDueNow: true,
-      hasPersonalMemoryHook: state.formula.memoryHooks.some(
-        (hook) => hook.userId !== null,
-      ),
+	      hasPersonalMemoryHook: state.formula.memoryHooks.length > 0,
       totalReviews: state.totalReviews,
       correctReviews: state.correctReviews,
       meaning: state.formula.meaning,

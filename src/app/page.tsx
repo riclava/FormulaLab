@@ -194,7 +194,7 @@ export default async function Home({
               </div>
               <div className="flex items-start gap-3">
                 <span className="mt-1.5 h-2 w-2 rounded-full bg-sky-500" />
-                <p>没有训练队列时，会先引导做 5 题诊断。</p>
+                <p>没有训练队列时，会先引导完成诊断校准。</p>
               </div>
             </div>
           </div>

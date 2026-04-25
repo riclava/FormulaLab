@@ -15,6 +15,7 @@ export type ChatCompletionOptions = {
 
 type ChatCompletionResponse = {
   choices?: Array<{
+    finish_reason?: string;
     message?: {
       content?: string;
     };
@@ -57,7 +58,7 @@ export async function createChatCompletion(
         ? { response_format: options.responseFormat }
         : {}),
       ...(options.maxCompletionTokens
-        ? { max_completion_tokens: options.maxCompletionTokens }
+        ? { max_tokens: options.maxCompletionTokens }
         : {}),
     },
   });
@@ -73,10 +74,15 @@ export async function createChatCompletion(
     );
   }
 
-  const content = payload?.choices?.[0]?.message?.content;
+  const choice = payload?.choices?.[0];
+  const content = choice?.message?.content?.trim();
 
   if (!content) {
-    throw new Error(`${config.provider} returned an empty chat completion`);
+    throw new Error(
+      `${config.provider} returned an empty chat completion${
+        choice?.finish_reason ? ` (finish_reason: ${choice.finish_reason})` : ""
+      }`,
+    );
   }
 
   return content;

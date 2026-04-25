@@ -116,8 +116,11 @@ export default async function FormulaDetailPage({
   const id = normalizeRouteParam(rawId);
   const current = await requireCurrentLearner();
   const [formula, relations, hooks] = await Promise.all([
-    getFormulaDetail(id),
-    getFormulaRelationDetails(id),
+    getFormulaDetail({
+      idOrSlug: id,
+      userId: current.learner.id,
+    }),
+    getFormulaRelationDetails(id, current.learner.id),
     getFormulaMemoryHooks({
       formulaIdOrSlug: id,
       userId: current.learner.id,

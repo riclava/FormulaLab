@@ -19,9 +19,10 @@ export async function POST(request: Request) {
 
   const formulaIdOrSlug = payload.formulaIdOrSlug.trim();
 
-  return withAuthenticatedApi(async () => {
+  return withAuthenticatedApi(async (current) => {
     const result = await regenerateContentAssistDraft({
       formulaIdOrSlug,
+      userId: current.learner.id,
     });
 
     if (!result) {

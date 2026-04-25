@@ -1,6 +1,34 @@
 import { prisma } from "@/lib/db/prisma";
-import type { Prisma } from "@/generated/prisma/client";
+import { Prisma } from "@/generated/prisma/client";
 import type { ReviewItemType } from "@/generated/prisma/client";
+
+function buildFormulaVisibilityWhere(userId?: string) {
+  return {
+    OR: [
+      {
+        ownerUserId: null,
+      },
+      ...(userId ? [{ ownerUserId: userId }] : []),
+    ],
+  } satisfies Prisma.FormulaWhereInput;
+}
+
+function buildFormulaLookupWhere({
+  idOrSlug,
+  userId,
+}: {
+  idOrSlug: string;
+  userId?: string;
+}) {
+  return {
+    AND: [
+      {
+        OR: [{ id: idOrSlug }, { slug: idOrSlug }],
+      },
+      buildFormulaVisibilityWhere(userId),
+    ],
+  } satisfies Prisma.FormulaWhereInput;
+}
 
 function buildFormulaSummaryInclude(userId?: string) {
   return {
@@ -76,12 +104,14 @@ export async function listFormulas({
   difficulty,
   query,
   userId,
+  ownership,
 }: {
   domain?: string;
   tag?: string;
   difficulty?: number;
   query?: string;
   userId?: string;
+  ownership?: "official" | "personal";
 } = {}) {
   const normalizedQuery = query?.trim();
   const queryTokens = normalizedQuery
@@ -90,74 +120,85 @@ export async function listFormulas({
 
   return prisma.formula.findMany({
     where: {
-      ...(domain ? { domain } : {}),
-      ...(tag ? { tags: { has: tag } } : {}),
-      ...(typeof difficulty === "number" ? { difficulty } : {}),
-      ...(normalizedQuery
-        ? {
-            OR: [
-              {
-                title: {
-                  contains: normalizedQuery,
-                  mode: "insensitive" as const,
-                },
-              },
-              {
-                oneLineUse: {
-                  contains: normalizedQuery,
-                  mode: "insensitive" as const,
-                },
-              },
-              {
-                meaning: {
-                  contains: normalizedQuery,
-                  mode: "insensitive" as const,
-                },
-              },
-              {
-                subdomain: {
-                  contains: normalizedQuery,
-                  mode: "insensitive" as const,
-                },
-              },
-              {
-                variables: {
-                  some: {
-                    OR: [
-                      {
-                        symbol: {
-                          contains: normalizedQuery,
-                          mode: "insensitive" as const,
-                        },
-                      },
-                      {
-                        name: {
-                          contains: normalizedQuery,
-                          mode: "insensitive" as const,
-                        },
-                      },
-                      {
-                        description: {
-                          contains: normalizedQuery,
-                          mode: "insensitive" as const,
-                        },
-                      },
-                    ],
+      AND: [
+        buildFormulaVisibilityWhere(userId),
+        {
+          ...(ownership === "official"
+            ? { ownerUserId: null }
+            : ownership === "personal" && userId
+              ? { ownerUserId: userId }
+              : {}),
+          ...(domain ? { domain } : {}),
+          ...(tag ? { tags: { has: tag } } : {}),
+          ...(typeof difficulty === "number" ? { difficulty } : {}),
+          ...(normalizedQuery
+            ? {
+                OR: [
+                  {
+                    title: {
+                      contains: normalizedQuery,
+                      mode: "insensitive" as const,
+                    },
                   },
-                },
-              },
-              ...(queryTokens.length > 0 ? [{ tags: { hasSome: queryTokens } }] : []),
-            ],
-          }
-        : {}),
+                  {
+                    oneLineUse: {
+                      contains: normalizedQuery,
+                      mode: "insensitive" as const,
+                    },
+                  },
+                  {
+                    meaning: {
+                      contains: normalizedQuery,
+                      mode: "insensitive" as const,
+                    },
+                  },
+                  {
+                    subdomain: {
+                      contains: normalizedQuery,
+                      mode: "insensitive" as const,
+                    },
+                  },
+                  {
+                    variables: {
+                      some: {
+                        OR: [
+                          {
+                            symbol: {
+                              contains: normalizedQuery,
+                              mode: "insensitive" as const,
+                            },
+                          },
+                          {
+                            name: {
+                              contains: normalizedQuery,
+                              mode: "insensitive" as const,
+                            },
+                          },
+                          {
+                            description: {
+                              contains: normalizedQuery,
+                              mode: "insensitive" as const,
+                            },
+                          },
+                        ],
+                      },
+                    },
+                  },
+                  ...(queryTokens.length > 0 ? [{ tags: { hasSome: queryTokens } }] : []),
+                ],
+              }
+            : {}),
+        },
+      ],
     },
     include: buildFormulaSummaryInclude(userId),
     orderBy: [{ domain: "asc" }, { difficulty: "asc" }, { title: "asc" }],
   });
 }
 
-export async function listFormulaCatalogFacets() {
+export async function listFormulaCatalogFacets(userId?: string) {
   return prisma.formula.findMany({
+    where: buildFormulaVisibilityWhere(userId),
     select: {
       domain: true,
       difficulty: true,
@@ -167,8 +208,9 @@ export async function listFormulaCatalogFacets() {
   });
 }
 
-export async function listFormulaDomains() {
+export async function listFormulaDomains(userId?: string) {
   const rows = await prisma.formula.findMany({
+    where: buildFormulaVisibilityWhere(userId),
     distinct: ["domain"],
     select: {
       domain: true,
@@ -200,6 +242,7 @@ export async function createCustomFormula({
     antiPatterns: string[];
     typicalProblems: string[];
     examples: string[];
+    plotConfig?: Prisma.InputJsonValue;
     difficulty: number;
     tags: string[];
     reviewItems: Array<{
@@ -217,6 +260,7 @@ export async function createCustomFormula({
   return prisma.$transaction(async (tx) => {
     const formula = await tx.formula.create({
       data: {
+        ownerUserId: userId,
         slug: input.slug,
         title: input.title,
         expressionLatex: input.expressionLatex,
@@ -231,6 +275,7 @@ export async function createCustomFormula({
         antiPatterns: input.antiPatterns,
         typicalProblems: input.typicalProblems,
         examples: input.examples,
+        ...(input.plotConfig ? { plotConfig: input.plotConfig } : {}),
         difficulty: input.difficulty,
         tags: Array.from(new Set(["user-created", ...input.tags])),
         reviewItems: {
@@ -264,20 +309,85 @@ export async function createCustomFormula({
   });
 }
 
-export async function getFormulaByIdOrSlug(idOrSlug: string) {
+export async function getFormulaByIdOrSlug({
+  idOrSlug,
+  userId,
+}: {
+  idOrSlug: string;
+  userId?: string;
+}) {
   return prisma.formula.findFirst({
+    where: buildFormulaLookupWhere({ idOrSlug, userId }),
+    include: formulaDetailInclude,
+  });
+}
+
+export async function formulaSlugExists(slug: string) {
+  const formula = await prisma.formula.findUnique({
     where: {
-      OR: [{ id: idOrSlug }, { slug: idOrSlug }],
+      slug,
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  return formula !== null;
+}
+
+export async function updateFormulaPlotConfig({
+  formulaIdOrSlug,
+  userId,
+  plotConfig,
+}: {
+  formulaIdOrSlug: string;
+  userId?: string;
+  plotConfig: Prisma.InputJsonValue | typeof Prisma.JsonNull;
+}) {
+  if (!userId) {
+    return null;
+  }
+
+  const formula = await prisma.formula.findFirst({
+    where: {
+      AND: [
+        {
+          OR: [{ id: formulaIdOrSlug }, { slug: formulaIdOrSlug }],
+        },
+        {
+          ownerUserId: userId,
+        },
+      ],
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  if (!formula) {
+    return null;
+  }
+
+  return prisma.formula.update({
+    where: {
+      id: formula.id,
+    },
+    data: {
+      plotConfig,
     },
     include: formulaDetailInclude,
   });
 }
 
-export async function listFormulaRelations(idOrSlug: string) {
+export async function listFormulaRelations({
+  idOrSlug,
+  userId,
+}: {
+  idOrSlug: string;
+  userId?: string;
+}) {
   const formula = await prisma.formula.findFirst({
-    where: {
-      OR: [{ id: idOrSlug }, { slug: idOrSlug }],
-    },
+    where: buildFormulaLookupWhere({ idOrSlug, userId }),
     select: {
       id: true,
     },
@@ -290,10 +400,11 @@ export async function listFormulaRelations(idOrSlug: string) {
   return prisma.formulaRelation.findMany({
     where: {
       fromFormulaId: formula.id,
+      toFormula: buildFormulaVisibilityWhere(userId),
     },
     include: {
       toFormula: {
-        include: buildFormulaSummaryInclude(),
+        include: buildFormulaSummaryInclude(userId),
       },
     },
     orderBy: [{ relationType: "asc" }, { createdAt: "asc" }],
@@ -312,9 +423,7 @@ export async function listFormulaMemoryHooks({
   }
 
   const formula = await prisma.formula.findFirst({
-    where: {
-      OR: [{ id: formulaIdOrSlug }, { slug: formulaIdOrSlug }],
-    },
+    where: buildFormulaLookupWhere({ idOrSlug: formulaIdOrSlug, userId }),
     select: {
       id: true,
     },
@@ -343,9 +452,7 @@ export async function saveUserFormulaMemoryHook({
   content: string;
 }) {
   const formula = await prisma.formula.findFirst({
-    where: {
-      OR: [{ id: formulaIdOrSlug }, { slug: formulaIdOrSlug }],
-    },
+    where: buildFormulaLookupWhere({ idOrSlug: formulaIdOrSlug, userId }),
     select: {
       id: true,
     },

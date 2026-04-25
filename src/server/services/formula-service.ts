@@ -1,6 +1,7 @@
 import {
   createCustomFormula,
   deleteUserFormulaMemoryHook,
+  formulaSlugExists,
   getFormulaByIdOrSlug,
   listFormulaRelations,
   listFormulaCatalogFacets,
@@ -8,10 +9,13 @@ import {
   listFormulaMemoryHooks,
   listFormulas,
   saveUserFormulaMemoryHook,
+  updateFormulaPlotConfig,
 } from "@/server/repositories/formula-repository";
+import { Prisma } from "@/generated/prisma/client";
 import type {
   FormulaCatalog,
   FormulaDetail,
+  FormulaPlotConfig,
   FormulaRelationDetail,
   FormulaSummary,
 } from "@/types/formula";
@@ -28,6 +32,7 @@ export async function getFormulaSummaries(params?: {
   difficulty?: number;
   query?: string;
   userId?: string;
+  ownership?: "official" | "personal";
 }): Promise<FormulaSummary[]> {
   const formulas = await listFormulas(params);
   const now = new Date();
@@ -60,10 +65,11 @@ export async function getFormulaCatalog(params?: {
   difficulty?: number;
   query?: string;
   userId?: string;
+  ownership?: "official" | "personal";
 }): Promise<FormulaCatalog> {
   const [formulas, facetSource] = await Promise.all([
     getFormulaSummaries(params),
-    listFormulaCatalogFacets(),
+    listFormulaCatalogFacets(params?.userId),
   ]);
 
   const tagFrequency = new Map<string, number>();
@@ -94,8 +100,8 @@ export async function getFormulaCatalog(params?: {
   };
 }
 
-export async function getFormulaDomains() {
-  return listFormulaDomains();
+export async function getFormulaDomains(userId?: string) {
+  return listFormulaDomains(userId);
 }
 
 export async function addCustomFormula({
@@ -202,13 +208,23 @@ export async function addCustomFormula({
     },
   });
 
-  return getFormulaDetail(formula.slug);
+  return getFormulaDetail({
+    idOrSlug: formula.slug,
+    userId,
+  });
 }
 
-export async function getFormulaDetail(
-  idOrSlug: string,
-): Promise<FormulaDetail | null> {
-  const formula = await getFormulaByIdOrSlug(idOrSlug);
+export async function getFormulaDetail({
+  idOrSlug,
+  userId,
+}: {
+  idOrSlug: string;
+  userId?: string;
+}): Promise<FormulaDetail | null> {
+  const formula = await getFormulaByIdOrSlug({
+    idOrSlug,
+    userId,
+  });
 
   if (!formula) {
     return null;
@@ -219,8 +235,12 @@ export async function getFormulaDetail(
 
 export async function getFormulaRelationDetails(
   idOrSlug: string,
+  userId?: string,
 ): Promise<FormulaRelationDetail[] | null> {
-  const relations = await listFormulaRelations(idOrSlug);
+  const relations = await listFormulaRelations({
+    idOrSlug,
+    userId,
+  });
 
   if (!relations) {
     return null;
@@ -283,10 +303,43 @@ export async function removeMemoryHook({
   });
 }
 
+export async function saveFormulaPlotConfig({
+  formulaIdOrSlug,
+  userId,
+  plotConfig,
+}: {
+  formulaIdOrSlug: string;
+  userId?: string;
+  plotConfig: unknown;
+}) {
+  const normalizedPlotConfig =
+    plotConfig === null ? null : normalizeFormulaPlotConfig(plotConfig);
+
+  if (plotConfig !== null && !normalizedPlotConfig) {
+    throw new Error("plotConfig is invalid");
+  }
+
+  const formula = await updateFormulaPlotConfig({
+    formulaIdOrSlug,
+    userId,
+    plotConfig:
+      normalizedPlotConfig === null
+        ? Prisma.JsonNull
+        : toInputJsonValue(normalizedPlotConfig),
+  });
+
+  if (!formula) {
+    return null;
+  }
+
+  return toFormulaDetail(formula, new Date());
+}
+
 function toFormulaSummary(
   formula: {
     id: string;
     slug: string;
+    ownerUserId: string | null;
     title: string;
     expressionLatex: string;
     domain: string;
@@ -344,6 +397,7 @@ function toFormulaSummary(
   return {
     id: formula.id,
     slug: formula.slug,
+    ownership: formula.ownerUserId ? "personal" : "official",
     title: formula.title,
     expressionLatex: formula.expressionLatex,
     domain: formula.domain,
@@ -379,6 +433,7 @@ function toFormulaDetail(formula: FormulaWithDetail, now: Date): FormulaDetail {
     antiPatterns: formula.antiPatterns,
     typicalProblems: formula.typicalProblems,
     examples: formula.examples,
+    plotConfig: normalizeFormulaPlotConfig(formula.plotConfig),
     variables: formula.variables.map((variable) => ({
       id: variable.id,
       symbol: variable.symbol,
@@ -397,6 +452,111 @@ function toFormulaDetail(formula: FormulaWithDetail, now: Date): FormulaDetail {
     })),
     memoryHooks: formula.memoryHooks.map((hook) => toMemoryHookRecord(hook)),
   };
+}
+
+export function normalizeFormulaPlotConfig(value: unknown): FormulaPlotConfig | null {
+  if (!isRecord(value) || value.type !== "explicit") {
+    return null;
+  }
+
+  const x = value.x;
+  const y = value.y;
+
+  if (!isRecord(x) || !isRecord(y)) {
+    return null;
+  }
+
+  const xMin = Number(x.min);
+  const xMax = Number(x.max);
+  const expression = typeof y.expression === "string" ? y.expression.trim() : "";
+
+  if (!Number.isFinite(xMin) || !Number.isFinite(xMax) || xMin >= xMax || !expression) {
+    return null;
+  }
+
+  const parameters = Array.isArray(value.parameters)
+    ? value.parameters.flatMap((parameter) => {
+        if (!isRecord(parameter) || typeof parameter.name !== "string") {
+          return [];
+        }
+
+        const min = Number(parameter.min);
+        const max = Number(parameter.max);
+        const defaultValue = Number(parameter.defaultValue);
+
+        if (!parameter.name.trim() || !Number.isFinite(min) || !Number.isFinite(max)) {
+          return [];
+        }
+
+        if (min >= max || !Number.isFinite(defaultValue)) {
+          return [];
+        }
+
+        return [
+          {
+            name: parameter.name.trim(),
+            label: typeof parameter.label === "string" ? parameter.label : undefined,
+            defaultValue,
+            min,
+            max,
+            step: Number.isFinite(Number(parameter.step))
+              ? Number(parameter.step)
+              : undefined,
+          },
+        ];
+      })
+    : [];
+
+  return {
+    type: "explicit",
+    title: typeof value.title === "string" ? value.title : undefined,
+    description: typeof value.description === "string" ? value.description : undefined,
+    x: {
+      min: xMin,
+      max: xMax,
+      label: typeof x.label === "string" ? x.label : undefined,
+    },
+    y: {
+      expression,
+      label: typeof y.label === "string" ? y.label : undefined,
+    },
+    parameters,
+    viewBox: toPlotViewBox(value.viewBox),
+  };
+}
+
+function toPlotViewBox(value: unknown): FormulaPlotConfig["viewBox"] {
+  if (!isRecord(value)) {
+    return undefined;
+  }
+
+  return {
+    x: toNumberPair(value.x),
+    y: toNumberPair(value.y),
+  };
+}
+
+function toNumberPair(value: unknown): [number, number] | undefined {
+  if (!Array.isArray(value) || value.length !== 2) {
+    return undefined;
+  }
+
+  const left = Number(value[0]);
+  const right = Number(value[1]);
+
+  if (!Number.isFinite(left) || !Number.isFinite(right) || left >= right) {
+    return undefined;
+  }
+
+  return [left, right];
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function toInputJsonValue(value: FormulaPlotConfig): Prisma.InputJsonValue {
+  return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
 }
 
 function toFormulaRelationDetail(
@@ -472,7 +632,7 @@ async function createUniqueFormulaSlug(title: string) {
   let candidate = baseSlug;
   let index = 1;
 
-  while (await getFormulaByIdOrSlug(candidate)) {
+  while (await formulaSlugExists(candidate)) {
     index += 1;
     candidate = `${baseSlug}-${index}`;
   }

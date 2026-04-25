@@ -11,9 +11,10 @@ export async function PATCH(
   const { slug } = await context.params;
   const payload = (await request.json()) as ContentAssistDraft;
 
-  return withAuthenticatedApi(async () => {
+  return withAuthenticatedApi(async (current) => {
     const draft = await updateContentAssistDraft({
       formulaSlug: slug,
+      userId: current.learner.id,
       input: payload,
     });
 

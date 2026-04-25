@@ -52,6 +52,7 @@ model User {
   diagnosticAttempts DiagnosticAttempt[]
   studySessions      StudySession[]
   productEvents      ProductEvent[]
+  ownedFormulas      Formula[]            @relation("FormulaOwner")
   authIdentity       AuthUser?
 
   @@map("users")
@@ -128,6 +129,7 @@ model AuthVerification {
 
 model Formula {
   id               String   @id @default(cuid())
+  ownerUserId      String?
   slug             String   @unique
   title            String
   expressionLatex  String
@@ -142,6 +144,7 @@ model Formula {
   antiPatterns     String[]
   typicalProblems  String[]
   examples         String[]
+  plotConfig       Json?
   difficulty       Int
   tags             String[]
   createdAt        DateTime @default(now())
@@ -155,8 +158,10 @@ model Formula {
   reviewLogs        ReviewLog[]
   memoryHooks       FormulaMemoryHook[]
   productEvents     ProductEvent[]
+  owner             User?               @relation("FormulaOwner", fields: [ownerUserId], references: [id], onDelete: Cascade)
 
   @@index([domain, subdomain])
+  @@index([ownerUserId])
   @@map("formulas")
 }
 

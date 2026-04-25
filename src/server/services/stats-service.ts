@@ -285,19 +285,19 @@ function buildWeakFormulasFromSession({
         againCount: entry.againCount,
         hardCount: entry.hardCount,
         nextReviewAt: state?.nextReviewAt?.toISOString() ?? null,
-        memoryHookCount: state?.formula._count.memoryHooks ?? 0,
+        memoryHookCount: state?.formula.memoryHooks.length ?? 0,
         weakPoint: inferWeakPoint({
           latestResult: entry.latestResult,
           againCount: entry.againCount,
           hardCount: entry.hardCount,
-          memoryHookCount: state?.formula._count.memoryHooks ?? 0,
+              memoryHookCount: state?.formula.memoryHooks.length ?? 0,
         }),
         recommendedAction: getRecommendedAction(
           inferWeakPoint({
             latestResult: entry.latestResult,
             againCount: entry.againCount,
             hardCount: entry.hardCount,
-            memoryHookCount: state?.formula._count.memoryHooks ?? 0,
+            memoryHookCount: state?.formula.memoryHooks.length ?? 0,
           }),
         ),
         reason:
@@ -322,12 +322,12 @@ function toWeakFormulaStat(
     againCount: state.lapseCount,
     hardCount: Math.max(0, state.totalReviews - state.correctReviews - state.lapseCount),
     nextReviewAt: state.nextReviewAt?.toISOString() ?? null,
-    memoryHookCount: state.formula._count.memoryHooks,
+    memoryHookCount: state.formula.memoryHooks.length,
     weakPoint: inferWeakPoint({
       latestResult: null,
       againCount: state.lapseCount,
       hardCount: Math.max(0, state.totalReviews - state.correctReviews - state.lapseCount),
-      memoryHookCount: state.formula._count.memoryHooks,
+      memoryHookCount: state.formula.memoryHooks.length,
       memoryStrength: state.memoryStrength,
     }),
     recommendedAction: getRecommendedAction(
@@ -335,7 +335,7 @@ function toWeakFormulaStat(
         latestResult: null,
         againCount: state.lapseCount,
         hardCount: Math.max(0, state.totalReviews - state.correctReviews - state.lapseCount),
-        memoryHookCount: state.formula._count.memoryHooks,
+        memoryHookCount: state.formula.memoryHooks.length,
         memoryStrength: state.memoryStrength,
       }),
     ),

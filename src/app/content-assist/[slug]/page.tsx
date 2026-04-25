@@ -13,9 +13,10 @@ export default async function ContentAssistDetailPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  await requireCurrentLearner();
+  const current = await requireCurrentLearner();
   const payload = await getContentAssistDraft({
     formulaIdOrSlug: slug,
+    userId: current.learner.id,
   });
 
   if (!payload) {

@@ -79,6 +79,43 @@ const formulas = [
     examples: [
       "某疾病发病率为 1%，检测对患病者阳性的概率为 99%，对未患病者误报阳性的概率为 5%。若检测阳性，求真正患病的概率。",
     ],
+    plotConfig: {
+      type: "explicit",
+      title: "先验概率如何变成后验概率",
+      description:
+        "横轴是原因 A 的先验概率，拖动似然和误报率，观察同一次证据 B 会怎样改变后验概率。",
+      x: {
+        min: 0.001,
+        max: 0.999,
+        label: "P(A)",
+      },
+      y: {
+        expression: "sensitivity * x / (sensitivity * x + falsePositive * (1 - x))",
+        label: "P(A | B)",
+      },
+      parameters: [
+        {
+          name: "sensitivity",
+          label: "P(B | A)",
+          defaultValue: 0.99,
+          min: 0.05,
+          max: 1,
+          step: 0.01,
+        },
+        {
+          name: "falsePositive",
+          label: "P(B | not A)",
+          defaultValue: 0.05,
+          min: 0.01,
+          max: 0.8,
+          step: 0.01,
+        },
+      ],
+      viewBox: {
+        x: [0, 1],
+        y: [0, 1],
+      },
+    },
     difficulty: 3,
     tags: ["bayes", "conditional-probability", "inverse-inference"],
     variables: [
@@ -159,6 +196,43 @@ const formulas = [
     examples: [
       "A 线生产 60% 零件且次品率 1%，B 线生产 40% 零件且次品率 2%，随机抽到次品的总概率是多少？",
     ],
+    plotConfig: {
+      type: "explicit",
+      title: "两条路径的加权平均",
+      description:
+        "横轴是一条路径的权重，曲线表示结果 B 的总概率；权重变化时，总概率会在线性加权中移动。",
+      x: {
+        min: 0,
+        max: 1,
+        label: "P(A)",
+      },
+      y: {
+        expression: "rateWhenA * x + rateWhenNotA * (1 - x)",
+        label: "P(B)",
+      },
+      parameters: [
+        {
+          name: "rateWhenA",
+          label: "P(B | A)",
+          defaultValue: 0.01,
+          min: 0,
+          max: 0.5,
+          step: 0.01,
+        },
+        {
+          name: "rateWhenNotA",
+          label: "P(B | not A)",
+          defaultValue: 0.02,
+          min: 0,
+          max: 0.5,
+          step: 0.01,
+        },
+      ],
+      viewBox: {
+        x: [0, 1],
+        y: [0, 0.5],
+      },
+    },
     difficulty: 2,
     tags: ["total-probability", "conditional-probability", "partition"],
     variables: [
@@ -232,6 +306,51 @@ const formulas = [
     examples: [
       "掷 10 次硬币，令 X 为正面次数，可把 X 拆成 10 个指示变量求期望。",
     ],
+    plotConfig: {
+      type: "explicit",
+      title: "线性组合的期望",
+      description:
+        "横轴是 E(X)，拖动 a、b 和 E(Y)，观察线性组合的期望仍然保持直线变化。",
+      x: {
+        min: -5,
+        max: 5,
+        label: "E(X)",
+      },
+      y: {
+        expression: "a * x + b * expectationY",
+        label: "E(aX + bY)",
+      },
+      parameters: [
+        {
+          name: "a",
+          label: "a",
+          defaultValue: 1,
+          min: -5,
+          max: 5,
+          step: 0.1,
+        },
+        {
+          name: "b",
+          label: "b",
+          defaultValue: 1,
+          min: -5,
+          max: 5,
+          step: 0.1,
+        },
+        {
+          name: "expectationY",
+          label: "E(Y)",
+          defaultValue: 2,
+          min: -5,
+          max: 5,
+          step: 0.1,
+        },
+      ],
+      viewBox: {
+        x: [-5, 5],
+        y: [-10, 10],
+      },
+    },
     difficulty: 2,
     tags: ["expectation", "linearity", "random-variable"],
     variables: [
@@ -300,6 +419,35 @@ const formulas = [
     examples: [
       "若 Var(X)=9，求 Var(2X+10)。答案是 4*9=36。",
     ],
+    plotConfig: {
+      type: "explicit",
+      title: "缩放系数平方放大方差",
+      description:
+        "横轴是缩放系数 a。平移 b 不改变方差，缩放会按 a 的平方改变离散程度。",
+      x: {
+        min: -5,
+        max: 5,
+        label: "a",
+      },
+      y: {
+        expression: "x^2 * variance",
+        label: "Var(aX + b)",
+      },
+      parameters: [
+        {
+          name: "variance",
+          label: "Var(X)",
+          defaultValue: 1,
+          min: 0,
+          max: 5,
+          step: 0.1,
+        },
+      ],
+      viewBox: {
+        x: [-5, 5],
+        y: [0, 25],
+      },
+    },
     difficulty: 2,
     tags: ["variance", "random-variable", "scale-shift"],
     variables: [
@@ -494,6 +642,7 @@ async function main() {
         antiPatterns: formula.antiPatterns,
         typicalProblems: formula.typicalProblems,
         examples: formula.examples,
+        plotConfig: "plotConfig" in formula ? formula.plotConfig : undefined,
         difficulty: formula.difficulty,
         tags: formula.tags,
         variables: {

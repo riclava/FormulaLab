@@ -90,6 +90,7 @@ CREATE TABLE "auth_verifications" (
 -- CreateTable
 CREATE TABLE "formulas" (
     "id" TEXT NOT NULL,
+    "ownerUserId" TEXT,
     "slug" TEXT NOT NULL,
     "title" TEXT NOT NULL,
     "expressionLatex" TEXT NOT NULL,
@@ -104,6 +105,7 @@ CREATE TABLE "formulas" (
     "antiPatterns" TEXT[],
     "typicalProblems" TEXT[],
     "examples" TEXT[],
+    "plotConfig" JSONB,
     "difficulty" INTEGER NOT NULL,
     "tags" TEXT[],
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -283,6 +285,9 @@ CREATE UNIQUE INDEX "formulas_slug_key" ON "formulas"("slug");
 CREATE INDEX "formulas_domain_subdomain_idx" ON "formulas"("domain", "subdomain");
 
 -- CreateIndex
+CREATE INDEX "formulas_ownerUserId_idx" ON "formulas"("ownerUserId");
+
+-- CreateIndex
 CREATE INDEX "formula_variables_formulaId_idx" ON "formula_variables"("formulaId");
 
 -- CreateIndex
@@ -335,6 +340,9 @@ ALTER TABLE "auth_accounts" ADD CONSTRAINT "auth_accounts_userId_fkey" FOREIGN K
 
 -- AddForeignKey
 ALTER TABLE "formula_variables" ADD CONSTRAINT "formula_variables_formulaId_fkey" FOREIGN KEY ("formulaId") REFERENCES "formulas"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "formulas" ADD CONSTRAINT "formulas_ownerUserId_fkey" FOREIGN KEY ("ownerUserId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "formula_relations" ADD CONSTRAINT "formula_relations_fromFormulaId_fkey" FOREIGN KEY ("fromFormulaId") REFERENCES "formulas"("id") ON DELETE CASCADE ON UPDATE CASCADE;

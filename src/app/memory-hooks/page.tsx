@@ -16,7 +16,7 @@ export default async function MemoryHooksPage({
 }) {
   const current = await requireCurrentLearner();
   const params = await searchParams;
-  const learningDomain = await resolveLearningDomain(params.domain);
+  const learningDomain = await resolveLearningDomain(params.domain, current.learner.id);
   const formulas = await getFormulaSummaries({
     domain: learningDomain.currentDomain,
     userId: current.learner.id,

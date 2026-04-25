@@ -1,33 +1,59 @@
 import { prisma } from "@/lib/db/prisma";
+import { Prisma } from "@/generated/prisma/client";
 import type { DiagnosticAssessment } from "@/types/diagnostic";
 
-const diagnosticQuestionInclude = {
-  formula: {
-    include: {
-      _count: {
-        select: {
-          reviewItems: true,
-          memoryHooks: true,
+function buildFormulaVisibilityWhere(userId: string) {
+  return {
+    OR: [
+      {
+        ownerUserId: null,
+      },
+      {
+        ownerUserId: userId,
+      },
+    ],
+  } satisfies Prisma.FormulaWhereInput;
+}
+
+function buildDiagnosticQuestionInclude(userId: string) {
+  return {
+    formula: {
+      include: {
+        memoryHooks: {
+          where: {
+            userId,
+          },
+          select: {
+            id: true,
+          },
+        },
+        _count: {
+          select: {
+            reviewItems: true,
+          },
         },
       },
     },
-  },
-} as const;
+  } satisfies Prisma.ReviewItemInclude;
+}
 
 export async function listDiagnosticReviewItems({
   domain,
+  userId,
   take,
 }: {
   domain: string;
+  userId: string;
   take: number;
 }) {
   return prisma.reviewItem.findMany({
     where: {
       formula: {
         domain,
+        ...buildFormulaVisibilityWhere(userId),
       },
     },
-    include: diagnosticQuestionInclude,
+    include: buildDiagnosticQuestionInclude(userId),
     orderBy: [
       {
         difficulty: "asc",
@@ -42,9 +68,11 @@ export async function listDiagnosticReviewItems({
 
 export async function listReviewItemsByIds({
   domain,
+  userId,
   reviewItemIds,
 }: {
   domain: string;
+  userId: string;
   reviewItemIds: string[];
 }) {
   return prisma.reviewItem.findMany({
@@ -54,6 +82,7 @@ export async function listReviewItemsByIds({
       },
       formula: {
         domain,
+        ...buildFormulaVisibilityWhere(userId),
       },
     },
     include: {

@@ -41,7 +41,6 @@ export async function generateFormulaDraft({
       },
     ],
     responseFormat: { type: "json_object" },
-    maxCompletionTokens: 1400,
   });
 
   return normalizeGeneratedFormulaDraft(parseJsonContent(content));

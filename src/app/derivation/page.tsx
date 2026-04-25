@@ -14,14 +14,22 @@ export default async function DerivationPage({
 }: {
   searchParams: Promise<{ domain?: string }>;
 }) {
-  await requireCurrentLearner();
+  const current = await requireCurrentLearner();
   const params = await searchParams;
-  const learningDomain = await resolveLearningDomain(params.domain);
+  const learningDomain = await resolveLearningDomain(params.domain, current.learner.id);
   const summaries = await getFormulaSummaries({
     domain: learningDomain.currentDomain,
+    userId: current.learner.id,
   });
   const details = (
-    await Promise.all(summaries.map((formula) => getFormulaDetail(formula.slug)))
+    await Promise.all(
+      summaries.map((formula) =>
+        getFormulaDetail({
+          idOrSlug: formula.slug,
+          userId: current.learner.id,
+        }),
+      ),
+    )
   ).filter((formula) => formula?.derivation) as NonNullable<
     Awaited<ReturnType<typeof getFormulaDetail>>
   >[];

@@ -11,6 +11,7 @@ export type FormulaTrainingStatus =
 export type FormulaSummary = {
   id: string;
   slug: string;
+  ownership: "official" | "personal";
   title: string;
   expressionLatex: string;
   domain: string;
@@ -43,6 +44,33 @@ export type FormulaCatalog = {
   };
 };
 
+export type FormulaPlotConfig = {
+  type: "explicit";
+  title?: string;
+  description?: string;
+  x: {
+    min: number;
+    max: number;
+    label?: string;
+  };
+  y: {
+    expression: string;
+    label?: string;
+  };
+  parameters: Array<{
+    name: string;
+    label?: string;
+    defaultValue: number;
+    min: number;
+    max: number;
+    step?: number;
+  }>;
+  viewBox?: {
+    x?: [number, number];
+    y?: [number, number];
+  };
+};
+
 export type FormulaDetail = FormulaSummary & {
   meaning: string;
   intuition: string | null;
@@ -52,6 +80,7 @@ export type FormulaDetail = FormulaSummary & {
   antiPatterns: string[];
   typicalProblems: string[];
   examples: string[];
+  plotConfig: FormulaPlotConfig | null;
   variables: Array<{
     id: string;
     symbol: string;

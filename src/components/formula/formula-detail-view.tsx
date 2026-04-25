@@ -6,11 +6,13 @@ import {
   AlertTriangle,
   BookOpen,
   CheckCircle2,
+  ChartSpline,
   Lightbulb,
   Loader2,
   Network,
 } from "lucide-react";
 
+import { FormulaCurveWorkspace } from "@/components/formula/formula-curve-workspace";
 import { LatexRenderer } from "@/components/formula/latex-renderer";
 import { FormulaMemoryHookPanel } from "@/components/memory-hooks/formula-memory-hook-panel";
 import { Badge } from "@/components/ui/badge";
@@ -25,11 +27,12 @@ type FocusSection =
   | "hooks"
   | "relations"
   | "examples"
-  | "derivation";
+  | "derivation"
+  | "curve";
 
 export type { FocusSection };
 
-type DetailCategory = "core" | "concept" | "practice" | "network" | "hooks";
+type DetailCategory = "core" | "concept" | "visual" | "practice" | "network" | "hooks";
 
 export function FormulaDetailView({
   formulaIdOrSlug,
@@ -154,6 +157,9 @@ export function FormulaDetailView({
         <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,0.75fr)] lg:items-center">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
+              <Badge variant={formula.ownership === "personal" ? "secondary" : "outline"}>
+                {formula.ownership === "personal" ? "我的公式" : "官方"}
+              </Badge>
               <Badge>{formula.domain}</Badge>
               {formula.subdomain ? <Badge variant="secondary">{formula.subdomain}</Badge> : null}
             </div>
@@ -218,6 +224,7 @@ export function FormulaDetailView({
           {renderActiveCategory({
             activeCategory,
             formula,
+            onFormulaSaved: setFormula,
             initialHooks,
             relations,
             focusSection,
@@ -248,11 +255,13 @@ const quickActionsByEntryPoint: Record<
     { section: "use", label: "确认适用条件" },
     { section: "hooks", label: "恢复记忆线索" },
     { section: "examples", label: "回看例题" },
+    { section: "curve", label: "看曲线变化" },
   ],
   paths: [
     { section: "use", label: "先看什么时候用" },
     { section: "derivation", label: "再看推导过程" },
     { section: "relations", label: "接着看关联公式" },
+    { section: "curve", label: "看曲线变化" },
     { section: "examples", label: "回到例题" },
   ],
   derivation: [
@@ -278,6 +287,7 @@ const quickActionsByEntryPoint: Record<
     { section: "anti-patterns", label: "看常见误用" },
     { section: "hooks", label: "写一句自己的提醒" },
     { section: "relations", label: "看关联公式" },
+    { section: "curve", label: "看曲线变化" },
   ],
 };
 
@@ -310,6 +320,7 @@ const detailCategories: Array<{
 }> = [
   { id: "core", label: "核心判断", icon: CheckCircle2 },
   { id: "concept", label: "理解公式", icon: BookOpen },
+  { id: "visual", label: "曲线理解", icon: ChartSpline },
   { id: "practice", label: "题目练习", icon: AlertTriangle },
   { id: "network", label: "关联网络", icon: Network },
   { id: "hooks", label: "个人提示", icon: Lightbulb },
@@ -330,6 +341,8 @@ function categoryForFocus(focusSection?: FocusSection): DetailCategory | undefin
     case "examples":
     case "derivation":
       return "practice";
+    case "curve":
+      return "visual";
     case "relations":
       return "network";
     case "hooks":
@@ -342,12 +355,14 @@ function categoryForFocus(focusSection?: FocusSection): DetailCategory | undefin
 function renderActiveCategory({
   activeCategory,
   formula,
+  onFormulaSaved,
   initialHooks,
   relations,
   focusSection,
 }: {
   activeCategory: DetailCategory;
   formula: FormulaDetail;
+  onFormulaSaved: (formula: FormulaDetail) => void;
   initialHooks?: FormulaDetail["memoryHooks"];
   relations: FormulaRelationDetail[];
   focusSection?: FocusSection;
@@ -410,6 +425,18 @@ function renderActiveCategory({
             </div>
           </DetailSection>
         </div>
+      );
+    case "visual":
+      return (
+        <DetailSection focused={focusSection === "curve"} icon={ChartSpline} title="曲线理解">
+          <FormulaCurveWorkspace
+            key={formula.id}
+            formulaIdOrSlug={formula.slug}
+            plotConfig={formula.plotConfig}
+            editable={formula.ownership === "personal"}
+            onSaved={onFormulaSaved}
+          />
+        </DetailSection>
       );
     case "practice":
       return (

@@ -10,8 +10,8 @@ export async function GET(
 ) {
   const { id: rawId } = await params;
   const id = normalizeRouteParam(rawId);
-  return withAuthenticatedApi(async () => {
-    const relations = await getFormulaRelationDetails(id);
+  return withAuthenticatedApi(async (current) => {
+    const relations = await getFormulaRelationDetails(id, current.learner.id);
 
     if (!relations) {
       return NextResponse.json(

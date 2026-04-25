@@ -11,6 +11,7 @@ export async function GET(request: Request) {
   const domain = url.searchParams.get("domain") ?? undefined;
   const tag = url.searchParams.get("tag") ?? undefined;
   const query = url.searchParams.get("q") ?? undefined;
+  const source = url.searchParams.get("source");
   const difficultyValue = url.searchParams.get("difficulty");
   const difficulty = difficultyValue ? Number(difficultyValue) : undefined;
   return withAuthenticatedApi(async (current) => {
@@ -23,6 +24,7 @@ export async function GET(request: Request) {
           : undefined,
       query,
       userId: current.learner.id,
+      ownership: source === "official" || source === "personal" ? source : undefined,
     });
 
     return NextResponse.json({
