@@ -12,8 +12,8 @@ FormulaLab V1 Alpha 推荐部署到 Vercel，数据库使用任意兼容 Postgre
 ## 可选环境变量
 
 - `E2E_BASE_URL`：端到端测试访问的应用地址；为空时相关测试会跳过。
-- `LLM_PROVIDER`：内容辅助工具使用的 OpenAI-compatible LLM 提供商，支持 `kimi`、`deepseek`、`custom`。
-- `LLM_API_KEY`：内容辅助工具使用的 LLM API key。
+- `LLM_PROVIDER`：公式草稿和图像配置生成使用的 OpenAI-compatible LLM 提供商，支持 `kimi`、`deepseek`、`custom`。
+- `LLM_API_KEY`：公式草稿和图像配置生成使用的 LLM API key。
 - `LLM_API_BASE_URL`：LLM 接口地址覆盖项；为空时使用 provider 默认值。
 - `LLM_MODEL`：LLM 模型名覆盖项；为空时使用 provider 默认值。
 - `LLM_API_TIMEOUT_MS`：LLM 请求超时时间，单位毫秒。
@@ -48,8 +48,6 @@ npm run prisma:migrate
 ```bash
 npm run db:seed
 ```
-
-`db:seed` 会读取 `content-assist/approved` 下的已审核内容辅助包，并合并到正式种子数据。
 
 ## 发布前检查
 

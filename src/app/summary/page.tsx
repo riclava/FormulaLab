@@ -358,7 +358,7 @@ export default async function SummaryPage({
           <summary className="flex cursor-pointer list-none items-center justify-between gap-3">
             <div className="flex items-center gap-2">
               <Lightbulb data-icon="inline-start" />
-              <h2 className="font-semibold">V1 指标</h2>
+              <h2 className="font-semibold">学习成效指标</h2>
             </div>
             <span className="text-sm text-muted-foreground">展开查看</span>
           </summary>

@@ -1,6 +1,4 @@
 import "dotenv/config";
-import { readdir, readFile } from "node:fs/promises";
-import path from "node:path";
 
 import { PrismaPg } from "@prisma/adapter-pg";
 
@@ -15,37 +13,6 @@ const prisma = new PrismaClient({
     connectionString: process.env.DATABASE_URL ?? "",
   }),
 });
-
-type ApprovedContentAssistDraft = {
-  formulaSlug: string;
-  status: "draft" | "approved";
-  explanation: {
-    oneLineUse: string;
-    meaning: string;
-    useConditions: string[];
-    nonUseConditions: string[];
-    antiPatterns: string[];
-    typicalProblems: string[];
-    variableExplanations: Array<{
-      symbol: string;
-      name: string;
-      description: string;
-      unit?: string | null;
-    }>;
-  };
-  reviewItems: Array<{
-    type: ReviewItemType;
-    prompt: string;
-    answer: string;
-    explanation: string;
-    difficulty: number;
-  }>;
-  relationCandidates: Array<{
-    toSlug: string;
-    relationType: FormulaRelationType;
-    note: string;
-  }>;
-};
 
 const formulas = [
   {
@@ -526,93 +493,7 @@ const relations: Array<{
   },
 ];
 
-async function loadApprovedDrafts() {
-  const approvedDir = path.join(process.cwd(), "content-assist", "approved");
-
-  try {
-    const entries = await readdir(approvedDir, { withFileTypes: true });
-    const drafts = await Promise.all(
-      entries
-        .filter((entry) => entry.isFile() && entry.name.endsWith(".json"))
-        .map(async (entry) => {
-          const content = await readFile(path.join(approvedDir, entry.name), "utf8");
-          return JSON.parse(content) as ApprovedContentAssistDraft;
-        }),
-    );
-
-    return drafts.filter((draft) => draft.status === "approved");
-  } catch {
-    return [] as ApprovedContentAssistDraft[];
-  }
-}
-
-function applyApprovedDrafts(
-  baseFormulas: typeof formulas,
-  baseRelations: typeof relations,
-  approvedDrafts: ApprovedContentAssistDraft[],
-) {
-  const draftsBySlug = new Map(
-    approvedDrafts.map((draft) => [draft.formulaSlug, draft]),
-  );
-  const nextFormulas = baseFormulas.map((formula) => {
-    const approvedDraft = draftsBySlug.get(formula.slug);
-
-    if (!approvedDraft) {
-      return formula;
-    }
-
-    return {
-      ...formula,
-      oneLineUse: approvedDraft.explanation.oneLineUse,
-      meaning: approvedDraft.explanation.meaning,
-      useConditions: approvedDraft.explanation.useConditions,
-      nonUseConditions: approvedDraft.explanation.nonUseConditions,
-      antiPatterns: approvedDraft.explanation.antiPatterns,
-      typicalProblems: approvedDraft.explanation.typicalProblems,
-      variables: approvedDraft.explanation.variableExplanations.map((variable) => ({
-        symbol: variable.symbol,
-        name: variable.name,
-        description: variable.description,
-        unit: variable.unit ?? undefined,
-      })),
-      reviewItems: approvedDraft.reviewItems,
-    };
-  });
-  const baseRelationKeys = new Set(
-    baseRelations.map(
-      (relation) => `${relation.from}:${relation.to}:${relation.relationType}`,
-    ),
-  );
-  const nextRelations = [...baseRelations];
-
-  for (const draft of approvedDrafts) {
-    for (const relation of draft.relationCandidates) {
-      const relationKey = `${draft.formulaSlug}:${relation.toSlug}:${relation.relationType}`;
-
-      if (baseRelationKeys.has(relationKey)) {
-        continue;
-      }
-
-      baseRelationKeys.add(relationKey);
-      nextRelations.push({
-        from: draft.formulaSlug,
-        to: relation.toSlug,
-        relationType: relation.relationType,
-        note: relation.note,
-      });
-    }
-  }
-
-  return {
-    formulas: nextFormulas,
-    relations: nextRelations,
-  };
-}
-
 async function main() {
-  const approvedDrafts = await loadApprovedDrafts();
-  const seeded = applyApprovedDrafts(formulas, relations, approvedDrafts);
-
   await prisma.reviewLog.deleteMany();
   await prisma.studySession.deleteMany();
   await prisma.diagnosticAttempt.deleteMany();
@@ -625,7 +506,7 @@ async function main() {
 
   const created = new Map<string, string>();
 
-  for (const formula of seeded.formulas) {
+  for (const formula of formulas) {
     const item = await prisma.formula.create({
       data: {
         slug: formula.slug,
@@ -660,7 +541,7 @@ async function main() {
     created.set(formula.slug, item.id);
   }
 
-  for (const relation of seeded.relations) {
+  for (const relation of relations) {
     const fromFormulaId = created.get(relation.from);
     const toFormulaId = created.get(relation.to);
 

@@ -1,6 +1,5 @@
 import Link from "next/link";
 import {
-  Bot,
   BookOpen,
   Brain,
   ChartNoAxesColumn,
@@ -52,13 +51,6 @@ const navItems: NavItem[] = [
     label: "数学符号",
     icon: Variable,
     description: "按类别速查数学符号、读音和用法。",
-    group: "tool",
-  },
-  {
-    href: "/content-assist",
-    label: "内容辅助",
-    icon: Bot,
-    description: "维护公式解释、复习题和关系草稿。",
     group: "tool",
   },
 ];
