@@ -4,8 +4,29 @@ import { describe, it } from "node:test";
 const baseUrl = process.env.E2E_BASE_URL;
 const authCookie = process.env.E2E_AUTH_COOKIE;
 const maybeIt = baseUrl && authCookie ? it : it.skip;
+const maybeBaseUrlIt = baseUrl ? it : it.skip;
 
 describe("critical learning path", () => {
+  maybeBaseUrlIt("rejects unauthenticated formula field completion requests", async () => {
+    assert.ok(baseUrl);
+
+    const response = await fetch(new URL("/api/formulas/field-completion", baseUrl), {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        variant: "custom",
+        mode: "create",
+        target: "title",
+        currentValue: "",
+        formula: {},
+      }),
+    });
+
+    assert.equal(response.status, 401);
+  });
+
   maybeIt("walks diagnostic to review summary through API smoke checks", async () => {
     assert.ok(baseUrl);
     assert.ok(authCookie);

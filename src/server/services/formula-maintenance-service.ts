@@ -904,7 +904,7 @@ function normalizeSlug(value: string) {
 }
 
 function slugify(value: string) {
-  return normalizeSlug(value.replace(/[\u4e00-\u9fa5]/g, ""));
+  return normalizeSlug(value);
 }
 
 function toInputJson(value: unknown): Prisma.InputJsonValue | null {

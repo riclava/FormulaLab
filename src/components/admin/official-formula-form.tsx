@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import type { ComponentProps } from "react";
-import { useMemo, useState, useTransition } from "react";
+import { useId, useMemo, useState, useTransition } from "react";
 import { Loader2, Plus, Save, Sparkles, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -56,6 +56,34 @@ type GeneratedFormulaDraft = {
   examples: string[];
 };
 
+type FormulaCompletionSection =
+  | "previewCore"
+  | "basics"
+  | "classification"
+  | "expression"
+  | "explanation"
+  | "conditions"
+  | "examples"
+  | "variables"
+  | "reviewItems"
+  | "relations";
+
+type FormulaCompletionPatch = Partial<OfficialFormulaFormValue>;
+
+type FormulaFieldCompletionValue = string | string[] | number;
+
+type FieldCompletionControl = {
+  disabled?: boolean;
+  onClick: () => void;
+  pending: boolean;
+};
+
+type RequestFieldCompletion = (
+  target: string,
+  currentValue: unknown,
+  applyValue: (value: FormulaFieldCompletionValue) => void,
+) => void;
+
 export type OfficialFormulaFormValue = {
   slug: string;
   title: string;
@@ -105,6 +133,7 @@ export function OfficialFormulaForm({
   const [message, setMessage] = useState<string | null>(null);
   const [isDraftPending, setIsDraftPending] = useState(false);
   const [isPlotConfigPending, setIsPlotConfigPending] = useState(false);
+  const [completingTarget, setCompletingTarget] = useState<string | null>(null);
   const [customDetailsOpen, setCustomDetailsOpen] = useState(
     variant === "official" || Boolean(initialValue),
   );
@@ -121,6 +150,24 @@ export function OfficialFormulaForm({
     () => validateFormula(value, relationSlugs, variant),
     [value, relationSlugs, variant],
   );
+  const isFieldCompletionBlocked =
+    isPending || isDraftPending || isPlotConfigPending || Boolean(completingTarget);
+  const buildCompletion = (
+    target: string,
+    currentValue: unknown,
+    applyValue: (completionValue: FormulaFieldCompletionValue) => void,
+  ): FieldCompletionControl => ({
+    disabled: isFieldCompletionBlocked && completingTarget !== target,
+    pending: completingTarget === target,
+    onClick: () => completeField(target, currentValue, applyValue),
+  });
+  const buildSectionCompletion = (
+    target: FormulaCompletionSection,
+  ): FieldCompletionControl => ({
+    disabled: isFieldCompletionBlocked && completingTarget !== target,
+    pending: completingTarget === target,
+    onClick: () => completeSection(target),
+  });
 
   return (
     <form
@@ -199,14 +246,19 @@ export function OfficialFormulaForm({
                 先看清楚 AI 生成了什么。核心字段可直接修改，完整细节可展开继续编辑。
               </p>
             </div>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => setCustomDetailsOpen((current) => !current)}
-            >
-              {customDetailsOpen ? "收起详情" : "编辑详情"}
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <SectionCompletionButton
+                completion={buildSectionCompletion("previewCore")}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setCustomDetailsOpen((current) => !current)}
+              >
+                {customDetailsOpen ? "收起详情" : "编辑详情"}
+              </Button>
+            </div>
           </div>
 
           <div className="grid gap-2 rounded-lg border bg-muted/20 p-3">
@@ -225,6 +277,9 @@ export function OfficialFormulaForm({
               label="标题"
               value={value.title}
               onChange={(next) => setValue((current) => ({ ...current, title: next }))}
+              completion={buildCompletion("title", value.title, (next) =>
+                setValue((current) => ({ ...current, title: toCompletionText(next) })),
+              )}
               placeholder="贝叶斯定理"
               required
             />
@@ -234,6 +289,12 @@ export function OfficialFormulaForm({
               onChange={(next) =>
                 setValue((current) => ({ ...current, expressionLatex: next }))
               }
+              completion={buildCompletion("expressionLatex", value.expressionLatex, (next) =>
+                setValue((current) => ({
+                  ...current,
+                  expressionLatex: toCompletionText(next),
+                })),
+              )}
               required
             />
           </div>
@@ -243,6 +304,9 @@ export function OfficialFormulaForm({
             onChange={(next) =>
               setValue((current) => ({ ...current, oneLineUse: next }))
             }
+            completion={buildCompletion("oneLineUse", value.oneLineUse, (next) =>
+              setValue((current) => ({ ...current, oneLineUse: toCompletionText(next) })),
+            )}
             required
           />
 
@@ -272,6 +336,11 @@ export function OfficialFormulaForm({
         </section>
       ) : null}
 
+      <SectionCompletionHeader
+        className={variant === "custom" && hasGeneratedDraft ? "hidden" : ""}
+        title="基础信息"
+        completion={buildSectionCompletion("basics")}
+      />
       <div
         className={
           variant === "custom" && hasGeneratedDraft
@@ -284,6 +353,9 @@ export function OfficialFormulaForm({
             label="Slug"
             value={value.slug}
             onChange={(next) => setValue((current) => ({ ...current, slug: next }))}
+            completion={buildCompletion("slug", value.slug, (next) =>
+              setValue((current) => ({ ...current, slug: toCompletionText(next) })),
+            )}
             placeholder="bayes-theorem"
             required
             containerClassName="md:col-span-2"
@@ -293,6 +365,9 @@ export function OfficialFormulaForm({
           label="标题"
           value={value.title}
           onChange={(next) => setValue((current) => ({ ...current, title: next }))}
+          completion={buildCompletion("title", value.title, (next) =>
+            setValue((current) => ({ ...current, title: toCompletionText(next) })),
+          )}
           placeholder="贝叶斯定理"
           required
           containerClassName={variant === "official" ? "md:col-span-2" : "md:col-span-3"}
@@ -301,6 +376,9 @@ export function OfficialFormulaForm({
           label="知识域"
           value={value.domain}
           onChange={(next) => setValue((current) => ({ ...current, domain: next }))}
+          completion={buildCompletion("domain", value.domain, (next) =>
+            setValue((current) => ({ ...current, domain: toCompletionText(next) })),
+          )}
           placeholder="概率统计"
           required
         />
@@ -316,10 +394,21 @@ export function OfficialFormulaForm({
               difficulty: Number(next || 2),
             }))
           }
+          completion={buildCompletion("difficulty", value.difficulty, (next) =>
+            setValue((current) => ({
+              ...current,
+              difficulty: toCompletionNumber(next),
+            })),
+          )}
           required
         />
       </div>
 
+      <SectionCompletionHeader
+        className={variant === "custom" && !customDetailsOpen ? "hidden" : ""}
+        title="分类与提示"
+        completion={buildSectionCompletion("classification")}
+      />
       <div
         className={
           variant === "custom" && !customDetailsOpen
@@ -333,6 +422,12 @@ export function OfficialFormulaForm({
           onChange={(next) =>
             setValue((current) => ({ ...current, subdomain: next || null }))
           }
+          completion={buildCompletion("subdomain", value.subdomain, (next) =>
+            setValue((current) => ({
+              ...current,
+              subdomain: toCompletionText(next) || null,
+            })),
+          )}
           placeholder="条件概率"
         />
         <Field
@@ -341,6 +436,9 @@ export function OfficialFormulaForm({
           onChange={(next) =>
             setValue((current) => ({ ...current, tags: parseList(next) }))
           }
+          completion={buildCompletion("tags", value.tags, (next) =>
+            setValue((current) => ({ ...current, tags: toCompletionList(next) })),
+          )}
           placeholder="每行或逗号分隔"
         />
       </div>
@@ -352,10 +450,18 @@ export function OfficialFormulaForm({
           onChange={(next) =>
             setValue((current) => ({ ...current, memoryHook: next }))
           }
+          completion={buildCompletion("memoryHook", value.memoryHook, (next) =>
+            setValue((current) => ({ ...current, memoryHook: toCompletionText(next) })),
+          )}
           placeholder="可选：一句你下次卡住时想看到的提醒"
         />
       ) : null}
 
+      <SectionCompletionHeader
+        className={variant === "custom" && hasGeneratedDraft ? "hidden" : ""}
+        title="表达式与用途"
+        completion={buildSectionCompletion("expression")}
+      />
       <div
         className={
           variant === "custom" && hasGeneratedDraft
@@ -369,6 +475,12 @@ export function OfficialFormulaForm({
           onChange={(next) =>
             setValue((current) => ({ ...current, expressionLatex: next }))
           }
+          completion={buildCompletion("expressionLatex", value.expressionLatex, (next) =>
+            setValue((current) => ({
+              ...current,
+              expressionLatex: toCompletionText(next),
+            })),
+          )}
           required
         />
         <Field
@@ -377,10 +489,18 @@ export function OfficialFormulaForm({
           onChange={(next) =>
             setValue((current) => ({ ...current, oneLineUse: next }))
           }
+          completion={buildCompletion("oneLineUse", value.oneLineUse, (next) =>
+            setValue((current) => ({ ...current, oneLineUse: toCompletionText(next) })),
+          )}
           required
         />
       </div>
 
+      <SectionCompletionHeader
+        className={variant === "custom" && !customDetailsOpen ? "hidden" : ""}
+        title="理解说明"
+        completion={buildSectionCompletion("explanation")}
+      />
       <div
         className={
           variant === "custom" && !customDetailsOpen
@@ -392,6 +512,9 @@ export function OfficialFormulaForm({
           label="意义说明"
           value={value.meaning}
           onChange={(next) => setValue((current) => ({ ...current, meaning: next }))}
+          completion={buildCompletion("meaning", value.meaning, (next) =>
+            setValue((current) => ({ ...current, meaning: toCompletionText(next) })),
+          )}
           className="min-h-24"
           required
         />
@@ -401,6 +524,12 @@ export function OfficialFormulaForm({
           onChange={(next) =>
             setValue((current) => ({ ...current, intuition: next || null }))
           }
+          completion={buildCompletion("intuition", value.intuition, (next) =>
+            setValue((current) => ({
+              ...current,
+              intuition: toCompletionText(next) || null,
+            })),
+          )}
           className="min-h-24"
         />
       </div>
@@ -412,10 +541,21 @@ export function OfficialFormulaForm({
           onChange={(next) =>
             setValue((current) => ({ ...current, derivation: next || null }))
           }
+          completion={buildCompletion("derivation", value.derivation, (next) =>
+            setValue((current) => ({
+              ...current,
+              derivation: toCompletionText(next) || null,
+            })),
+          )}
           className="min-h-24"
         />
       ) : null}
 
+      <SectionCompletionHeader
+        className={variant === "custom" && !customDetailsOpen ? "hidden" : ""}
+        title="使用边界"
+        completion={buildSectionCompletion("conditions")}
+      />
       <div
         className={
           variant === "custom" && !customDetailsOpen
@@ -429,6 +569,12 @@ export function OfficialFormulaForm({
           onChange={(next) =>
             setValue((current) => ({ ...current, useConditions: parseList(next) }))
           }
+          completion={buildCompletion("useConditions", value.useConditions, (next) =>
+            setValue((current) => ({
+              ...current,
+              useConditions: toCompletionList(next),
+            })),
+          )}
           className="min-h-28"
         />
         <TextAreaField
@@ -440,6 +586,15 @@ export function OfficialFormulaForm({
               nonUseConditions: parseList(next),
             }))
           }
+          completion={buildCompletion(
+            "nonUseConditions",
+            value.nonUseConditions,
+            (next) =>
+              setValue((current) => ({
+                ...current,
+                nonUseConditions: toCompletionList(next),
+              })),
+          )}
           className="min-h-28"
         />
         <TextAreaField
@@ -448,6 +603,12 @@ export function OfficialFormulaForm({
           onChange={(next) =>
             setValue((current) => ({ ...current, antiPatterns: parseList(next) }))
           }
+          completion={buildCompletion("antiPatterns", value.antiPatterns, (next) =>
+            setValue((current) => ({
+              ...current,
+              antiPatterns: toCompletionList(next),
+            })),
+          )}
           className="min-h-28"
         />
         <TextAreaField
@@ -459,27 +620,48 @@ export function OfficialFormulaForm({
               typicalProblems: parseList(next),
             }))
           }
+          completion={buildCompletion("typicalProblems", value.typicalProblems, (next) =>
+            setValue((current) => ({
+              ...current,
+              typicalProblems: toCompletionList(next),
+            })),
+          )}
           className="min-h-28"
         />
       </div>
 
       {customDetailsOpen || variant === "official" ? (
         <>
+          <SectionCompletionHeader
+            title="例题"
+            completion={buildSectionCompletion("examples")}
+          />
           <TextAreaField
             label="例题"
             value={value.examples.join("\n")}
             onChange={(next) =>
               setValue((current) => ({ ...current, examples: parseList(next) }))
             }
+            completion={buildCompletion("examples", value.examples, (next) =>
+              setValue((current) => ({ ...current, examples: toCompletionList(next) })),
+            )}
             className="min-h-28"
           />
 
           <VariableEditor
             variables={value.variables}
+            completionDisabled={isPending || isDraftPending || isPlotConfigPending}
+            completingTarget={completingTarget}
+            onComplete={completeField}
+            onCompleteSection={completeSection}
             onChange={(variables) => setValue((current) => ({ ...current, variables }))}
           />
           <ReviewItemEditor
             items={value.reviewItems}
+            completionDisabled={isPending || isDraftPending || isPlotConfigPending}
+            completingTarget={completingTarget}
+            onComplete={completeField}
+            onCompleteSection={completeSection}
             onChange={(reviewItems) =>
               setValue((current) => ({ ...current, reviewItems }))
             }
@@ -531,6 +713,10 @@ export function OfficialFormulaForm({
             currentSlug={value.slug}
             options={relationOptions}
             relations={value.relations}
+            completionDisabled={isPending || isDraftPending || isPlotConfigPending}
+            completingTarget={completingTarget}
+            onComplete={completeField}
+            onCompleteSection={completeSection}
             onChange={(relations) => setValue((current) => ({ ...current, relations }))}
           />
 
@@ -751,6 +937,93 @@ export function OfficialFormulaForm({
     }
   }
 
+  async function completeSection(target: FormulaCompletionSection) {
+    setError(null);
+    setMessage(null);
+    setCompletingTarget(target);
+
+    try {
+      const response = await fetch("/api/formulas/field-completion", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          variant,
+          mode,
+          target,
+          formula: value,
+          relationOptions,
+        }),
+      });
+      const payload = (await response.json()) as {
+        data?: { patch: FormulaCompletionPatch };
+        error?: string;
+      };
+
+      if (!response.ok || !payload.data) {
+        throw new Error(payload.error ?? "AI 板块补全失败");
+      }
+
+      setValue((current) => applyCompletionPatch(current, payload.data!.patch));
+      setMessage("已补全当前板块。");
+    } catch (completionError) {
+      setError(
+        completionError instanceof Error
+          ? completionError.message
+          : "AI 板块补全失败",
+      );
+    } finally {
+      setCompletingTarget(null);
+    }
+  }
+
+  async function completeField(
+    target: string,
+    currentValue: unknown,
+    applyValue: (completionValue: FormulaFieldCompletionValue) => void,
+  ) {
+    setError(null);
+    setMessage(null);
+    setCompletingTarget(target);
+
+    try {
+      const response = await fetch("/api/formulas/field-completion", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          variant,
+          mode,
+          target,
+          currentValue,
+          formula: value,
+          relationOptions,
+        }),
+      });
+      const payload = (await response.json()) as {
+        data?: { value: FormulaFieldCompletionValue };
+        error?: string;
+      };
+
+      if (!response.ok || !payload.data) {
+        throw new Error(payload.error ?? "AI 字段补全失败");
+      }
+
+      applyValue(payload.data.value);
+      setMessage("已补全当前字段。");
+    } catch (completionError) {
+      setError(
+        completionError instanceof Error
+          ? completionError.message
+          : "AI 字段补全失败",
+      );
+    } finally {
+      setCompletingTarget(null);
+    }
+  }
+
   function fillWithDraft(draft: GeneratedFormulaDraft) {
     setValue((current) => ({
       ...current,
@@ -811,9 +1084,17 @@ export function OfficialFormulaForm({
 
 function VariableEditor({
   variables,
+  completionDisabled,
+  completingTarget,
+  onComplete,
+  onCompleteSection,
   onChange,
 }: {
   variables: FormulaVariableInput[];
+  completionDisabled: boolean;
+  completingTarget: string | null;
+  onComplete: RequestFieldCompletion;
+  onCompleteSection: (target: FormulaCompletionSection) => void;
   onChange: (variables: FormulaVariableInput[]) => void;
 }) {
   return (
@@ -821,6 +1102,12 @@ function VariableEditor({
       <EditorHeader
         title="变量说明"
         actionLabel="添加变量"
+        completion={buildNestedSectionCompletion({
+          completingTarget,
+          disabled: completionDisabled,
+          onComplete: () => onCompleteSection("variables"),
+          target: "variables",
+        })}
         onAdd={() =>
           onChange([...variables, { symbol: "", name: "", description: "", unit: null }])
         }
@@ -829,25 +1116,67 @@ function VariableEditor({
         {variables.map((variable, index) => (
           <div key={index} className="grid gap-2 rounded-lg border bg-background p-3">
             <div className="grid gap-2 md:grid-cols-[1fr_1fr_1fr_auto]">
-              <Input
+              <Field
+                label="符号"
                 value={variable.symbol}
-                onChange={(event) =>
-                  onChange(updateAt(variables, index, { symbol: event.target.value }))
+                onChange={(next) =>
+                  onChange(updateAt(variables, index, { symbol: next }))
                 }
+                completion={buildNestedCompletion({
+                  completingTarget,
+                  target: `variables[${index}].symbol`,
+                  currentValue: variable.symbol,
+                  disabled: completionDisabled,
+                  onComplete,
+                  applyValue: (next) =>
+                    onChange(
+                      updateAt(variables, index, {
+                        symbol: toCompletionText(next),
+                      }),
+                    ),
+                })}
                 placeholder="符号"
               />
-              <Input
+              <Field
+                label="名称"
                 value={variable.name}
-                onChange={(event) =>
-                  onChange(updateAt(variables, index, { name: event.target.value }))
+                onChange={(next) =>
+                  onChange(updateAt(variables, index, { name: next }))
                 }
+                completion={buildNestedCompletion({
+                  completingTarget,
+                  target: `variables[${index}].name`,
+                  currentValue: variable.name,
+                  disabled: completionDisabled,
+                  onComplete,
+                  applyValue: (next) =>
+                    onChange(
+                      updateAt(variables, index, {
+                        name: toCompletionText(next),
+                      }),
+                    ),
+                })}
                 placeholder="名称"
               />
-              <Input
+              <Field
+                label="单位"
                 value={variable.unit ?? ""}
-                onChange={(event) =>
-                  onChange(updateAt(variables, index, { unit: event.target.value || null }))
+                onChange={(next) =>
+                  onChange(updateAt(variables, index, { unit: next || null }))
                 }
+                completion={buildNestedCompletion({
+                  completingTarget,
+                  target: `variables[${index}].unit`,
+                  currentValue: variable.unit,
+                  disabled: completionDisabled,
+                  onComplete,
+                  applyValue: (next) =>
+                    onChange(
+                      updateAt(variables, index, {
+                        unit: toCompletionText(next) || null,
+                      }),
+                    ),
+                })}
                 placeholder="单位，可空"
               />
               <Button
@@ -859,11 +1188,25 @@ function VariableEditor({
                 删除
               </Button>
             </div>
-            <Textarea
+            <TextAreaField
+              label="变量含义"
               value={variable.description}
-              onChange={(event) =>
-                onChange(updateAt(variables, index, { description: event.target.value }))
+              onChange={(next) =>
+                onChange(updateAt(variables, index, { description: next }))
               }
+              completion={buildNestedCompletion({
+                completingTarget,
+                target: `variables[${index}].description`,
+                currentValue: variable.description,
+                disabled: completionDisabled,
+                onComplete,
+                applyValue: (next) =>
+                  onChange(
+                    updateAt(variables, index, {
+                      description: toCompletionText(next),
+                    }),
+                  ),
+              })}
               placeholder="变量含义"
               className="min-h-16"
             />
@@ -876,9 +1219,17 @@ function VariableEditor({
 
 function ReviewItemEditor({
   items,
+  completionDisabled,
+  completingTarget,
+  onComplete,
+  onCompleteSection,
   onChange,
 }: {
   items: FormulaReviewItemInput[];
+  completionDisabled: boolean;
+  completingTarget: string | null;
+  onComplete: RequestFieldCompletion;
+  onCompleteSection: (target: FormulaCompletionSection) => void;
   onChange: (items: FormulaReviewItemInput[]) => void;
 }) {
   return (
@@ -886,6 +1237,12 @@ function ReviewItemEditor({
       <EditorHeader
         title="复习题"
         actionLabel="添加题目"
+        completion={buildNestedSectionCompletion({
+          completingTarget,
+          disabled: completionDisabled,
+          onComplete: () => onCompleteSection("reviewItems"),
+          target: "reviewItems",
+        })}
         onAdd={() =>
           onChange([
             ...items,
@@ -903,7 +1260,8 @@ function ReviewItemEditor({
         {items.map((item, index) => (
           <div key={index} className="grid gap-2 rounded-lg border bg-background p-3">
             <div className="grid gap-2 md:grid-cols-[12rem_8rem_auto]">
-              <Select
+              <SelectField
+                label="题型"
                 value={item.type}
                 onValueChange={(next) =>
                   onChange(
@@ -912,28 +1270,51 @@ function ReviewItemEditor({
                     }),
                   )
                 }
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="recall">回忆题</SelectItem>
-                  <SelectItem value="recognition">识别题</SelectItem>
-                  <SelectItem value="application">应用题</SelectItem>
-                </SelectContent>
-              </Select>
-              <Input
+                options={[
+                  { value: "recall", label: "回忆题" },
+                  { value: "recognition", label: "识别题" },
+                  { value: "application", label: "应用题" },
+                ]}
+                completion={buildNestedCompletion({
+                  completingTarget,
+                  target: `reviewItems[${index}].type`,
+                  currentValue: item.type,
+                  disabled: completionDisabled,
+                  onComplete,
+                  applyValue: (next) =>
+                    onChange(
+                      updateAt(items, index, {
+                        type: toCompletionReviewType(next),
+                      }),
+                    ),
+                })}
+              />
+              <Field
+                label="难度"
                 type="number"
                 min="1"
                 max="5"
                 value={String(item.difficulty)}
-                onChange={(event) =>
+                onChange={(next) =>
                   onChange(
                     updateAt(items, index, {
-                      difficulty: Number(event.target.value || 2),
+                      difficulty: Number(next || 2),
                     }),
                   )
                 }
+                completion={buildNestedCompletion({
+                  completingTarget,
+                  target: `reviewItems[${index}].difficulty`,
+                  currentValue: item.difficulty,
+                  disabled: completionDisabled,
+                  onComplete,
+                  applyValue: (next) =>
+                    onChange(
+                      updateAt(items, index, {
+                        difficulty: toCompletionNumber(next),
+                      }),
+                    ),
+                })}
                 placeholder="难度"
               />
               <Button
@@ -945,27 +1326,69 @@ function ReviewItemEditor({
                 删除
               </Button>
             </div>
-            <Textarea
+            <TextAreaField
+              label="题目"
               value={item.prompt}
-              onChange={(event) =>
-                onChange(updateAt(items, index, { prompt: event.target.value }))
+              onChange={(next) =>
+                onChange(updateAt(items, index, { prompt: next }))
               }
+              completion={buildNestedCompletion({
+                completingTarget,
+                target: `reviewItems[${index}].prompt`,
+                currentValue: item.prompt,
+                disabled: completionDisabled,
+                onComplete,
+                applyValue: (next) =>
+                  onChange(
+                    updateAt(items, index, {
+                      prompt: toCompletionText(next),
+                    }),
+                  ),
+              })}
               placeholder="题目"
               className="min-h-16"
             />
-            <Textarea
+            <TextAreaField
+              label="答案"
               value={item.answer}
-              onChange={(event) =>
-                onChange(updateAt(items, index, { answer: event.target.value }))
+              onChange={(next) =>
+                onChange(updateAt(items, index, { answer: next }))
               }
+              completion={buildNestedCompletion({
+                completingTarget,
+                target: `reviewItems[${index}].answer`,
+                currentValue: item.answer,
+                disabled: completionDisabled,
+                onComplete,
+                applyValue: (next) =>
+                  onChange(
+                    updateAt(items, index, {
+                      answer: toCompletionText(next),
+                    }),
+                  ),
+              })}
               placeholder="答案"
               className="min-h-16"
             />
-            <Textarea
+            <TextAreaField
+              label="解释"
               value={item.explanation ?? ""}
-              onChange={(event) =>
-                onChange(updateAt(items, index, { explanation: event.target.value }))
+              onChange={(next) =>
+                onChange(updateAt(items, index, { explanation: next }))
               }
+              completion={buildNestedCompletion({
+                completingTarget,
+                target: `reviewItems[${index}].explanation`,
+                currentValue: item.explanation,
+                disabled: completionDisabled,
+                onComplete,
+                applyValue: (next) =>
+                  onChange(
+                    updateAt(items, index, {
+                      explanation: toCompletionText(next),
+                    }),
+                  ),
+              })}
               placeholder="解释"
               className="min-h-16"
             />
@@ -980,11 +1403,19 @@ function RelationEditor({
   currentSlug,
   options,
   relations,
+  completionDisabled,
+  completingTarget,
+  onComplete,
+  onCompleteSection,
   onChange,
 }: {
   currentSlug: string;
   options: RelationOption[];
   relations: FormulaRelationInput[];
+  completionDisabled: boolean;
+  completingTarget: string | null;
+  onComplete: RequestFieldCompletion;
+  onCompleteSection: (target: FormulaCompletionSection) => void;
   onChange: (relations: FormulaRelationInput[]) => void;
 }) {
   const selectableOptions = options.filter((option) => option.slug !== currentSlug);
@@ -994,6 +1425,12 @@ function RelationEditor({
       <EditorHeader
         title="公式关系"
         actionLabel="添加关系"
+        completion={buildNestedSectionCompletion({
+          completingTarget,
+          disabled: completionDisabled,
+          onComplete: () => onCompleteSection("relations"),
+          target: "relations",
+        })}
         onAdd={() =>
           onChange([
             ...relations,
@@ -1009,24 +1446,32 @@ function RelationEditor({
         {relations.map((relation, index) => (
           <div key={index} className="grid gap-2 rounded-lg border bg-background p-3">
             <div className="grid gap-2 md:grid-cols-[minmax(0,1fr)_12rem_auto]">
-              <Select
+              <SelectField
+                label="目标公式"
                 value={relation.toSlug}
                 onValueChange={(next) =>
                   onChange(updateAt(relations, index, { toSlug: next ?? "" }))
                 }
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {selectableOptions.map((option) => (
-                    <SelectItem key={option.slug} value={option.slug}>
-                      {option.title} / {option.slug}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select
+                options={selectableOptions.map((option) => ({
+                  value: option.slug,
+                  label: `${option.title} / ${option.slug}`,
+                }))}
+                completion={buildNestedCompletion({
+                  completingTarget,
+                  target: `relations[${index}].toSlug`,
+                  currentValue: relation.toSlug,
+                  disabled: completionDisabled,
+                  onComplete,
+                  applyValue: (next) =>
+                    onChange(
+                      updateAt(relations, index, {
+                        toSlug: toCompletionText(next),
+                      }),
+                    ),
+                })}
+              />
+              <SelectField
+                label="关系类型"
                 value={relation.relationType}
                 onValueChange={(next) =>
                   onChange(
@@ -1035,17 +1480,26 @@ function RelationEditor({
                     }),
                   )
                 }
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="prerequisite">前置</SelectItem>
-                  <SelectItem value="related">相关</SelectItem>
-                  <SelectItem value="confusable">易混</SelectItem>
-                  <SelectItem value="application_of">应用于</SelectItem>
-                </SelectContent>
-              </Select>
+                options={[
+                  { value: "prerequisite", label: "前置" },
+                  { value: "related", label: "相关" },
+                  { value: "confusable", label: "易混" },
+                  { value: "application_of", label: "应用于" },
+                ]}
+                completion={buildNestedCompletion({
+                  completingTarget,
+                  target: `relations[${index}].relationType`,
+                  currentValue: relation.relationType,
+                  disabled: completionDisabled,
+                  onComplete,
+                  applyValue: (next) =>
+                    onChange(
+                      updateAt(relations, index, {
+                        relationType: toCompletionRelationType(next),
+                      }),
+                    ),
+                })}
+              />
               <Button
                 type="button"
                 variant="destructive"
@@ -1055,11 +1509,25 @@ function RelationEditor({
                 删除
               </Button>
             </div>
-            <Textarea
+            <TextAreaField
+              label="关系说明"
               value={relation.note ?? ""}
-              onChange={(event) =>
-                onChange(updateAt(relations, index, { note: event.target.value }))
+              onChange={(next) =>
+                onChange(updateAt(relations, index, { note: next }))
               }
+              completion={buildNestedCompletion({
+                completingTarget,
+                target: `relations[${index}].note`,
+                currentValue: relation.note,
+                disabled: completionDisabled,
+                onComplete,
+                applyValue: (next) =>
+                  onChange(
+                    updateAt(relations, index, {
+                      note: toCompletionText(next),
+                    }),
+                  ),
+              })}
               placeholder="关系说明"
               className="min-h-16"
             />
@@ -1073,19 +1541,24 @@ function RelationEditor({
 function EditorHeader({
   title,
   actionLabel,
+  completion,
   onAdd,
 }: {
   title: string;
   actionLabel: string;
+  completion?: FieldCompletionControl;
   onAdd: () => void;
 }) {
   return (
     <div className="flex flex-wrap items-center justify-between gap-2">
       <h3 className="font-medium">{title}</h3>
-      <Button type="button" variant="outline" size="sm" onClick={onAdd}>
-        <Plus data-icon="inline-start" />
-        {actionLabel}
-      </Button>
+      <div className="flex flex-wrap gap-2">
+        {completion ? <SectionCompletionButton completion={completion} /> : null}
+        <Button type="button" variant="outline" size="sm" onClick={onAdd}>
+          <Plus data-icon="inline-start" />
+          {actionLabel}
+        </Button>
+      </div>
     </div>
   );
 }
@@ -1118,45 +1591,147 @@ function PreviewList({ title, items }: { title: string; items: string[] }) {
 
 function Field({
   containerClassName,
+  completion,
   label,
   onChange,
   ...props
 }: Omit<ComponentProps<typeof Input>, "onChange"> & {
   containerClassName?: string;
+  completion?: FieldCompletionControl;
   label: string;
   onChange: (value: string) => void;
 }) {
-  const inputId = label.replace(/\s+/g, "-");
+  const inputId = useId();
+  void completion;
 
   return (
     <div className={`grid gap-1.5 ${containerClassName ?? ""}`}>
-      <Label htmlFor={inputId}>{label}</Label>
-      <Input id={inputId} onChange={(event) => onChange(event.target.value)} {...props} />
+      <FieldLabel inputId={inputId} label={label} />
+      <Input
+        id={inputId}
+        onChange={(event) => onChange(event.target.value)}
+        {...props}
+      />
     </div>
   );
 }
 
 function TextAreaField({
   containerClassName,
+  completion,
   label,
   onChange,
   ...props
 }: Omit<ComponentProps<typeof Textarea>, "onChange"> & {
   containerClassName?: string;
+  completion?: FieldCompletionControl;
   label: string;
   onChange: (value: string) => void;
 }) {
-  const inputId = label.replace(/\s+/g, "-");
+  const inputId = useId();
+  void completion;
 
   return (
     <div className={`grid gap-1.5 ${containerClassName ?? ""}`}>
-      <Label htmlFor={inputId}>{label}</Label>
+      <FieldLabel inputId={inputId} label={label} />
       <Textarea
         id={inputId}
         onChange={(event) => onChange(event.target.value)}
         {...props}
       />
     </div>
+  );
+}
+
+function SelectField({
+  completion,
+  label,
+  onValueChange,
+  options,
+  value,
+}: {
+  completion?: FieldCompletionControl;
+  label: string;
+  onValueChange: (value: string | null) => void;
+  options: Array<{ value: string; label: string }>;
+  value: string;
+}) {
+  const inputId = useId();
+  void completion;
+
+  return (
+    <div className="grid gap-1.5">
+      <FieldLabel inputId={inputId} label={label} />
+      <Select value={value} onValueChange={onValueChange}>
+        <SelectTrigger id={inputId}>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {options.map((option) => (
+            <SelectItem key={option.value} value={option.value}>
+              {option.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  );
+}
+
+function FieldLabel({
+  inputId,
+  label,
+}: {
+  inputId: string;
+  label: string;
+}) {
+  return (
+    <div className="flex min-h-8 items-center justify-between gap-2">
+      <Label htmlFor={inputId}>{label}</Label>
+    </div>
+  );
+}
+
+function SectionCompletionHeader({
+  className,
+  completion,
+  title,
+}: {
+  className?: string;
+  completion: FieldCompletionControl;
+  title: string;
+}) {
+  return (
+    <div className={`flex flex-wrap items-center justify-between gap-2 ${className ?? ""}`}>
+      <h3 className="font-medium">{title}</h3>
+      <SectionCompletionButton completion={completion} />
+    </div>
+  );
+}
+
+function SectionCompletionButton({
+  completion,
+  label = "AI 补全本板块",
+}: {
+  completion: FieldCompletionControl;
+  label?: string;
+}) {
+  return (
+    <Button
+      type="button"
+      variant="secondary"
+      size="sm"
+      aria-label={label}
+      disabled={completion.disabled || completion.pending}
+      onClick={completion.onClick}
+    >
+      {completion.pending ? (
+        <Loader2 data-icon="inline-start" className="animate-spin" />
+      ) : (
+        <Sparkles data-icon="inline-start" />
+      )}
+      {label}
+    </Button>
   );
 }
 
@@ -1199,6 +1774,116 @@ function JsonField({
 
 function stringifyJsonFieldValue(value: unknown) {
   return JSON.stringify(value, null, 2);
+}
+
+function buildNestedCompletion({
+  applyValue,
+  completingTarget,
+  currentValue,
+  disabled,
+  onComplete,
+  target,
+}: {
+  applyValue: (value: FormulaFieldCompletionValue) => void;
+  completingTarget: string | null;
+  currentValue: unknown;
+  disabled: boolean;
+  onComplete: RequestFieldCompletion;
+  target: string;
+}): FieldCompletionControl {
+  return {
+    disabled: disabled || Boolean(completingTarget && completingTarget !== target),
+    pending: completingTarget === target,
+    onClick: () => onComplete(target, currentValue, applyValue),
+  };
+}
+
+function buildNestedSectionCompletion({
+  completingTarget,
+  disabled,
+  onComplete,
+  target,
+}: {
+  completingTarget: string | null;
+  disabled: boolean;
+  onComplete: () => void;
+  target: FormulaCompletionSection;
+}): FieldCompletionControl {
+  return {
+    disabled: disabled || Boolean(completingTarget && completingTarget !== target),
+    pending: completingTarget === target,
+    onClick: onComplete,
+  };
+}
+
+function applyCompletionPatch(
+  current: OfficialFormulaFormValue,
+  patch: FormulaCompletionPatch,
+): OfficialFormulaFormValue {
+  return {
+    ...current,
+    ...patch,
+    subdomain:
+      patch.subdomain === undefined ? current.subdomain : patch.subdomain,
+    intuition:
+      patch.intuition === undefined ? current.intuition : patch.intuition,
+    derivation:
+      patch.derivation === undefined ? current.derivation : patch.derivation,
+    memoryHook:
+      patch.memoryHook === undefined ? current.memoryHook : patch.memoryHook,
+    plotConfig: current.plotConfig,
+  };
+}
+
+function toCompletionText(value: FormulaFieldCompletionValue) {
+  if (Array.isArray(value)) {
+    return value.join("\n");
+  }
+
+  return String(value).trim();
+}
+
+function toCompletionList(value: FormulaFieldCompletionValue) {
+  if (Array.isArray(value)) {
+    return value.map((item) => item.trim()).filter(Boolean);
+  }
+
+  return parseList(String(value));
+}
+
+function toCompletionNumber(value: FormulaFieldCompletionValue) {
+  const numericValue = Number(Array.isArray(value) ? value[0] : value);
+
+  if (!Number.isFinite(numericValue)) {
+    return 2;
+  }
+
+  return Math.max(1, Math.min(5, Math.round(numericValue)));
+}
+
+function toCompletionReviewType(value: FormulaFieldCompletionValue) {
+  const text = toCompletionText(value);
+
+  if (text === "recall" || text === "recognition" || text === "application") {
+    return text;
+  }
+
+  return "recall";
+}
+
+function toCompletionRelationType(value: FormulaFieldCompletionValue) {
+  const text = toCompletionText(value);
+
+  if (
+    text === "prerequisite" ||
+    text === "related" ||
+    text === "confusable" ||
+    text === "application_of"
+  ) {
+    return text;
+  }
+
+  return "related";
 }
 
 function createEmptyFormula(variant: "official" | "custom"): OfficialFormulaFormValue {
@@ -1337,7 +2022,6 @@ function slugify(value: string) {
   return value
     .trim()
     .toLowerCase()
-    .replace(/[\u4e00-\u9fa5]/g, "")
-    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/[^a-z0-9\u4e00-\u9fa5]+/g, "-")
     .replace(/^-+|-+$/g, "");
 }
