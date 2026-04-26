@@ -61,7 +61,11 @@ export function WeakFormulaList({
           </div>
           <div className="mt-4">
             <Link
-              href={`/formulas/${formula.slug}?from=summary&focus=${focusSectionForWeakPoint(formula.weakPoint)}`}
+              href={
+                formula.ownership === "personal"
+                  ? `/formulas/${formula.slug}/edit`
+                  : `/formulas/${formula.slug}?from=summary&focus=${focusSectionForWeakPoint(formula.weakPoint)}`
+              }
               className={buttonVariants({ variant: "outline", size: "sm" })}
               onClick={() => {
                 void fetch("/api/stats/events", {
@@ -80,7 +84,7 @@ export function WeakFormulaList({
                 });
               }}
             >
-              修复这条
+              {formula.ownership === "personal" ? "编辑修复" : "补弱项"}
               <ArrowRight data-icon="inline-end" />
             </Link>
           </div>

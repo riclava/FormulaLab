@@ -9,6 +9,7 @@ import {
   listFormulaMemoryHooks,
   listFormulas,
   saveUserFormulaMemoryHook,
+  updateCustomFormula,
   updateFormulaPlotConfig,
 } from "@/server/repositories/formula-repository";
 import { Prisma } from "@/generated/prisma/client";
@@ -122,8 +123,22 @@ export async function addCustomFormula({
     antiPatterns?: string[];
     typicalProblems?: string[];
     examples?: string[];
+    plotConfig?: unknown;
     difficulty?: number;
     tags?: string[];
+    variables?: Array<{
+      symbol: string;
+      name: string;
+      description: string;
+      unit?: string | null;
+    }>;
+    reviewItems?: Array<{
+      type: "recall" | "recognition" | "application";
+      prompt: string;
+      answer: string;
+      explanation?: string | null;
+      difficulty: number;
+    }>;
     memoryHook?: string;
   };
 }) {
@@ -155,7 +170,27 @@ export async function addCustomFormula({
     `看到题目要求“${oneLineUse}”时，先判断是否可以使用 ${title}。`,
   ]);
   const tags = normalizeTextList(input.tags, ["custom"]);
-  const reviewItems = [
+  const plotConfig =
+    input.plotConfig === undefined || input.plotConfig === null
+      ? undefined
+      : normalizeFormulaPlotConfig(input.plotConfig);
+
+  if (input.plotConfig !== undefined && input.plotConfig !== null && !plotConfig) {
+    throw new Error("plotConfig is invalid");
+  }
+
+  const variables = normalizeVariableInputs(input.variables);
+  const reviewItems =
+    input.reviewItems && input.reviewItems.length > 0
+      ? normalizeReviewItemInputs(input.reviewItems, {
+          title,
+          expressionLatex,
+          oneLineUse,
+          meaning,
+          difficulty,
+          examples,
+        })
+      : [
     {
       type: "recall" as const,
       prompt: `写出「${title}」的公式表达式。`,
@@ -195,8 +230,10 @@ export async function addCustomFormula({
       antiPatterns,
       typicalProblems,
       examples,
+      ...(plotConfig ? { plotConfig: toInputJsonValue(plotConfig) } : {}),
       difficulty,
       tags,
+      variables,
       reviewItems,
       memoryHooks: input.memoryHook?.trim()
         ? [
@@ -212,6 +249,223 @@ export async function addCustomFormula({
     idOrSlug: formula.slug,
     userId,
   });
+}
+
+export async function updatePersonalFormula({
+  idOrSlug,
+  userId,
+  input,
+}: {
+  idOrSlug: string;
+  userId: string;
+  input: {
+    title: string;
+    expressionLatex: string;
+    domain?: string;
+    subdomain?: string | null;
+    oneLineUse: string;
+    meaning?: string;
+    intuition?: string | null;
+    derivation?: string | null;
+    useConditions?: string[];
+    nonUseConditions?: string[];
+    antiPatterns?: string[];
+    typicalProblems?: string[];
+    examples?: string[];
+    plotConfig?: unknown;
+    difficulty?: number;
+    tags?: string[];
+    variables?: Array<{
+      symbol: string;
+      name: string;
+      description: string;
+      unit?: string | null;
+    }>;
+    reviewItems?: Array<{
+      type: "recall" | "recognition" | "application";
+      prompt: string;
+      answer: string;
+      explanation?: string | null;
+      difficulty: number;
+    }>;
+  };
+}) {
+  const title = input.title.trim();
+  const expressionLatex = input.expressionLatex.trim();
+  const oneLineUse = input.oneLineUse.trim();
+
+  if (!title || !expressionLatex || !oneLineUse) {
+    throw new Error("title, expressionLatex and oneLineUse are required");
+  }
+
+  const domain = input.domain?.trim() || "自定义公式";
+  const difficulty = clampInteger(input.difficulty ?? 2, 1, 5);
+  const meaning = input.meaning?.trim() || oneLineUse;
+  const useConditions = normalizeTextList(input.useConditions, [
+    "题目中的条件与公式变量可以一一对应。",
+  ]);
+  const nonUseConditions = normalizeTextList(input.nonUseConditions, [
+    "变量含义或前提条件无法确认时不要直接套用。",
+  ]);
+  const antiPatterns = normalizeTextList(input.antiPatterns, [
+    "只记表达式但没有确认适用条件。",
+  ]);
+  const typicalProblems = normalizeTextList(input.typicalProblems, [
+    `${title} 的基础识别和代入题。`,
+  ]);
+  const examples = normalizeTextList(input.examples, [
+    `看到题目要求“${oneLineUse}”时，先判断是否可以使用 ${title}。`,
+  ]);
+  const tags = normalizeTextList(input.tags, ["custom"]);
+  const normalizedPlotConfig =
+    input.plotConfig === undefined
+      ? undefined
+      : input.plotConfig === null
+      ? null
+      : normalizeFormulaPlotConfig(input.plotConfig);
+
+  if (input.plotConfig !== undefined && input.plotConfig !== null && !normalizedPlotConfig) {
+    throw new Error("plotConfig is invalid");
+  }
+
+  const variables = normalizeVariableInputs(input.variables);
+  const reviewItems =
+    input.reviewItems && input.reviewItems.length > 0
+      ? normalizeReviewItemInputs(input.reviewItems, {
+          title,
+          expressionLatex,
+          oneLineUse,
+          meaning,
+          difficulty,
+          examples,
+        })
+      : normalizeReviewItemInputs([], {
+          title,
+          expressionLatex,
+          oneLineUse,
+          meaning,
+          difficulty,
+          examples,
+        });
+
+  const formula = await updateCustomFormula({
+    idOrSlug,
+    userId,
+    input: {
+      title,
+      expressionLatex,
+      domain,
+      subdomain: input.subdomain?.trim() || null,
+      oneLineUse,
+      meaning,
+      intuition: input.intuition?.trim() || null,
+      derivation: input.derivation?.trim() || null,
+      useConditions,
+      nonUseConditions,
+      antiPatterns,
+      typicalProblems,
+      examples,
+      ...(normalizedPlotConfig === undefined
+        ? {}
+        : {
+            plotConfig:
+              normalizedPlotConfig === null
+                ? Prisma.JsonNull
+                : toInputJsonValue(normalizedPlotConfig),
+          }),
+      difficulty,
+      tags,
+      variables,
+      reviewItems,
+    },
+  });
+
+  if (!formula) {
+    return null;
+  }
+
+  return toFormulaDetail(formula, new Date());
+}
+
+function normalizeVariableInputs(
+  variables:
+    | Array<{
+        symbol: string;
+        name: string;
+        description: string;
+        unit?: string | null;
+      }>
+    | undefined,
+) {
+  return (variables ?? [])
+    .map((variable) => ({
+      symbol: variable.symbol?.trim() ?? "",
+      name: variable.name?.trim() ?? "",
+      description: variable.description?.trim() ?? "",
+      unit: variable.unit?.trim() || null,
+    }))
+    .filter((variable) => variable.symbol && variable.name && variable.description);
+}
+
+function normalizeReviewItemInputs(
+  reviewItems: Array<{
+    type: "recall" | "recognition" | "application";
+    prompt: string;
+    answer: string;
+    explanation?: string | null;
+    difficulty: number;
+  }>,
+  fallback: {
+    title: string;
+    expressionLatex: string;
+    oneLineUse: string;
+    meaning: string;
+    difficulty: number;
+    examples: string[];
+  },
+) {
+  const normalized = reviewItems
+    .map((item) => ({
+      type: item.type,
+      prompt: item.prompt?.trim() ?? "",
+      answer: item.answer?.trim() ?? "",
+      explanation: item.explanation?.trim() || null,
+      difficulty: clampInteger(item.difficulty ?? fallback.difficulty, 1, 5),
+    }))
+    .filter((item) => item.prompt && item.answer);
+  const existingTypes = new Set(normalized.map((item) => item.type));
+
+  if (!existingTypes.has("recall")) {
+    normalized.push({
+      type: "recall",
+      prompt: `写出「${fallback.title}」的公式表达式。`,
+      answer: fallback.expressionLatex,
+      explanation: fallback.oneLineUse,
+      difficulty: fallback.difficulty,
+    });
+  }
+
+  if (!existingTypes.has("recognition")) {
+    normalized.push({
+      type: "recognition",
+      prompt: `题目要求“${fallback.oneLineUse}”时，应优先想到哪条公式？`,
+      answer: fallback.title,
+      explanation: `这是 ${fallback.title} 的典型使用场景。`,
+      difficulty: fallback.difficulty,
+    });
+  }
+
+  if (!existingTypes.has("application")) {
+    normalized.push({
+      type: "application",
+      prompt: fallback.examples[0],
+      answer: `先确认适用条件，再代入 ${fallback.title}。`,
+      explanation: fallback.meaning,
+      difficulty: Math.min(5, fallback.difficulty + 1),
+    });
+  }
+
+  return normalized;
 }
 
 export async function getFormulaDetail({

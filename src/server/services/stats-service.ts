@@ -233,6 +233,7 @@ function buildWeakFormulasFromSession({
     string,
     {
       slug: string;
+      ownership: "official" | "personal";
       title: string;
       domain: string;
       oneLineUse: string;
@@ -245,6 +246,7 @@ function buildWeakFormulasFromSession({
   for (const log of session.reviewLogs) {
     const current = scoreByFormulaId.get(log.formulaId) ?? {
       slug: log.formula.slug,
+      ownership: log.formula.ownerUserId ? "personal" : "official",
       title: log.formula.title,
       domain: log.formula.domain,
       oneLineUse: log.formula.oneLineUse,
@@ -278,6 +280,7 @@ function buildWeakFormulasFromSession({
       return {
         formulaId,
         slug: entry.slug,
+        ownership: entry.ownership,
         title: entry.title,
         domain: entry.domain,
         oneLineUse: entry.oneLineUse,
@@ -290,7 +293,7 @@ function buildWeakFormulasFromSession({
           latestResult: entry.latestResult,
           againCount: entry.againCount,
           hardCount: entry.hardCount,
-              memoryHookCount: state?.formula.memoryHooks.length ?? 0,
+          memoryHookCount: state?.formula.memoryHooks.length ?? 0,
         }),
         recommendedAction: getRecommendedAction(
           inferWeakPoint({
@@ -315,6 +318,7 @@ function toWeakFormulaStat(
   return {
     formulaId: state.formulaId,
     slug: state.formula.slug,
+    ownership: state.formula.ownerUserId ? "personal" : "official",
     title: state.formula.title,
     domain: state.formula.domain,
     oneLineUse: state.formula.oneLineUse,

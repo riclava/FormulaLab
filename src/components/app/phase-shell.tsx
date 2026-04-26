@@ -10,7 +10,6 @@ import {
 
 import { AccountEntry } from "@/components/app/account-entry";
 import { LearningDomainSelector } from "@/components/app/learning-domain-selector";
-import { ToolsMenu } from "@/components/app/phase-tools-menu";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -82,7 +81,7 @@ export function PhaseShell({
 
   return (
     <main className="min-h-svh bg-[#f6f7f2]">
-      <header className="border-b border-slate-200/80 bg-white/85">
+      <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/85 backdrop-blur">
         <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-5 py-4 md:px-8 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex flex-wrap items-center gap-4">
             <Link href={homeHref} className="flex w-fit items-center gap-3">
@@ -92,9 +91,6 @@ export function PhaseShell({
               <span>
                 <span className="block text-base font-semibold leading-none">
                   FormulaLab
-                </span>
-                <span className="mt-1 block text-xs text-muted-foreground">
-                  今日复习优先
                 </span>
               </span>
             </Link>
@@ -135,21 +131,30 @@ export function PhaseShell({
               })}
             </nav>
 
-            <ToolsMenu active={Boolean(activeTool)}>
-              {toolItems.map((item) => (
-                <PhaseLink
-                  key={item.href}
-                  href={addLearningDomainToHref(
-                    item.href,
-                    learningDomain?.currentDomain,
-                  )}
-                  active={activeTool?.href === item.href}
-                  icon={item.icon}
-                  label={item.label}
-                  description={item.description}
-                />
-              ))}
-            </ToolsMenu>
+            <nav aria-label="工具" className="flex flex-wrap gap-2">
+              {toolItems.map((item) => {
+                const Icon = item.icon;
+                const active = activeTool?.href === item.href;
+
+                return (
+                  <Link
+                    key={item.href}
+                    href={addLearningDomainToHref(
+                      item.href,
+                      learningDomain?.currentDomain,
+                    )}
+                    aria-current={active ? "page" : undefined}
+                    className={buttonVariants({
+                      size: "sm",
+                      variant: active ? "secondary" : "outline",
+                    })}
+                  >
+                    <Icon data-icon="inline-start" />
+                    {item.label}
+                  </Link>
+                );
+              })}
+            </nav>
             <AccountEntry returnTo={returnTo} />
           </div>
         </div>
@@ -248,35 +253,4 @@ function isPrimaryItemActive(href: string, activePath: string) {
   }
 
   return activePath === href;
-}
-
-function PhaseLink({
-  href,
-  active,
-  icon: Icon,
-  label,
-  description,
-}: {
-  href: string;
-  active: boolean;
-  icon: typeof Brain;
-  label: string;
-  description: string;
-}) {
-  return (
-    <Link
-      href={href}
-      aria-current={active ? "page" : undefined}
-      className={cn(
-        "grid gap-1 rounded-md px-3 py-2 text-left transition-colors hover:bg-muted/70 hover:text-foreground",
-        active ? "bg-muted text-foreground" : "text-muted-foreground",
-      )}
-    >
-      <span className="flex items-center gap-2 font-medium text-foreground">
-        <Icon data-icon="inline-start" />
-        {label}
-      </span>
-      <span className="text-xs leading-5 text-muted-foreground">{description}</span>
-    </Link>
-  );
 }

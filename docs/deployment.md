@@ -11,6 +11,7 @@ FormulaLab V1 Alpha 推荐部署到 Vercel，数据库使用任意兼容 Postgre
 
 ## 可选环境变量
 
+- `ADMIN_EMAILS`：允许访问内部维护后台的邮箱列表，多个邮箱用英文逗号分隔；为空时没有账号可访问后台。
 - `E2E_BASE_URL`：端到端测试访问的应用地址；为空时相关测试会跳过。
 - `LLM_PROVIDER`：公式草稿和图像配置生成使用的 OpenAI-compatible LLM 提供商，支持 `kimi`、`deepseek`、`custom`。
 - `LLM_API_KEY`：公式草稿和图像配置生成使用的 LLM API key。

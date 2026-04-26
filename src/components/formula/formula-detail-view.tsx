@@ -10,6 +10,7 @@ import {
   Lightbulb,
   Loader2,
   Network,
+  Pencil,
 } from "lucide-react";
 
 import { FormulaCurveWorkspace } from "@/components/formula/formula-curve-workspace";
@@ -171,6 +172,17 @@ export function FormulaDetailView({
               <p className="max-w-3xl text-sm leading-6 text-muted-foreground">
                 {formula.oneLineUse}
               </p>
+              {formula.ownership === "personal" ? (
+                <div className="mt-2">
+                  <Link
+                    href={`/formulas/${formula.slug}/edit`}
+                    className={buttonVariants({ variant: "outline", size: "sm" })}
+                  >
+                    <Pencil data-icon="inline-start" />
+                    编辑公式
+                  </Link>
+                </div>
+              ) : null}
             </div>
           </div>
 

@@ -26,6 +26,7 @@ export async function getLatestCompletedStudySessionSummary({
               title: true,
               domain: true,
               oneLineUse: true,
+              ownerUserId: true,
             },
           },
           memoryHookUsed: {

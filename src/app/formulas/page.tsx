@@ -5,7 +5,6 @@ import {
   Compass,
   Filter,
   Orbit,
-  Plus,
   Search,
   Sparkles,
 } from "lucide-react";
@@ -13,6 +12,7 @@ import {
 import { PhaseShell } from "@/components/app/phase-shell";
 import { SectionNav } from "@/components/app/section-nav";
 import { LatexRenderer } from "@/components/formula/latex-renderer";
+import { NewFormulaSheet } from "@/components/formula/new-formula-sheet";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -158,13 +158,7 @@ export default async function FormulasPage({
           </form>
 
           <div className="flex flex-wrap gap-2 lg:max-w-xl lg:justify-end">
-            <Link
-              href="/formulas/new"
-              className={buttonVariants({ size: "lg", variant: "secondary" })}
-            >
-              <Plus data-icon="inline-start" />
-              添加/导入
-            </Link>
+            <NewFormulaSheet />
             <Link
               href={buildHref({
                 q: null,
@@ -343,10 +337,14 @@ export default async function FormulasPage({
                   </Link>
                   {formula.isWeak ? (
                     <Link
-                      href={`/formulas/${formula.slug}?from=formulas&focus=anti-patterns`}
+                      href={
+                        formula.ownership === "personal"
+                          ? `/formulas/${formula.slug}/edit`
+                          : `/formulas/${formula.slug}?from=formulas&focus=anti-patterns`
+                      }
                       className={buttonVariants({ size: "sm" })}
                     >
-                      修复这条
+                      {formula.ownership === "personal" ? "编辑修复" : "补弱项"}
                     </Link>
                   ) : null}
                 </div>

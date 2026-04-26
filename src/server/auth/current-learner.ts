@@ -1,5 +1,5 @@
 import { headers } from "next/headers";
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { NextResponse } from "next/server";
 
 import { auth } from "@/lib/auth";
@@ -69,6 +69,30 @@ export async function requireCurrentLearner() {
   return current;
 }
 
+export async function isCurrentAdmin() {
+  const current = await getCurrentLearner();
+
+  if (!current) {
+    return false;
+  }
+
+  return isAdminEmail(current.authUser?.email ?? current.learner.email);
+}
+
+export async function requireCurrentAdmin() {
+  const current = await getCurrentLearner();
+
+  if (!current) {
+    redirect("/");
+  }
+
+  if (!isAdminEmail(current.authUser?.email ?? current.learner.email)) {
+    notFound();
+  }
+
+  return current;
+}
+
 export async function withAuthenticatedApi<T>(
   handler: (current: CurrentLearner) => Promise<T> | T,
 ) {
@@ -84,6 +108,25 @@ export async function withAuthenticatedApi<T>(
   }
 
   return handler(current);
+}
+
+function isAdminEmail(email: string | null | undefined) {
+  const normalizedEmail = email?.trim().toLowerCase();
+
+  if (!normalizedEmail) {
+    return false;
+  }
+
+  return getAdminEmails().has(normalizedEmail);
+}
+
+function getAdminEmails() {
+  return new Set(
+    (process.env.ADMIN_EMAILS ?? "")
+      .split(",")
+      .map((item) => item.trim().toLowerCase())
+      .filter(Boolean),
+  );
 }
 
 async function ensureLearnerForAuthUser({

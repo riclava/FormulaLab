@@ -175,10 +175,16 @@ export default async function SummaryPage({
                   </Link>
                   {summary.immediateWeakFormulas[0] ? (
                     <Link
-                      href={`/formulas/${summary.immediateWeakFormulas[0].slug}?from=summary&focus=anti-patterns&domain=${encodeURIComponent(learningDomain.currentDomain)}`}
+                      href={
+                        summary.immediateWeakFormulas[0].ownership === "personal"
+                          ? `/formulas/${summary.immediateWeakFormulas[0].slug}/edit`
+                          : `/formulas/${summary.immediateWeakFormulas[0].slug}?from=summary&focus=anti-patterns&domain=${encodeURIComponent(learningDomain.currentDomain)}`
+                      }
                       className={buttonVariants({ size: "sm", variant: "outline" })}
                     >
-                      修复最弱一条
+                      {summary.immediateWeakFormulas[0].ownership === "personal"
+                        ? "编辑最弱一条"
+                        : "补最弱一条"}
                     </Link>
                   ) : null}
                   <Link

@@ -87,9 +87,6 @@ export default async function Home({
             </span>
             <span className="min-w-0">
               <span className="block text-base font-semibold">FormulaLab</span>
-              <span className="block text-xs text-slate-600">
-                今日复习优先
-              </span>
             </span>
           </Link>
 

@@ -50,8 +50,22 @@ export async function POST(request: Request) {
     antiPatterns?: string[];
     typicalProblems?: string[];
     examples?: string[];
+    plotConfig?: unknown;
     difficulty?: number;
     tags?: string[];
+    variables?: Array<{
+      symbol: string;
+      name: string;
+      description: string;
+      unit?: string | null;
+    }>;
+    reviewItems?: Array<{
+      type: "recall" | "recognition" | "application";
+      prompt: string;
+      answer: string;
+      explanation?: string | null;
+      difficulty: number;
+    }>;
     memoryHook?: string;
   };
 
@@ -85,8 +99,11 @@ export async function POST(request: Request) {
           antiPatterns: payload.antiPatterns,
           typicalProblems: payload.typicalProblems,
           examples: payload.examples,
+          plotConfig: payload.plotConfig,
           difficulty: payload.difficulty,
           tags: payload.tags,
+          variables: payload.variables,
+          reviewItems: payload.reviewItems,
           memoryHook: payload.memoryHook,
         },
       });

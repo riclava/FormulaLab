@@ -3,6 +3,7 @@ import type { ReviewGrade } from "@/types/review";
 export type WeakFormulaStat = {
   formulaId: string;
   slug: string;
+  ownership: "official" | "personal";
   title: string;
   domain: string;
   oneLineUse: string;

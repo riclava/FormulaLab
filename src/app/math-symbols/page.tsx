@@ -1,8 +1,8 @@
-import Link from "next/link";
 import { createHash } from "crypto";
-import { BookOpenText, Calculator, FunctionSquare, Hash, Variable } from "lucide-react";
+import { FunctionSquare, Hash } from "lucide-react";
 
 import { PhaseShell } from "@/components/app/phase-shell";
+import { MathSymbolsOverview } from "@/components/math-symbols/math-symbols-overview";
 import { SymbolAudioButton } from "@/components/math-symbols/symbol-audio-button";
 import { Badge } from "@/components/ui/badge";
 import { requireCurrentLearner } from "@/server/auth/current-learner";
@@ -679,47 +679,21 @@ export default async function MathSymbolsPage({
       description="按类别整理常见数学符号的读音、用途和典型写法，帮助你把公式里的符号读顺、用准。"
       learningDomain={learningDomain}
     >
-      <section className="grid gap-4 rounded-lg border bg-background p-5 shadow-sm lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
-        <div className="grid gap-3">
-          <div className="flex flex-wrap items-center gap-2">
-            <Badge>
-              <Variable data-icon="inline-start" />
-              {symbolCount} 个符号
-            </Badge>
-            <Badge variant="secondary">
-              <BookOpenText data-icon="inline-start" />
-              {symbolCategories.length} 个分类
-            </Badge>
-            <Badge variant="outline">
-              <Calculator data-icon="inline-start" />
-              读音 / 用法 / 例子
-            </Badge>
-          </div>
-          <p className="max-w-3xl text-sm leading-6 text-muted-foreground">
-            阅读公式时先读出符号，再说出它在当前公式里的角色。比如 μ
-            不只是“缪”，在概率统计里通常还意味着总体均值或期望。
-          </p>
-        </div>
-
-        <nav aria-label="数学符号分类" className="flex flex-wrap gap-2 lg:max-w-md lg:justify-end">
-          {symbolCategories.map((category) => (
-            <Link
-              key={category.id}
-              href={`#${category.id}`}
-              className="rounded-md border bg-background px-3 py-1.5 text-sm transition-colors hover:bg-muted"
-            >
-              {category.title}
-            </Link>
-          ))}
-        </nav>
-      </section>
+      <MathSymbolsOverview
+        symbolCount={symbolCount}
+        categoryCount={symbolCategories.length}
+        categories={symbolCategories.map((category) => ({
+          id: category.id,
+          title: category.title,
+        }))}
+      />
 
       <div className="grid gap-5">
         {symbolCategories.map((category) => (
           <section
             key={category.id}
             id={category.id}
-            className="scroll-mt-24 rounded-lg border bg-background p-5 shadow-sm"
+            className="scroll-mt-72 rounded-lg border bg-background p-5 shadow-sm lg:scroll-mt-44"
           >
             <div className="mb-4 flex flex-col gap-3 border-b pb-4 md:flex-row md:items-start md:justify-between">
               <div className="grid gap-2">

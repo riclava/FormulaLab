@@ -223,6 +223,131 @@ export async function listFormulaDomains(userId?: string) {
   return rows.map((row) => row.domain);
 }
 
+export async function listOfficialFormulaMaintenanceFacets() {
+  return prisma.formula.findMany({
+    where: {
+      ownerUserId: null,
+    },
+    select: {
+      domain: true,
+      difficulty: true,
+    },
+    orderBy: [{ domain: "asc" }, { difficulty: "asc" }, { title: "asc" }],
+  });
+}
+
+export async function listOfficialFormulaMaintenanceItems({
+  domain,
+  difficulty,
+  query,
+}: {
+  domain?: string;
+  difficulty?: number;
+  query?: string;
+} = {}) {
+  const normalizedQuery = query?.trim();
+  const queryTokens = normalizedQuery
+    ? normalizedQuery.split(/\s+/).filter(Boolean)
+    : [];
+
+  return prisma.formula.findMany({
+    where: {
+      ownerUserId: null,
+      ...(domain ? { domain } : {}),
+      ...(typeof difficulty === "number" ? { difficulty } : {}),
+      ...(normalizedQuery
+        ? {
+            OR: [
+              {
+                title: {
+                  contains: normalizedQuery,
+                  mode: "insensitive" as const,
+                },
+              },
+              {
+                oneLineUse: {
+                  contains: normalizedQuery,
+                  mode: "insensitive" as const,
+                },
+              },
+              {
+                meaning: {
+                  contains: normalizedQuery,
+                  mode: "insensitive" as const,
+                },
+              },
+              {
+                subdomain: {
+                  contains: normalizedQuery,
+                  mode: "insensitive" as const,
+                },
+              },
+              {
+                variables: {
+                  some: {
+                    OR: [
+                      {
+                        symbol: {
+                          contains: normalizedQuery,
+                          mode: "insensitive" as const,
+                        },
+                      },
+                      {
+                        name: {
+                          contains: normalizedQuery,
+                          mode: "insensitive" as const,
+                        },
+                      },
+                      {
+                        description: {
+                          contains: normalizedQuery,
+                          mode: "insensitive" as const,
+                        },
+                      },
+                    ],
+                  },
+                },
+              },
+              ...(queryTokens.length > 0 ? [{ tags: { hasSome: queryTokens } }] : []),
+            ],
+          }
+        : {}),
+    },
+    select: {
+      id: true,
+      slug: true,
+      title: true,
+      expressionLatex: true,
+      domain: true,
+      subdomain: true,
+      oneLineUse: true,
+      meaning: true,
+      useConditions: true,
+      antiPatterns: true,
+      typicalProblems: true,
+      difficulty: true,
+      tags: true,
+      updatedAt: true,
+      variables: {
+        orderBy: {
+          sortOrder: "asc" as const,
+        },
+        select: {
+          symbol: true,
+          name: true,
+          description: true,
+        },
+      },
+      reviewItems: {
+        select: {
+          type: true,
+        },
+      },
+    },
+    orderBy: [{ domain: "asc" }, { difficulty: "asc" }, { title: "asc" }],
+  });
+}
+
 export async function createCustomFormula({
   userId,
   input,
@@ -245,6 +370,12 @@ export async function createCustomFormula({
     plotConfig?: Prisma.InputJsonValue;
     difficulty: number;
     tags: string[];
+    variables?: Array<{
+      symbol: string;
+      name: string;
+      description: string;
+      unit?: string | null;
+    }>;
     reviewItems: Array<{
       type: ReviewItemType;
       prompt: string;
@@ -278,6 +409,15 @@ export async function createCustomFormula({
         ...(input.plotConfig ? { plotConfig: input.plotConfig } : {}),
         difficulty: input.difficulty,
         tags: Array.from(new Set(["user-created", ...input.tags])),
+        variables: input.variables?.length
+          ? {
+              create: input.variables.map((variable, index) => ({
+                ...variable,
+                unit: variable.unit ?? null,
+                sortOrder: index,
+              })),
+            }
+          : undefined,
         reviewItems: {
           create: input.reviewItems,
         },
@@ -306,6 +446,111 @@ export async function createCustomFormula({
     });
 
     return formula;
+  });
+}
+
+export async function updateCustomFormula({
+  idOrSlug,
+  userId,
+  input,
+}: {
+  idOrSlug: string;
+  userId: string;
+  input: {
+    title: string;
+    expressionLatex: string;
+    domain: string;
+    subdomain?: string | null;
+    oneLineUse: string;
+    meaning: string;
+    intuition?: string | null;
+    derivation?: string | null;
+    useConditions: string[];
+    nonUseConditions: string[];
+    antiPatterns: string[];
+    typicalProblems: string[];
+    examples: string[];
+    plotConfig?: Prisma.InputJsonValue | typeof Prisma.JsonNull;
+    difficulty: number;
+    tags: string[];
+    variables?: Array<{
+      symbol: string;
+      name: string;
+      description: string;
+      unit?: string | null;
+    }>;
+    reviewItems: Array<{
+      type: ReviewItemType;
+      prompt: string;
+      answer: string;
+      explanation?: string | null;
+      difficulty: number;
+    }>;
+  };
+}) {
+  return prisma.$transaction(async (tx) => {
+    const existing = await tx.formula.findFirst({
+      where: {
+        OR: [{ id: idOrSlug }, { slug: idOrSlug }],
+        ownerUserId: userId,
+      },
+      select: {
+        id: true,
+        slug: true,
+      },
+    });
+
+    if (!existing) {
+      return null;
+    }
+
+    await tx.formulaVariable.deleteMany({
+      where: {
+        formulaId: existing.id,
+      },
+    });
+    await tx.reviewItem.deleteMany({
+      where: {
+        formulaId: existing.id,
+      },
+    });
+
+    return tx.formula.update({
+      where: {
+        id: existing.id,
+      },
+      data: {
+        title: input.title,
+        expressionLatex: input.expressionLatex,
+        domain: input.domain,
+        subdomain: input.subdomain,
+        oneLineUse: input.oneLineUse,
+        meaning: input.meaning,
+        intuition: input.intuition ?? null,
+        derivation: input.derivation ?? null,
+        useConditions: input.useConditions,
+        nonUseConditions: input.nonUseConditions,
+        antiPatterns: input.antiPatterns,
+        typicalProblems: input.typicalProblems,
+        examples: input.examples,
+        ...(input.plotConfig === undefined ? {} : { plotConfig: input.plotConfig }),
+        difficulty: input.difficulty,
+        tags: Array.from(new Set(["user-created", ...input.tags])),
+        variables: input.variables?.length
+          ? {
+              create: input.variables.map((variable, index) => ({
+                ...variable,
+                unit: variable.unit ?? null,
+                sortOrder: index,
+              })),
+            }
+          : undefined,
+        reviewItems: {
+          create: input.reviewItems,
+        },
+      },
+      include: formulaDetailInclude,
+    });
   });
 }
 

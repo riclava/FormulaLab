@@ -1,0 +1,48 @@
+import { notFound } from "next/navigation";
+
+import { OfficialFormulaForm } from "@/components/admin/official-formula-form";
+import { normalizeRouteParam } from "@/lib/route-params";
+import { requireCurrentAdmin } from "@/server/auth/current-learner";
+import {
+  getOfficialFormulaMaintenanceCatalog,
+  getOfficialFormulaMaintenanceDetail,
+} from "@/server/services/formula-maintenance-service";
+
+export const dynamic = "force-dynamic";
+
+export default async function EditOfficialFormulaPage({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
+  await requireCurrentAdmin();
+  const { slug: rawSlug } = await params;
+  const slug = normalizeRouteParam(rawSlug);
+  const [formula, catalog] = await Promise.all([
+    getOfficialFormulaMaintenanceDetail(slug),
+    getOfficialFormulaMaintenanceCatalog(),
+  ]);
+
+  if (!formula) {
+    notFound();
+  }
+
+  return (
+    <main className="min-h-screen bg-muted/30">
+      <div className="mx-auto grid w-full max-w-6xl gap-5 px-4 py-6 md:px-6 lg:px-8">
+        <header className="border-b pb-5">
+          <p className="text-sm font-medium text-muted-foreground">官方公式库</p>
+          <h1 className="mt-1 text-2xl font-semibold">编辑 {formula.title}</h1>
+        </header>
+        <OfficialFormulaForm
+          mode="edit"
+          initialValue={formula}
+          relationOptions={catalog.items.map((item) => ({
+            slug: item.slug,
+            title: item.title,
+          }))}
+        />
+      </div>
+    </main>
+  );
+}

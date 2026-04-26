@@ -1,29 +1,23 @@
 import Link from "next/link";
-import { LogIn, UserRound } from "lucide-react";
+import { LogIn } from "lucide-react";
 
+import { AccountMenu } from "@/components/app/account-menu";
 import { buttonVariants } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
-import { getCurrentAuthSession } from "@/server/auth/current-learner";
+import { getCurrentAuthSession, isCurrentAdmin } from "@/server/auth/current-learner";
 
 export async function AccountEntry({ returnTo }: { returnTo: string }) {
   const session = await getCurrentAuthSession();
   const href = `/account?returnTo=${encodeURIComponent(returnTo)}`;
 
   if (session?.user) {
+    const isAdmin = await isCurrentAdmin();
+
     return (
-      <Link
-        href={href}
-        className={cn(
-          buttonVariants({
-            size: "sm",
-            variant: "outline",
-          }),
-          "max-w-56 shrink-0 justify-start",
-        )}
-      >
-        <UserRound data-icon="inline-start" />
-        <span className="truncate">{session.user.email}</span>
-      </Link>
+      <AccountMenu
+        accountHref={href}
+        email={session.user.email}
+        isAdmin={isAdmin}
+      />
     );
   }
 

@@ -4,7 +4,24 @@ import {
   normalizeFormulaPlotConfig,
   saveFormulaPlotConfig,
 } from "@/server/services/formula-service";
-import type { FormulaDetail, FormulaPlotConfig } from "@/types/formula";
+import type { FormulaPlotConfig } from "@/types/formula";
+
+export type FormulaPlotConfigInput = {
+  title: string;
+  expressionLatex: string;
+  domain?: string | null;
+  subdomain?: string | null;
+  oneLineUse: string;
+  meaning?: string | null;
+  intuition?: string | null;
+  useConditions?: string[];
+  antiPatterns?: string[];
+  variables?: Array<{
+    symbol: string;
+    name: string;
+    description: string;
+  }>;
+};
 
 export async function generateAndSaveFormulaPlotConfig({
   formulaIdOrSlug,
@@ -32,7 +49,7 @@ export async function generateAndSaveFormulaPlotConfig({
 }
 
 async function generateFormulaPlotConfig(
-  formula: FormulaDetail,
+  formula: FormulaPlotConfigInput,
 ): Promise<FormulaPlotConfig> {
   const content = await createChatCompletion({
     messages: [
@@ -66,7 +83,31 @@ async function generateFormulaPlotConfig(
   return plotConfig;
 }
 
-function buildPlotConfigPrompt(formula: FormulaDetail) {
+export async function generateFormulaPlotConfigDraft(
+  input: FormulaPlotConfigInput,
+): Promise<FormulaPlotConfig> {
+  const title = input.title.trim();
+  const expressionLatex = input.expressionLatex.trim();
+  const oneLineUse = input.oneLineUse.trim();
+
+  if (!title || !expressionLatex || !oneLineUse) {
+    throw new Error("title, expressionLatex and oneLineUse are required");
+  }
+
+  return generateFormulaPlotConfig({
+    ...input,
+    title,
+    expressionLatex,
+    oneLineUse,
+    domain: input.domain?.trim() || "未分类",
+    meaning: input.meaning?.trim() || oneLineUse,
+    useConditions: normalizeTextList(input.useConditions),
+    antiPatterns: normalizeTextList(input.antiPatterns),
+    variables: normalizeVariables(input.variables),
+  });
+}
+
+function buildPlotConfigPrompt(formula: FormulaPlotConfigInput) {
   return [
     "请为下面公式生成 FormulaLab plotConfig。",
     "",
@@ -86,14 +127,14 @@ function buildPlotConfigPrompt(formula: FormulaDetail) {
     "公式信息：",
     `标题：${formula.title}`,
     `LaTeX：${formula.expressionLatex}`,
-    `知识域：${formula.domain}${formula.subdomain ? ` / ${formula.subdomain}` : ""}`,
+    `知识域：${formula.domain ?? "未分类"}${formula.subdomain ? ` / ${formula.subdomain}` : ""}`,
     `用途：${formula.oneLineUse}`,
-    `含义：${formula.meaning}`,
+    `含义：${formula.meaning ?? formula.oneLineUse}`,
     `直觉：${formula.intuition ?? ""}`,
-    `适用条件：${formula.useConditions.join("；")}`,
-    `常见误用：${formula.antiPatterns.join("；")}`,
+    `适用条件：${(formula.useConditions ?? []).join("；")}`,
+    `常见误用：${(formula.antiPatterns ?? []).join("；")}`,
     "变量：",
-    ...formula.variables.map(
+    ...(formula.variables ?? []).map(
       (variable) =>
         `- ${variable.symbol}: ${variable.name}。${variable.description}`,
     ),
@@ -104,6 +145,20 @@ function buildPlotConfigPrompt(formula: FormulaDetail) {
     "- parameters 数量控制在 1 到 4 个。",
     "- expression 不要写 LaTeX，不要写等号左边，只写右边可计算表达式。",
   ].join("\n");
+}
+
+function normalizeTextList(value: string[] | undefined) {
+  return (value ?? []).map((item) => item.trim()).filter(Boolean);
+}
+
+function normalizeVariables(value: FormulaPlotConfigInput["variables"]) {
+  return (value ?? [])
+    .map((variable) => ({
+      symbol: variable.symbol?.trim() ?? "",
+      name: variable.name?.trim() ?? "",
+      description: variable.description?.trim() ?? "",
+    }))
+    .filter((variable) => variable.symbol && variable.name && variable.description);
 }
 
 function readPlotConfig(value: unknown) {
